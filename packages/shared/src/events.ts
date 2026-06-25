@@ -13,9 +13,9 @@ export type DomainEventName =
   | 'challenge.updated';
 
 export type DomainEventPayloads = {
-  'run.logged': { userId: string; runId: string; runDate: string };
+  'run.logged': { userId: string; runId: string; runDate: string; distanceMeters: number };
   'workout.logged': { userId: string; workoutId: string; workoutDate: string };
-  'habit.checked': { userId: string; habitId: string; checkDate: string };
+  'habit.checked': { userId: string; habitId: string; habitCheckId: string; checkDate: string };
   'reaction.added': {
     userId: string;
     targetType: 'run' | 'workout' | 'habit_day';

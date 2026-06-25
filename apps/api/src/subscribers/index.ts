@@ -12,4 +12,4 @@
 // This card (Foundation B) defines the bus and registry but subscribes to
 // nothing — slices register their own handlers. Keep this list append-only.
 
-export {};
+import './scoring';
