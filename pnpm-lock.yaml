@@ -32,6 +32,9 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.46.1
         version: 2.108.2
+      date-fns:
+        specifier: ^4.1.0
+        version: 4.4.0
       hono:
         specifier: ^4.6.13
         version: 4.12.27

@@ -16,6 +16,7 @@ import {
   RedirectIfAuthed,
 } from './features/auth/guards'
 import { LogSheetMount } from './features/logging/LogSheet'
+import { GroupProvider } from './features/groups/GroupContext'
 
 function Shell() {
   return (
@@ -71,8 +72,10 @@ const queryClient = new QueryClient()
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-      <LogSheetMount />
+      <GroupProvider>
+        <RouterProvider router={router} />
+        <LogSheetMount />
+      </GroupProvider>
       <Toaster richColors position="top-center" />
     </QueryClientProvider>
   )
