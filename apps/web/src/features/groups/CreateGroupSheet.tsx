@@ -53,7 +53,7 @@ export function CreateGroupSheet({ open, onOpenChange, onCreated }: CreateGroupS
               <span className="text-xs uppercase tracking-wide text-ink-muted">Group name</span>
               <input
                 type="text"
-                placeholder="Wasserman Family"
+                placeholder="e.g. Family workouts"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 autoFocus
