@@ -12,7 +12,7 @@ on('workout.logged', async ({ userId, workoutId, workoutDate }) => {
   await awardScore(userId, points, 'workout', 'workout', workoutId, workoutDate);
 });
 
-on('habit.checked', async ({ userId, habitId, checkDate, habitCheckId }) => {
+on('habit.checked', async ({ userId, habitCheckId, checkDate }) => {
   const points = scoreFor({ reason: 'habit' });
   await awardScore(userId, points, 'habit', 'habit', habitCheckId, checkDate);
 });
@@ -26,12 +26,8 @@ async function awardScore(
   eventDate: string,
 ) {
   const db = serviceClient();
-  await db.from('score_events').insert({
-    user_id: userId,
-    points,
-    reason,
-    source_type: sourceType,
-    source_id: sourceId,
-    event_date: eventDate,
-  });
+  await db.from('score_events').upsert(
+    { user_id: userId, points, reason, source_type: sourceType, source_id: sourceId, event_date: eventDate },
+    { onConflict: 'reason,source_type,source_id', ignoreDuplicates: true },
+  );
 }
