@@ -25,4 +25,7 @@ export const env = {
     const raw = process.env['PORT'];
     return raw ? Number.parseInt(raw, 10) : 8787;
   },
+  get webOrigin(): string {
+    return process.env['WEB_ORIGIN'] ?? 'http://localhost:5173';
+  },
 };
