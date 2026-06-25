@@ -1,20 +1,7 @@
 import type { Context } from 'grammy';
-import { serviceClient } from '../../lib/supabase';
 import { takeDraft } from '../draft';
 import { logRunForUser } from '../save';
-
-function today(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-async function linkedUserId(telegramUserId: number): Promise<string | null> {
-  const { data } = await serviceClient()
-    .from('telegram_links')
-    .select('user_id')
-    .eq('telegram_user_id', telegramUserId)
-    .maybeSingle();
-  return (data?.user_id as string) ?? null;
-}
+import { today, linkedUserId } from './shared';
 
 export async function handleConfirm(ctx: Context): Promise<void> {
   const from = ctx.from;

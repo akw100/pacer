@@ -1,25 +1,13 @@
 import type { Context } from 'grammy';
 import { InlineKeyboard } from 'grammy';
-import { serviceClient } from '../../lib/supabase';
 import { metersToKm, formatDuration } from '@pacer/shared';
 import { parseText, parsePhoto } from '../parse';
 import { putDraft, type RunDraft } from '../draft';
 import { tryConsumePhoto } from '../dailyCap';
+import { botToken } from '../env';
+import { today, linkedUserId } from './shared';
 
 const CONFIDENCE_FLOOR = 0.6;
-
-function today(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-async function linkedUserId(telegramUserId: number): Promise<string | null> {
-  const { data } = await serviceClient()
-    .from('telegram_links')
-    .select('user_id')
-    .eq('telegram_user_id', telegramUserId)
-    .maybeSingle();
-  return (data?.user_id as string) ?? null;
-}
 
 async function offerConfirm(ctx: Context, userId: string, draft: RunDraft): Promise<void> {
   const km = metersToKm(draft.distance_meters).toFixed(2);
@@ -43,13 +31,23 @@ export async function handleMessage(ctx: Context): Promise<void> {
   const photos = ctx.message?.photo;
   try {
     if (photos && photos.length > 0) {
+      let filePath: string;
+      try {
+        const file = await ctx.getFile();
+        filePath = file.file_path ?? '';
+      } catch {
+        await ctx.reply("Couldn't fetch that photo — please try again.");
+        return;
+      }
       if (!tryConsumePhoto(userId, today())) {
         await ctx.reply("You've hit today's photo limit (10). Please type the run instead.");
         return;
       }
-      const file = await ctx.getFile();
-      const url = `https://api.telegram.org/file/bot${process.env['TELEGRAM_BOT_TOKEN']}/${file.file_path}`;
-      const draft = await parsePhoto(url);
+      const tgUrl = `https://api.telegram.org/file/bot${botToken()}/${filePath}`;
+      const resp = await fetch(tgUrl);
+      const contentType = resp.headers.get('content-type') ?? 'image/jpeg';
+      const base64 = Buffer.from(await resp.arrayBuffer()).toString('base64');
+      const draft = await parsePhoto(`data:${contentType};base64,${base64}`);
       if (draft.confidence < CONFIDENCE_FLOOR) {
         await ctx.reply("I couldn't read that clearly — please type the run (e.g. \"5k in 28 min\").");
         return;

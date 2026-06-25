@@ -15,6 +15,10 @@ export function webhookSecret(): string | undefined {
   return process.env['TELEGRAM_WEBHOOK_SECRET'] || undefined;
 }
 
+export function webhookUrl(): string | undefined {
+  return process.env['TELEGRAM_WEBHOOK_URL'] || undefined;
+}
+
 /** 'webhook' only when explicitly selected; otherwise polling (local dev). */
 export function botMode(): 'webhook' | 'polling' {
   return process.env['TELEGRAM_MODE'] === 'webhook' ? 'webhook' : 'polling';

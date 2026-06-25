@@ -8,7 +8,8 @@ import { botEnabled, webhookSecret } from '../telegram/env';
 export const webhook = new Hono().post('/', async (c) => {
   if (!botEnabled()) return c.text('bot disabled', 503);
   const secret = webhookSecret();
-  if (secret && c.req.header('X-Telegram-Bot-Api-Secret-Token') !== secret) {
+  if (!secret) return c.json({ error: 'webhook secret not configured' }, 503);
+  if (c.req.header('X-Telegram-Bot-Api-Secret-Token') !== secret) {
     return c.json({ error: 'bad secret token' }, 401);
   }
   return webhookCallback(getBot(), 'hono')(c);

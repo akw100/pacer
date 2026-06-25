@@ -2,7 +2,7 @@ import { serve } from '@hono/node-server';
 import { app } from './app';
 import { env } from './lib/env';
 import { botMode, botEnabled } from './telegram/env';
-import { startPolling } from './telegram/bot';
+import { startPolling, startWebhook } from './telegram/bot';
 
 // Server entry. tsx runs this directly in dev (watch) and in production — no
 // build step. The app assembly lives in app.ts so it can be imported for tests
@@ -13,4 +13,8 @@ serve({ fetch: app.fetch, port: env.port }, (info) => {
 
 if (botEnabled() && botMode() === 'polling') {
   void startPolling();
+}
+
+if (botEnabled() && botMode() === 'webhook') {
+  void startWebhook();
 }

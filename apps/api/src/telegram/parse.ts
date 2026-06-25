@@ -7,6 +7,7 @@ const MODEL = 'gpt-4o-mini';
 // canonical meters & seconds, never display values.
 const RUN_JSON_SCHEMA = {
   name: 'run_draft',
+  strict: true,
   schema: {
     type: 'object',
     additionalProperties: false,
