@@ -72,9 +72,9 @@ Re-theming the whole app = editing that one file. A hardcoded color in a PR is a
   policies. The **service-role** Supabase client is for trusted server work only (aggregation,
   Telegram ingestion) — **never** shipped to the browser. The browser uses the **anon** key only.
 - **No secrets in git.** No `.env`, API keys, or service-role keys, ever — real values live in the
-  Railway/Supabase dashboards (`09-DEPLOY.md`). The `pre-commit` hook blocks them; if it fires, you
-  were about to leak something — fix it, don't override. The only committed env file is
-  `apps/api/.env.example` (variable **names**, no values).
+  Railway/Supabase dashboards (`09-DEPLOY.md`). The `.gitignore` keeps them out; if you ever find
+  yourself about to commit one, stop — you were about to leak something. The only committed env file
+  is `apps/api/.env.example` (variable **names**, no values).
 
 ## 5. Layout & naming
 ```
