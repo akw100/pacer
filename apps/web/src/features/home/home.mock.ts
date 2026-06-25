@@ -1,11 +1,8 @@
 // Home dashboard TYPES + pure helpers.
 //
-// Historical name: when Home first shipped, this file also held a literal
-// `homeSnapshot` constant (Wasserman Family / Dana / Yuval) used as demo
-// data while the API wiring landed. The constant is GONE — Home now reads
-// real data from /score/summary, /habits, /runs, /workouts, /groups, and
-// /groups/:id/stats via `useHomeData()`. We kept the filename so import
-// paths stay stable; the cards consume these types, not literals.
+// Home consumes these types from `useHomeData()`, which reads live data from
+// /score/summary, /habits, /runs, /workouts, /groups, and /groups/:id/stats.
+// No demo data lives in this file.
 
 export type HabitStatus = 'done' | 'pending';
 
