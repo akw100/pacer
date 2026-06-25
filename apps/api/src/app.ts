@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
+import { cors } from 'hono/cors';
 import type { AppEnv } from './lib/auth';
 import { requireAuth } from './lib/auth';
+import { env } from './lib/env';
 import { registerRoutes } from './routes';
 import './subscribers'; // import for registration side-effects (wires bus handlers)
 
@@ -16,6 +18,8 @@ function isPublicPath(path: string): boolean {
 
 export function createApp(): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
+
+  app.use('*', cors({ origin: env.webOrigin, credentials: true }));
 
   // Global auth guard: authenticate every request except the public prefixes.
   app.use('*', (c, next) =>
