@@ -25,12 +25,13 @@ export default function Nav() {
             </NavLink>
           ))}
         </div>
-        <button
+        <NavLink
+          to="/log"
           className="-mt-5 w-14 h-14 rounded-full bg-accent text-white flex items-center justify-center shadow-lg shadow-accent/25 active:scale-95 transition-transform shrink-0"
           aria-label="Log activity"
         >
           <Plus size={24} strokeWidth={2.5} />
-        </button>
+        </NavLink>
         <div className="flex-1 flex items-center justify-around">
           {tabs.slice(2).map(({ to, label, Icon }) => (
             <NavLink key={to} to={to} className={tabLink}>
