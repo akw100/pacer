@@ -51,6 +51,9 @@ importers:
       '@pacer/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@supabase/supabase-js':
+        specifier: ^2.108.2
+        version: 2.108.2
       lucide-react:
         specifier: ^1.21.0
         version: 1.21.0(react@19.2.7)
