@@ -13,3 +13,4 @@
 // nothing — slices register their own handlers. Keep this list append-only.
 
 import './scoring';
+import './groups';
