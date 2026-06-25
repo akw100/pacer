@@ -7,6 +7,7 @@ import { score } from './score';
 import { runs } from './runs';
 import { workouts } from './workouts';
 import { telegram } from './telegram';
+import { webhook } from './webhook';
 
 // ── Route registry (APPEND-ONLY) ───────────────────────────────────────────
 // The single place routes are mounted onto the app. Each slice adds ONE line
@@ -19,6 +20,7 @@ import { telegram } from './telegram';
 // prefix must be added to PUBLIC_PATH_PREFIXES in app.ts.
 export function registerRoutes(app: Hono<AppEnv>): void {
   app.route('/health', health); // public (see PUBLIC_PATH_PREFIXES)
+  app.route('/webhook', webhook); // public (see PUBLIC_PATH_PREFIXES)
   app.route('/profile', profile); // authed
   app.route('/habits', habits); // authed
   app.route('/score', score); // authed
