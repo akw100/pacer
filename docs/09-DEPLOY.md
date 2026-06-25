@@ -27,6 +27,20 @@ Two Railway **environments**, each running the same two **services** from this r
 > Staging and production get **separate Supabase projects** and **separate Telegram bots** — staging
 > traffic must never touch production data. (Migrations: `supabase db push` against each project.)
 
+## Live environments
+Wired in Railway project **Pacer** (`f0b60e9a-cd91-4427-a37f-efc08d43c05f`). Both services are connected
+to `akw100/pacer` via the GitHub App and track their branch per environment. Secrets are still to be
+filled per environment in the dashboard (see below); the first successful deploy waits on the api `start`
+and web `build` scripts landing.
+
+| Environment | Branch | `pacer-api` | `pacer-web` |
+| --- | --- | --- | --- |
+| production | `main` | https://pacer-api-production-8c8a.up.railway.app | https://pacer-web-production-b697.up.railway.app |
+| staging | `dev` | https://pacer-api-staging-6281.up.railway.app | https://pacer-web-staging-cc40.up.railway.app |
+
+Telegram webhook target per env = that environment's `pacer-api` URL + `/webhook`. The non-secret
+`WEB_ORIGIN` / `VITE_API_URL` cross-refs are already set per environment to the URLs above.
+
 ## Secrets / env vars — dashboard only, never git
 Every secret lives in the **Railway service variables** (and Supabase dashboard), set **per
 environment**. Nothing sensitive is ever committed — the repo only ships `apps/api/.env.example`

@@ -25,7 +25,7 @@ loop), not what blocks what.
   It's mostly scaffolding — quick with Claude. These three are sequential (02 needs 01, 03 needs both).
 - **Everyone else, in parallel:** read your slice's card and `docs/08-CONVENTIONS.md`, and draft your
   migration + zod schema against the contracts (they're spelled out in card 01) so you're ready to
-  move the instant foundation lands. (The git hooks self-activate on your first `pnpm install` — no setup step.)
+  move the instant foundation lands.
 - The moment foundation is on `dev`: everyone runs **/new-task**, picks a card from `docs/05-ROADMAP.md`,
   and goes.
 
@@ -54,7 +54,7 @@ loop), not what blocks what.
 
 ## Where everything is
 - **Who's doing what (live task board):** [team Google Sheet](https://docs.google.com/spreadsheets/d/11e9WA84H1X96eUobMgahIMpeBUjhbPIx_4jaMnMDQhY/edit) — claim a task by putting your name in **אחראי** and set **סטטוס**. Mirrors `docs/TASKS.csv` (Hebrew, with a copy-paste kickoff prompt per task).
-- **What to build & in what order:** `docs/05-ROADMAP.md` + the cards in `docs/tasks/`.
+- **What to build & in what order:** `docs/05-ROADMAP.md` + the task rows in the [team Google Sheet](https://docs.google.com/spreadsheets/d/11e9WA84H1X96eUobMgahIMpeBUjhbPIx_4jaMnMDQhY/edit).
 - **How we work (branches/PRs):** `docs/07-WORKFLOW.md`.
 - **How not to collide (packages, theme, merge-safety):** `docs/08-CONVENTIONS.md`.
 - **How it deploys:** `docs/09-DEPLOY.md`.
