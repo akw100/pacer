@@ -9,8 +9,8 @@
 
 `fix/<slug>` for bug fixes, `chore/<slug>` for tooling. **One task card = one branch = one PR.**
 
-**Nobody pushes to `main` or `dev` directly — ever.** This is enforced three ways: the `pre-push`
-hook (local), GitHub branch protection (server), and code review. If you find yourself typing
+**Nobody pushes to `main` or `dev` directly — ever.** This is enforced two ways: GitHub branch
+protection (server) and code review. If you find yourself typing
 `git push origin main`, stop — open a PR.
 
 ## The loop (use the skills — they do the steps for you)
@@ -32,7 +32,7 @@ hook (local), GitHub branch protection (server), and code review. If you find yo
 
 ## Commits
 - Small and present-tense: `feat(logging): run form`, `fix(groups): join-code collision`, `chore: ci`.
-- Never commit `.env`, keys, or `node_modules` (the `.gitignore` + `pre-commit` hook stop you).
+- Never commit `.env`, keys, or `node_modules` (the `.gitignore` stops you).
 - Never edit a migration that's already merged — add a new timestamped one.
 
 ## Releasing to production
@@ -48,11 +48,8 @@ Production bug? Branch off `main` as `fix/<slug>`, PR **into `main`**, merge (de
 ```bash
 git switch -c dev && git push -u origin dev
 git switch main   && git push -u origin main
-./scripts/protect-branches.sh <owner>/<repo>   # PR-only on main & dev (needs gh admin)
 ```
-The git hooks need **no** setup step — they self-activate on each teammate's first `pnpm install`
-(a root `prepare` script points git at `.githooks/`).
-`protect-branches.sh` sets: `main` requires 1 approving review + no direct/force push; `dev` requires
-a PR (0 reviews, so a solo dev self-merges fast) + no force push. Once CI passes once, make the
-`typecheck` check required (instructions printed by the script). If GitHub refuses protection on a
-free private repo, the `pre-push` hook + review discipline are the fallback (or make the repo public).
+Then turn on branch protection (GitHub → Settings → Branches, or `gh api`): `main` requires 1
+approving review + no direct/force push; `dev` requires a PR (0 reviews, so a solo dev self-merges
+fast) + no force push. Once CI passes once, make the `typecheck` check required. If GitHub refuses
+protection on a free private repo, review discipline is the fallback (or make the repo public).
