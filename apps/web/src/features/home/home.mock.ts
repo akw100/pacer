@@ -1,6 +1,11 @@
-// Typed fixture data for the Home dashboard. One place to change shape +
-// values until the API/Supabase wiring lands — components consume the types,
-// not the literals, so a future `useHomeSnapshot()` swap is mechanical.
+// Home dashboard TYPES + pure helpers.
+//
+// Historical name: when Home first shipped, this file also held a literal
+// `homeSnapshot` constant (Wasserman Family / Dana / Yuval) used as demo
+// data while the API wiring landed. The constant is GONE — Home now reads
+// real data from /score/summary, /habits, /runs, /workouts, /groups, and
+// /groups/:id/stats via `useHomeData()`. We kept the filename so import
+// paths stay stable; the cards consume these types, not literals.
 
 export type HabitStatus = 'done' | 'pending';
 
@@ -69,70 +74,6 @@ export interface HomeSnapshot {
   group: GroupPulse;
   recent: RecentActivityItem[];
 }
-
-export const homeSnapshot: HomeSnapshot = {
-  user: {
-    firstName: 'Dana',
-    streakDays: 6,
-    weeklyPoints: 88,
-  },
-  today: {
-    planned: {
-      kind: 'run',
-      label: 'Run',
-      distanceLabel: '4 km',
-      done: false,
-    },
-    habits: [
-      { id: 'stretch', name: 'Stretch', status: 'done' },
-      { id: 'nutrition', name: 'Nutrition', status: 'done' },
-      { id: 'steps', name: 'Steps', status: 'pending' },
-    ],
-  },
-  week: {
-    completedDistance: 12.4,
-    goalDistance: 16,
-    unit: 'km',
-    runsRemaining: 1,
-    scheduled: [
-      { id: 'r1', label: 'Mon · 4 km', status: 'done' },
-      { id: 'r2', label: 'Tue · 4 km', status: 'done' },
-      { id: 'r3', label: 'Thu · 4 km', status: 'upcoming', day: 'Thu' },
-    ],
-  },
-  group: {
-    groupName: 'Wasserman Family',
-    rows: [
-      { id: 'u1', name: 'Dana', points: 96 },
-      { id: 'me', name: 'You', points: 88, isYou: true },
-      { id: 'u3', name: 'Yuval', points: 71 },
-    ],
-  },
-  recent: [
-    {
-      id: 'a1',
-      actorName: 'Yuval',
-      description: 'logged a 5.2 km run',
-      ago: '2h ago',
-      reactions: [
-        { emoji: '👏', label: 'Clap', count: 2 },
-        { emoji: '🔥', label: 'Fire', count: 1 },
-        { emoji: '💪', label: 'Strong', count: 0 },
-      ],
-    },
-    {
-      id: 'a2',
-      actorName: 'Dana',
-      description: 'completed Stretching',
-      ago: '4h ago',
-      reactions: [
-        { emoji: '👏', label: 'Clap', count: 1 },
-        { emoji: '🔥', label: 'Fire', count: 0 },
-        { emoji: '💪', label: 'Strong', count: 1 },
-      ],
-    },
-  ],
-};
 
 /**
  * Time-aware English greeting. Pure — the caller passes a date so this stays
