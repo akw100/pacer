@@ -5,6 +5,7 @@ import Progress from './screens/Progress'
 import Group from './screens/Group'
 import Challenges from './screens/Challenges'
 import Profile from './screens/Profile'
+import Login from './screens/Login'
 
 function Shell() {
   return (
@@ -27,6 +28,7 @@ const router = createBrowserRouter([
       { path: 'group', element: <Group /> },
       { path: 'challenges', element: <Challenges /> },
       { path: 'profile', element: <Profile /> },
+      { path: 'login', element: <Login /> },
     ],
   },
 ])
