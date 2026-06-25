@@ -6,13 +6,13 @@ import { useHabits, useTodayChecks } from '../habits/useHabits';
 // Prominent Home data-entry hero. This is the main action area on Home —
 // not a footer of pills. Replaces the small QuickActions row.
 //
-// Every action is wired to the existing real flows — no duplicated forms,
-// no fake writes. Run/Workout open the existing LogSheet; the Habits tile
-// reads real counts from GET /habits + the own-rows `habit_checks` SELECT
-// and scrolls to the existing HabitsSection (which holds the real toggle
-// UI and the Add-habit form) — we never duplicate that surface here.
-// The group CTA either jumps into the LogSheet with the active group
-// preselected, or routes to /group to create/join one.
+// Every action is wired to the existing real flows — no duplicated forms.
+// Run/Workout open the existing LogSheet; the Habits tile reads real counts
+// from GET /habits + the own-rows `habit_checks` SELECT and scrolls to the
+// existing HabitsSection (which holds the real toggle UI and the Add-habit
+// form) — we never duplicate that surface here. The group CTA either jumps
+// into the LogSheet with the active group preselected, or routes to /group
+// to create/join one.
 
 interface LogHeroProps {
   /** Display name of the user's "active" group (the one their pulse card uses). */

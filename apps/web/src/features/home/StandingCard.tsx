@@ -7,8 +7,8 @@ import { groupKeys } from '../groups/groups.queries';
 import { useMyGroups, type GroupListItem, type GroupStats } from '../groups/useGroups';
 
 // "Your standing" — a small Home summary across all groups the user belongs
-// to. NOT a leaderboard, NOT a global rank, NOT all-users stats. Computed
-// entirely from the existing real endpoints:
+// to. This is a per-user summary scoped to the user's own groups only —
+// nothing platform-wide. Computed entirely from the existing real endpoints:
 //
 //   - GET /groups               → list of my groups (member_count, name)
 //   - GET /groups/:id/stats     → leaderboard, my rank, gap to first
@@ -22,10 +22,10 @@ import { useMyGroups, type GroupListItem, type GroupStats } from '../groups/useG
 //   - Best rank across groups + group name
 //   - Closest race: lowest positive score_gap_to_first + leader's display_name
 //
-// What we DO NOT do:
-//   - Invent a global / world rank
-//   - Invent gap numbers if the user has no shared activity yet
-//   - Use any local-only state as the source of truth
+// Scope guard:
+//   - Numbers only render when present in the real /stats response
+//   - No platform-wide ranking is computed or displayed
+//   - No client-only state is treated as the source of truth
 
 interface BestRank {
   groupId: string;
