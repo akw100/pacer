@@ -3,3 +3,5 @@
 export * from './profile';
 export * from './habit';
 export * from './score-event';
+export * from './runs';
+export * from './workouts';
