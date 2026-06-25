@@ -22,11 +22,11 @@ export function HistorySection({ units = 'km' }: HistorySectionProps) {
 
   const merged = useMemo<Activity[]>(() => {
     const items: Activity[] = [
-      ...(runs.data ?? []).map((r) => ({ kind: 'run' as const, run: r, date: r.runDate })),
+      ...(runs.data ?? []).map((r) => ({ kind: 'run' as const, run: r, date: r.run_date })),
       ...(workouts.data ?? []).map((w) => ({
         kind: 'workout' as const,
         workout: w,
-        date: w.workoutDate,
+        date: w.workout_date,
       })),
     ];
     items.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));

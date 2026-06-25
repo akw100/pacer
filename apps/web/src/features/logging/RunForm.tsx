@@ -8,7 +8,7 @@ import {
   scoreFor,
   toDateKey,
   type Run,
-  type RunInput,
+  type RunCreate,
   type Units,
 } from '@pacer/shared';
 import { useCreateRun, useUpdateRun } from './useLogging';
@@ -60,11 +60,11 @@ export function RunForm({ units, initial, onDone }: RunFormProps) {
 
   const initialDistance = initial
     ? units === 'km'
-      ? initial.distanceMeters / 1000
-      : initial.distanceMeters / METERS_PER_MILE
+      ? initial.distance_meters / 1000
+      : initial.distance_meters / METERS_PER_MILE
     : 0;
-  const initialMins = initial ? Math.floor(initial.durationSeconds / 60) : 0;
-  const initialSecs = initial ? initial.durationSeconds % 60 : 0;
+  const initialMins = initial ? Math.floor(initial.duration_seconds / 60) : 0;
+  const initialSecs = initial ? initial.duration_seconds % 60 : 0;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(FormSchema),
@@ -72,12 +72,12 @@ export function RunForm({ units, initial, onDone }: RunFormProps) {
       distance: initial ? String(Number(initialDistance.toFixed(2))) : '',
       durationMinutes: initial ? String(initialMins) : '',
       durationSeconds: initial ? String(initialSecs).padStart(2, '0') : '00',
-      runDate: initial?.runDate ?? toDateKey(new Date()),
-      exertionRating: initial?.exertionRating ?? 5,
-      warmUp: initial?.warmUp ?? false,
+      runDate: initial?.run_date ?? toDateKey(new Date()),
+      exertionRating: initial?.exertion_rating ?? 5,
+      warmUp: initial?.warm_up ?? false,
       stretched: initial?.stretched ?? false,
-      postRunFood: initial?.postRunFood ?? false,
-      sleepHours: initial?.sleepHours != null ? String(initial.sleepHours) : '',
+      postRunFood: initial?.post_run_food ?? false,
+      sleepHours: initial?.sleep_hours != null ? String(initial.sleep_hours) : '',
       notes: initial?.notes ?? '',
     },
   });
@@ -99,19 +99,20 @@ export function RunForm({ units, initial, onDone }: RunFormProps) {
     let sleepHours: number | null = null;
     if (values.sleepHours !== '') {
       const n = Number(values.sleepHours);
-      if (Number.isFinite(n) && n >= 0) sleepHours = n;
+      if (Number.isFinite(n) && n >= 0 && n <= 24) sleepHours = n;
     }
 
-    const payload: RunInput = {
-      runDate: values.runDate,
-      distanceMeters,
-      durationSeconds,
-      exertionRating: values.exertionRating,
-      warmUp: values.warmUp,
+    const payload: RunCreate = {
+      run_date: values.runDate,
+      distance_meters: distanceMeters,
+      duration_seconds: durationSeconds,
+      exertion_rating: values.exertionRating,
+      warm_up: values.warmUp,
       stretched: values.stretched,
-      postRunFood: values.postRunFood,
-      sleepHours,
+      post_run_food: values.postRunFood,
+      sleep_hours: sleepHours,
       notes: values.notes || null,
+      source: 'web',
     };
 
     try {

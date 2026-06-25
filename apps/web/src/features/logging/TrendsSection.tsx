@@ -203,12 +203,12 @@ function summarize(runs: Run[], workouts: { id: string }[], units: Units) {
   const recentExertions: number[] = [];
 
   for (const r of runs) {
-    const { value } = metersToDisplayDistance(r.distanceMeters, units);
+    const { value } = metersToDisplayDistance(r.distance_meters, units);
     allTime += value;
-    const d = parseDateKey(r.runDate);
+    const d = parseDateKey(r.run_date);
     if (d && d >= monthAgo) thisMonth += value;
     if (d && d >= weekStart) thisWeek += value;
-    if (d && d >= fourWeeksAgo && r.exertionRating != null) recentExertions.push(r.exertionRating);
+    if (d && d >= fourWeeksAgo && r.exertion_rating != null) recentExertions.push(r.exertion_rating);
   }
 
   const recentAvgExertion =
@@ -241,13 +241,13 @@ function weeklyDistanceBars(runs: Run[], units: Units, weekStart: 0 | 1) {
   }
   const byKey = new Map(buckets.map((b) => [b.key, b]));
   for (const r of runs) {
-    const d = parseDateKey(r.runDate);
+    const d = parseDateKey(r.run_date);
     if (!d) continue;
     const bucketStart = startOfWeek(d, { weekStartsOn: weekStart });
     const k = toDateKey(bucketStart);
     const bucket = byKey.get(k);
     if (!bucket) continue;
-    const { value } = metersToDisplayDistance(r.distanceMeters, units);
+    const { value } = metersToDisplayDistance(r.distance_meters, units);
     bucket.distance += value;
   }
   // Round to 2 decimals for tidy axis labels.
@@ -256,10 +256,10 @@ function weeklyDistanceBars(runs: Run[], units: Units, weekStart: 0 | 1) {
 
 function paceOverTime(runs: Run[], units: Units) {
   // Oldest run first so the line moves left-to-right in time.
-  const sorted = [...runs].sort((a, b) => (a.runDate < b.runDate ? -1 : 1));
+  const sorted = [...runs].sort((a, b) => (a.run_date < b.run_date ? -1 : 1));
   return sorted.map((r) => ({
-    label: r.runDate.slice(5), // MM-DD
-    pace: Math.round(paceSecondsPerUnit(r.distanceMeters, r.durationSeconds, units)),
+    label: r.run_date.slice(5), // MM-DD
+    pace: Math.round(paceSecondsPerUnit(r.distance_meters, r.duration_seconds, units)),
   }));
 }
 

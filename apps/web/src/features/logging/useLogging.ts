@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { Run, RunInput, Workout, WorkoutInput } from '@pacer/shared';
+import type { Run, RunCreate, RunUpdate, Workout, WorkoutCreate } from '@pacer/shared';
 import { invalidateLogging, loggingKeys } from './logging.queries';
 
 // Slice-local fetch wrapper. The shell-owned `lib/api.ts` does not exist yet,
@@ -9,7 +9,7 @@ import { invalidateLogging, loggingKeys } from './logging.queries';
 
 // `import.meta.env` is provided by Vite at build/dev time. We read it via a
 // narrow cast so we don't depend on the shell adding the `vite/client` types
-// reference — when the shell does, this becomes a no-op.
+// reference yet.
 const API_BASE =
   ((import.meta as { env?: Record<string, string | undefined> }).env?.VITE_API_URL) ?? '';
 
@@ -47,7 +47,7 @@ export function useRuns(range?: { from?: string; to?: string }) {
 export function useCreateRun() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: RunInput) =>
+    mutationFn: (input: RunCreate) =>
       apiFetch<Run>(`/runs`, { method: 'POST', body: JSON.stringify(input) }),
     onSuccess: () => invalidateLogging(qc),
   });
@@ -56,7 +56,7 @@ export function useCreateRun() {
 export function useUpdateRun() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, patch }: { id: string; patch: Partial<RunInput> }) =>
+    mutationFn: ({ id, patch }: { id: string; patch: RunUpdate }) =>
       apiFetch<Run>(`/runs/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
     onSuccess: () => invalidateLogging(qc),
   });
@@ -88,7 +88,7 @@ export function useWorkouts(range?: { from?: string; to?: string }) {
 export function useCreateWorkout() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: WorkoutInput) =>
+    mutationFn: (input: WorkoutCreate) =>
       apiFetch<Workout>(`/workouts`, { method: 'POST', body: JSON.stringify(input) }),
     onSuccess: () => invalidateLogging(qc),
   });

@@ -27,30 +27,31 @@ interface ActivityRowProps {
 export function ActivityRow({ activity, units, onEdit, onDelete }: ActivityRowProps) {
   if (activity.kind === 'run') {
     const { run } = activity;
-    const { value: distance, unit } = metersToDisplayDistance(run.distanceMeters, units);
-    const pace = formatPace(paceSecondsPerUnit(run.distanceMeters, run.durationSeconds, units));
+    const { value: distance, unit } = metersToDisplayDistance(run.distance_meters, units);
+    const pace = formatPace(paceSecondsPerUnit(run.distance_meters, run.duration_seconds, units));
     return (
       <RowFrame
         icon={<Footprints size={18} strokeWidth={1.8} className="text-accent" />}
         title={`${distance.toFixed(2)} ${unit}`}
-        meta={[`${pace} /${unit}`, formatDuration(run.durationSeconds)]}
-        date={run.runDate}
+        meta={[`${pace} /${unit}`, formatDuration(run.duration_seconds)]}
+        date={run.run_date}
         onEdit={onEdit}
         onDelete={onDelete}
       />
     );
   }
   const { workout } = activity;
+  const setCount = workout.sets?.length ?? 0;
   return (
     <RowFrame
       icon={<Dumbbell size={18} strokeWidth={1.8} className="text-success" />}
       title={workout.name}
       meta={[
         workout.kind,
-        ...(workout.durationSeconds ? [formatDuration(workout.durationSeconds)] : []),
-        `${workout.sets.length} set${workout.sets.length === 1 ? '' : 's'}`,
+        ...(workout.duration_seconds ? [formatDuration(workout.duration_seconds)] : []),
+        `${setCount} set${setCount === 1 ? '' : 's'}`,
       ]}
-      date={workout.workoutDate}
+      date={workout.workout_date}
       onEdit={onEdit}
       onDelete={onDelete}
     />

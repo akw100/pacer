@@ -8,13 +8,12 @@ import { Plus, Trash2, Repeat } from 'lucide-react';
 import {
   scoreFor,
   toDateKey,
-  type Workout,
-  type WorkoutInput,
-  type WorkoutKindValue,
+  type WorkoutCreate,
 } from '@pacer/shared';
 import { useCreateWorkout, useWorkouts } from './useLogging';
 
-const KIND_OPTIONS: WorkoutKindValue[] = ['strength', 'mobility', 'swim', 'bike', 'other'];
+type WorkoutKind = WorkoutCreate['kind'];
+const KIND_OPTIONS: WorkoutKind[] = ['strength', 'mobility', 'swim', 'bike', 'other'];
 
 const SetSchema = z.object({
   exerciseName: z.string().min(1, 'Name an exercise'),
@@ -75,11 +74,11 @@ export function WorkoutForm({ onDone }: WorkoutFormProps) {
       name: last.name,
       kind: last.kind,
       workoutDate: toDateKey(new Date()),
-      durationMinutes: last.durationSeconds ? String(Math.round(last.durationSeconds / 60)) : '',
+      durationMinutes: last.duration_seconds ? String(Math.round(last.duration_seconds / 60)) : '',
       sets:
-        last.sets.length > 0
+        last.sets && last.sets.length > 0
           ? last.sets.map((s) => ({
-              exerciseName: s.exerciseName,
+              exerciseName: s.exercise_name,
               sets: s.sets != null ? String(s.sets) : '',
               reps: s.reps != null ? String(s.reps) : '',
               weight: s.weight != null ? String(s.weight) : '',
@@ -96,17 +95,24 @@ export function WorkoutForm({ onDone }: WorkoutFormProps) {
         ? Math.round(durationMinutes * 60)
         : null;
 
-    const payload: WorkoutInput = {
+    // Server requires `sets` and `reps` as positive ints — only include rows
+    // the user actually filled out. Empty exercise names are skipped.
+    const sets = values.sets
+      .filter((s) => s.exerciseName.trim() !== '' && s.sets !== '' && s.reps !== '')
+      .map((s) => ({
+        exercise_name: s.exerciseName.trim(),
+        sets: Number(s.sets),
+        reps: Number(s.reps),
+        weight: s.weight === '' ? null : Number(s.weight),
+      }));
+
+    const payload: WorkoutCreate = {
       name: values.name.trim(),
       kind: values.kind,
-      workoutDate: values.workoutDate,
-      durationSeconds,
-      sets: values.sets.map((s) => ({
-        exerciseName: s.exerciseName.trim(),
-        sets: s.sets === '' ? null : Number(s.sets),
-        reps: s.reps === '' ? null : Number(s.reps),
-        weight: s.weight === '' ? null : Number(s.weight),
-      })),
+      workout_date: values.workoutDate,
+      duration_seconds: durationSeconds,
+      sets,
+      source: 'web',
     };
 
     try {
