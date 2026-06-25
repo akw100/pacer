@@ -12,6 +12,7 @@ import { apiFetch } from '../../lib/api';
 import { useAuth } from '../auth/AuthProvider';
 import { useProfile } from '../auth/useProfile';
 import { useMyGroups, type GroupListItem, type GroupStats } from '../groups/useGroups';
+import { useTodayChecks } from '../habits/useHabits';
 import {
   greetingFor,
   type GroupPulse,
@@ -145,6 +146,7 @@ export function useHomeData(): HomeData {
   const runs = useRuns();
   const workouts = useWorkouts();
   const myGroups = useMyGroups();
+  const todayChecks = useTodayChecks();
 
   // Top group = the one the user is currently ranked highest in. Without
   // stats per group we fall back to the first group; with stats we'll pick
@@ -183,7 +185,8 @@ export function useHomeData(): HomeData {
   const firstName = firstNameOf(displayName || handle);
   const week = computeWeekProgress(runs.data ?? [], workouts.data ?? [], weekStart, units);
   const todayPlanned = computeTodayPlanned(runs.data ?? [], workouts.data ?? []);
-  const todayHabits = mapHabits(habits.data ?? []);
+  const checkedHabitIds = new Set((todayChecks.data ?? []).map((c) => c.habit_id));
+  const todayHabits = mapHabits(habits.data ?? [], checkedHabitIds);
   const topGroup = (myGroups.data ?? []).find((g) => g.id === topGroupId) ?? null;
   const groupPulse = computeGroupPulse(topGroup, topStats.data);
   const recent = computeRecent(
@@ -249,11 +252,15 @@ function computeTodayPlanned(runs: Run[], workouts: Workout[]): PlannedActivity 
   return { kind: 'rest', label: 'Nothing logged yet today', done: false };
 }
 
-function mapHabits(rows: HabitApi[]): HabitItem[] {
-  // We don't have a today-check endpoint exposed, so habits render as
-  // "pending" — the Progress → Habits screen owns the live check toggling.
-  // This is honest: it doesn't claim a habit is done when we don't know.
-  return rows.map((h) => ({ id: h.id, name: h.name, status: 'pending' as const }));
+function mapHabits(rows: HabitApi[], checkedToday: Set<string>): HabitItem[] {
+  // `checkedToday` carries habit_ids that have a row in `habit_checks` for
+  // today (read from Supabase JS in `useTodayChecks` — own-rows RLS). This
+  // is real status, not a placeholder.
+  return rows.map((h) => ({
+    id: h.id,
+    name: h.name,
+    status: checkedToday.has(h.id) ? ('done' as const) : ('pending' as const),
+  }));
 }
 
 function computeWeekProgress(
@@ -330,6 +337,19 @@ function computeGroupPulse(
     points: r.score,
     isYou: r.user_id === stats.you_vs_group.you?.user_id,
   }));
+  // If the viewer isn't already in the Top 3, append them as a 4th row so
+  // they always see where they stand. The GroupPulseCard renders a small
+  // visual separator before this trailing row to make the gap explicit.
+  const you = stats.you_vs_group.you;
+  const youInTop = top.some((r) => r.isYou);
+  if (you && !youInTop) {
+    top.push({
+      id: you.user_id,
+      name: you.display_name,
+      points: you.score,
+      isYou: true,
+    });
+  }
   return { groupName: group.name, rows: top };
 }
 
