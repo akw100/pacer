@@ -7,7 +7,11 @@ import { invalidateLogging, loggingKeys } from './logging.queries';
 // When the shell adds its typed client, swap this for that import in a single
 // edit — no caller changes.
 
-const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? '';
+// `import.meta.env` is provided by Vite at build/dev time. We read it via a
+// narrow cast so we don't depend on the shell adding the `vite/client` types
+// reference — when the shell does, this becomes a no-op.
+const API_BASE =
+  ((import.meta as { env?: Record<string, string | undefined> }).env?.VITE_API_URL) ?? '';
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
