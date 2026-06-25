@@ -1,22 +1,73 @@
 import { Link } from 'react-router';
-import { Dumbbell, Footprints, Trophy, Users } from 'lucide-react';
+import { CheckCircle2, Dumbbell, Footprints, Sparkles, Trophy, Users } from 'lucide-react';
 import { openLogSheet } from '../logging/LogSheet';
+import { useHabits, useTodayChecks } from '../habits/useHabits';
 
 // Prominent Home data-entry hero. This is the main action area on Home —
 // not a footer of pills. Replaces the small QuickActions row.
 //
 // Every action is wired to the existing real flows — no duplicated forms,
-// no fake writes. Run/Workout open the existing LogSheet; the group CTA
-// either jumps into the LogSheet with the active group preselected (via
-// the existing `openLogSheet({ groupId })` API), or routes to /group for
-// the user to create/join one first.
+// no fake writes. Run/Workout open the existing LogSheet; the Habits tile
+// reads real counts from GET /habits + the own-rows `habit_checks` SELECT
+// and scrolls to the existing HabitsSection (which holds the real toggle
+// UI and the Add-habit form) — we never duplicate that surface here.
+// The group CTA either jumps into the LogSheet with the active group
+// preselected, or routes to /group to create/join one.
 
 interface LogHeroProps {
   /** Display name of the user's "active" group (the one their pulse card uses). */
   activeGroupName: string | null;
 }
 
+// Scrolls to the existing HabitsSection on the same Home screen. The section
+// uses `id="habits-heading"` on its <h2> (see HabitsSection.tsx) — that's the
+// stable anchor we point at, so a future rename of the visible heading text
+// won't break this link.
+function scrollToHabits() {
+  const el = document.getElementById('habits-heading');
+  if (!el) return;
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // Briefly highlight the section so the user understands where they landed.
+  el.closest('section')?.classList.add('ring-2', 'ring-accent/40');
+  window.setTimeout(() => {
+    el.closest('section')?.classList.remove('ring-2', 'ring-accent/40');
+  }, 1400);
+}
+
 export function LogHero({ activeGroupName }: LogHeroProps) {
+  // Real habit data — same source the HabitsSection itself uses.
+  const habits = useHabits();
+  const todayChecks = useTodayChecks();
+
+  const totalHabits = habits.data?.length ?? 0;
+  const checkedIds = new Set((todayChecks.data ?? []).map((c) => c.habit_id));
+  const doneToday = (habits.data ?? []).filter((h) => checkedIds.has(h.id)).length;
+
+  const habitTile = (() => {
+    if (habits.isLoading || todayChecks.isLoading) {
+      return { title: 'Daily habits', subtitle: 'Loading…', icon: <Sparkles size={22} strokeWidth={1.8} /> };
+    }
+    if (totalHabits === 0) {
+      return {
+        title: 'Add a habit',
+        subtitle: 'Start your daily ritual',
+        icon: <Sparkles size={22} strokeWidth={1.8} />,
+      };
+    }
+    if (doneToday >= totalHabits) {
+      return {
+        title: 'All habits done',
+        subtitle: `${doneToday} of ${totalHabits} · nice work`,
+        icon: <CheckCircle2 size={22} strokeWidth={1.8} />,
+      };
+    }
+    return {
+      title: 'Check habits',
+      subtitle: `${doneToday} of ${totalHabits} done today`,
+      icon: <Sparkles size={22} strokeWidth={1.8} />,
+    };
+  })();
+
   return (
     <section
       aria-labelledby="log-hero-heading"
@@ -27,11 +78,11 @@ export function LogHero({ activeGroupName }: LogHeroProps) {
           What did you do today?
         </h2>
         <p className="text-sm text-ink-muted">
-          A run, a workout — log it before it slips away.
+          A run, a workout, a habit — log it before it slips away.
         </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-3">
         <ActionTile
           onClick={() => openLogSheet({ tab: 'run' })}
           icon={<Footprints size={22} strokeWidth={1.8} />}
@@ -44,6 +95,12 @@ export function LogHero({ activeGroupName }: LogHeroProps) {
           icon={<Dumbbell size={22} strokeWidth={1.8} />}
           title="Log workout"
           subtitle="Sets · reps · weight"
+        />
+        <ActionTile
+          onClick={scrollToHabits}
+          icon={habitTile.icon}
+          title={habitTile.title}
+          subtitle={habitTile.subtitle}
         />
       </div>
 
