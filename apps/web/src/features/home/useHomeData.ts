@@ -122,11 +122,14 @@ function useGroupFeed(groupId: string | null) {
 }
 
 export interface HomeData {
-  /** Composed snapshot — null when the user has no profile yet. */
-  snapshot: HomeSnapshot | null;
-  /** True while the first round of queries is still in flight. */
-  isLoading: boolean;
-  /** True only if profile or score fail — the other queries degrade gracefully. */
+  /** Composed snapshot — ALWAYS present, with honest empty defaults when a
+   *  source hasn't loaded yet. Never null. */
+  snapshot: HomeSnapshot;
+  /** True only on the very first paint when no source has resolved yet —
+   *  the dashboard shell still renders; individual cards may shimmer. */
+  isLoadingInitial: boolean;
+  /** True only if a critical source (score) fails. Surfaced as a banner,
+   *  never as a full-page takeover. */
   isError: boolean;
   /** The top group (highest weekly score among the user's groups), or null. */
   topGroup: GroupListItem | null;
@@ -174,13 +177,23 @@ export function useHomeData(): HomeData {
   const units: Units = profileLoose?.units ?? 'km';
   const weekStart: WeekStart = (profileLoose?.weekStart ?? profileLoose?.week_start ?? 1) as WeekStart;
 
-  const isLoading =
-    score.isLoading || runs.isLoading || workouts.isLoading || habits.isLoading || myGroups.isLoading;
+  // Bug history: a previous version returned `{ snapshot: null }` until the
+  // profile finished loading, AND used a single `isLoading = OR of every
+  // query` flag. The HomeDashboard then rendered a full-page Skeleton until
+  // ALL queries resolved — and if any one refetched on focus, the whole
+  // dashboard collapsed back to blank grey blocks. We now build a snapshot
+  // from whatever has loaded so far (zeros + empty arrays as honest defaults)
+  // and let each card decide its own loading copy. `isLoadingInitial`
+  // exposes the brief first-paint state for components that genuinely need
+  // it; the dashboard shell renders unconditionally.
+  const isLoadingInitial =
+    !score.data &&
+    !runs.data &&
+    !workouts.data &&
+    !habits.data &&
+    !myGroups.data &&
+    (score.isLoading || runs.isLoading || workouts.isLoading || habits.isLoading || myGroups.isLoading);
   const isError = score.isError;
-
-  if (!profile) {
-    return { snapshot: null, isLoading, isError, topGroup: null, hasAnyGroup: false };
-  }
 
   const firstName = firstNameOf(displayName || handle);
   const week = computeWeekProgress(runs.data ?? [], workouts.data ?? [], weekStart, units);
@@ -213,7 +226,7 @@ export function useHomeData(): HomeData {
 
   return {
     snapshot,
-    isLoading,
+    isLoadingInitial,
     isError,
     topGroup,
     hasAnyGroup: (myGroups.data ?? []).length > 0,
