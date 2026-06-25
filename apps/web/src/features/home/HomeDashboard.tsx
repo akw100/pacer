@@ -1,5 +1,6 @@
 import { Link } from 'react-router';
-import { LogIn, Plus } from 'lucide-react';
+import { AlertCircle, Dumbbell, Footprints, LogIn, Plus, Sparkles, Users } from 'lucide-react';
+import { openLogSheet } from '../logging/LogSheet';
 import { HomeHeader } from './HomeHeader';
 import { TodayCard } from './TodayCard';
 import { ThisWeekCard } from './ThisWeekCard';
@@ -11,29 +12,28 @@ import { greetingFor, useHomeData } from './useHomeData';
 // streak + weekly points from /score/summary, this-week from /runs +
 // /workouts) and a real group pulse when the user belongs to a group.
 //
-// No mock fallback anywhere: when there's no data, the cards show honest
-// empty states (zeros + teaching copy) — never invented names or values.
+// Render policy: the dashboard SHELL renders unconditionally — every card
+// has its own honest empty state baked in. We never gate the whole page
+// behind a single global Skeleton, because a stuck query (refetch on focus,
+// 401 retry, slow group endpoint) would otherwise blank out the entire UI.
+// A small banner is shown on top if a critical source errors; that's it.
 
 export function HomeDashboard() {
-  const { snapshot, isLoading, isError, hasAnyGroup } = useHomeData();
+  const { snapshot, isLoadingInitial, isError } = useHomeData();
   const greeting = greetingFor();
-
-  if (isError) {
-    return (
-      <div className="px-4 pt-5 pb-6 mx-auto w-full max-w-5xl">
-        <div className="rounded-card border border-accent/30 bg-accent/5 p-5 text-sm text-ink">
-          We couldn't load your dashboard. Refresh to retry.
-        </div>
-      </div>
-    );
-  }
-
-  if (isLoading || !snapshot) {
-    return <Skeleton />;
-  }
 
   return (
     <div className="px-4 pt-5 pb-6 mx-auto w-full max-w-5xl flex flex-col gap-5">
+      {isError && (
+        <div
+          role="alert"
+          className="rounded-card border border-accent/30 bg-accent/5 p-3 text-sm text-ink flex items-center gap-2"
+        >
+          <AlertCircle size={16} strokeWidth={1.8} className="text-accent shrink-0" />
+          <span>Some of your stats didn't load. They'll update on the next refresh.</span>
+        </div>
+      )}
+
       <HomeHeader
         greeting={greeting}
         firstName={snapshot.user.firstName}
@@ -41,13 +41,15 @@ export function HomeDashboard() {
         weeklyPoints={snapshot.user.weeklyPoints}
       />
 
+      <QuickActions hasAnyGroup={snapshot.group.rows.length > 0 || !!snapshot.group.groupName} />
+
       <div className="grid gap-4 md:grid-cols-2 md:gap-5 items-start">
         <div className="flex flex-col gap-4 md:gap-5">
           <TodayCard planned={snapshot.today.planned} habits={snapshot.today.habits} />
           <ThisWeekCard week={snapshot.week} />
         </div>
         <div className="flex flex-col gap-4 md:gap-5">
-          {hasAnyGroup ? (
+          {snapshot.group.groupName ? (
             <GroupPulseCard pulse={snapshot.group} />
           ) : (
             <NoGroupCard />
@@ -55,7 +57,43 @@ export function HomeDashboard() {
           <RecentActivityList items={snapshot.recent} />
         </div>
       </div>
+
+      {isLoadingInitial && (
+        <p className="sr-only" role="status" aria-live="polite">
+          Loading your dashboard…
+        </p>
+      )}
     </div>
+  );
+}
+
+function QuickActions({ hasAnyGroup }: { hasAnyGroup: boolean }) {
+  return (
+    <nav aria-label="Quick actions" className="flex flex-wrap gap-2">
+      <button
+        type="button"
+        onClick={() => openLogSheet({ tab: 'run' })}
+        className="inline-flex items-center gap-1.5 rounded-pill bg-accent text-white px-4 py-2 text-sm font-semibold shadow-sm shadow-accent/20 active:scale-[0.98] transition-transform"
+      >
+        <Footprints size={14} strokeWidth={2} />
+        Log run
+      </button>
+      <button
+        type="button"
+        onClick={() => openLogSheet({ tab: 'workout' })}
+        className="inline-flex items-center gap-1.5 rounded-pill border border-border bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-ink/5"
+      >
+        <Dumbbell size={14} strokeWidth={2} />
+        Log workout
+      </button>
+      <Link
+        to="/group"
+        className="inline-flex items-center gap-1.5 rounded-pill border border-border bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-ink/5"
+      >
+        <Users size={14} strokeWidth={2} />
+        {hasAnyGroup ? 'Your groups' : 'Create or join a group'}
+      </Link>
+    </nav>
   );
 }
 
@@ -65,6 +103,9 @@ function NoGroupCard() {
       aria-labelledby="no-group-heading"
       className="rounded-card border border-dashed border-border bg-surface p-5 shadow-sm flex flex-col gap-3"
     >
+      <span className="grid place-items-center w-10 h-10 rounded-pill bg-accent/10 text-accent">
+        <Sparkles size={18} strokeWidth={1.8} />
+      </span>
       <h2 id="no-group-heading" className="font-display text-lg font-semibold text-ink">
         Pacer is more fun together
       </h2>
@@ -89,33 +130,5 @@ function NoGroupCard() {
         </Link>
       </div>
     </section>
-  );
-}
-
-function Skeleton() {
-  return (
-    <div
-      role="status"
-      aria-label="Loading your dashboard"
-      className="px-4 pt-5 pb-6 mx-auto w-full max-w-5xl flex flex-col gap-5"
-    >
-      <div className="flex flex-col gap-3">
-        <div className="h-8 w-56 rounded bg-ink/10 animate-pulse" />
-        <div className="flex gap-2">
-          <div className="h-6 w-24 rounded-pill bg-ink/5 animate-pulse" />
-          <div className="h-6 w-32 rounded-pill bg-ink/5 animate-pulse" />
-        </div>
-      </div>
-      <div className="grid gap-4 md:grid-cols-2 md:gap-5 items-start">
-        <div className="flex flex-col gap-4 md:gap-5">
-          <div className="h-48 rounded-card bg-ink/5 animate-pulse" />
-          <div className="h-40 rounded-card bg-ink/5 animate-pulse" />
-        </div>
-        <div className="flex flex-col gap-4 md:gap-5">
-          <div className="h-48 rounded-card bg-ink/5 animate-pulse" />
-          <div className="h-40 rounded-card bg-ink/5 animate-pulse" />
-        </div>
-      </div>
-    </div>
   );
 }
