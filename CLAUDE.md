@@ -18,7 +18,7 @@ monorepo, greenfield:
 - `docs/06-TECH-STACK.md` — the **only** packages allowed.
 - `docs/07-WORKFLOW.md` — git / branch / PR workflow.
 - `docs/08-CONVENTIONS.md` — file ownership + the five cross-slice channels.
-- `docs/tasks/*.md` — one card per task; build **only the files your card owns**.
+- Task board: the [team Google Sheet](https://docs.google.com/spreadsheets/d/11e9WA84H1X96eUobMgahIMpeBUjhbPIx_4jaMnMDQhY/edit) — one row per task; build **only the files your task owns**.
 
 ## Hard rules
 
