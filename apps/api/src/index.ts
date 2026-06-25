@@ -1,8 +1,10 @@
-// Placeholder. Foundation B replaces this with the Hono server, the in-process
-// event bus, broadcast()/realtime, and the route registry.
-//
-// The import proves cross-workspace raw-TS resolution of @pacer/shared at
-// typecheck time (no build/dist step).
-import { scoreFor } from '@pacer/shared';
+import { serve } from '@hono/node-server';
+import { app } from './app';
+import { env } from './lib/env';
 
-export const placeholder = scoreFor({ reason: 'workout' });
+// Server entry. tsx runs this directly in dev (watch) and in production — no
+// build step. The app assembly lives in app.ts so it can be imported for tests
+// without binding a port.
+serve({ fetch: app.fetch, port: env.port }, (info) => {
+  console.log(`[pacer-api] listening on http://localhost:${info.port}`);
+});
