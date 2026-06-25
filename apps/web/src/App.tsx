@@ -16,6 +16,13 @@ import {
   RedirectIfAuthed,
 } from './features/auth/guards'
 import { LogSheetMount } from './features/logging/LogSheet'
+import { OnboardingFlow } from './features/onboarding/OnboardingFlow'
+import { CoachmarkTour } from './features/onboarding/CoachmarkTour'
+import { ContextualHints } from './features/onboarding/ContextualHints'
+import { HowPacerWorksSheet } from './features/onboarding/HowPacerWorksSheet'
+import { InstallPrompt } from './pwa/InstallPrompt'
+import { OfflineShell } from './pwa/OfflineShell'
+import { useAuth } from './features/auth/AuthProvider'
 
 function Shell() {
   return (
@@ -68,11 +75,31 @@ const router = createBrowserRouter([
 
 const queryClient = new QueryClient()
 
+// Onboarding overlays only render once the user is authenticated. They guard
+// themselves further (need a claimed handle / no completed_at) but we still
+// short-circuit unauthed renders so we don't fire /onboarding/state on the
+// sign-in screen.
+function AuthedOverlays() {
+  const { session } = useAuth()
+  if (!session) return null
+  return (
+    <>
+      <OnboardingFlow />
+      <CoachmarkTour />
+      <ContextualHints />
+      <HowPacerWorksSheet />
+    </>
+  )
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
       <LogSheetMount />
+      <AuthedOverlays />
+      <OfflineShell />
+      <InstallPrompt />
       <Toaster richColors position="top-center" />
     </QueryClientProvider>
   )

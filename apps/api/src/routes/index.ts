@@ -6,6 +6,7 @@ import { habits } from './habits';
 import { score } from './score';
 import { runs } from './runs';
 import { workouts } from './workouts';
+import { onboarding } from './onboarding';
 import { platformStats } from './platform-stats';
 
 // ── Route registry (APPEND-ONLY) ───────────────────────────────────────────
@@ -25,5 +26,6 @@ export function registerRoutes(app: Hono<AppEnv>): void {
   app.route('/runs', runs); // authed
   app.route('/workouts', workouts); // authed
   app.route('/stats/platform', platformStats); // authed
+  app.route('/onboarding', onboarding); // authed
   // ↑ add your slice's route here, one line.
 }
