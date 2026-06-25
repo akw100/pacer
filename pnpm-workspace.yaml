@@ -1,0 +1,7 @@
+packages:
+  - packages/*
+  - apps/*
+
+# esbuild ships its prebuilt native binary via an install script; tsx needs it.
+allowBuilds:
+  esbuild: true
