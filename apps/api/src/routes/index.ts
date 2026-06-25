@@ -6,6 +6,7 @@ import { habits } from './habits';
 import { score } from './score';
 import { runs } from './runs';
 import { workouts } from './workouts';
+import { platformStats } from './platform-stats';
 
 // ── Route registry (APPEND-ONLY) ───────────────────────────────────────────
 // The single place routes are mounted onto the app. Each slice adds ONE line
@@ -23,5 +24,6 @@ export function registerRoutes(app: Hono<AppEnv>): void {
   app.route('/score', score); // authed
   app.route('/runs', runs); // authed
   app.route('/workouts', workouts); // authed
+  app.route('/stats/platform', platformStats); // authed
   // ↑ add your slice's route here, one line.
 }

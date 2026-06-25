@@ -5,6 +5,7 @@ import ProgressCalendar from '../features/progress/ProgressCalendar'
 import ProgressRecords from '../features/progress/ProgressRecords'
 import { HistorySection } from '../features/logging/HistorySection'
 import { TrendsSection } from '../features/logging/TrendsSection'
+import { CommunityCard } from '../features/platform-stats/CommunityCard'
 
 const tabs = ['Trends', 'Calendar', 'History', 'Records'] as const
 
@@ -68,7 +69,12 @@ export default function Progress() {
       <div className="mt-6 space-y-6">
         {selectedTab === 'Calendar' && <ProgressCalendar />}
         {selectedTab === 'Records' && <ProgressRecords />}
-        {selectedTab === 'Trends' && <TrendsSection />}
+        {selectedTab === 'Trends' && (
+          <div className="grid gap-6 lg:grid-cols-[1fr_22rem] items-start">
+            <TrendsSection />
+            <CommunityCard />
+          </div>
+        )}
         {selectedTab === 'History' && <HistorySection />}
       </div>
     </div>

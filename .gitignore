@@ -9,3 +9,5 @@ build/
 .turbo/
 .vite/
 coverage/
+supabase/.temp/
+supabase/.branches/
