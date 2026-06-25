@@ -1,7 +1,8 @@
 import { Link } from 'react-router';
-import { AlertCircle, Dumbbell, Footprints, LogIn, Plus, Sparkles, Users } from 'lucide-react';
-import { openLogSheet } from '../logging/LogSheet';
+import { AlertCircle, LogIn, Plus, Sparkles } from 'lucide-react';
 import { HomeHeader } from './HomeHeader';
+import { LogHero } from './LogHero';
+import { StandingCard } from './StandingCard';
 import { TodayCard } from './TodayCard';
 import { ThisWeekCard } from './ThisWeekCard';
 import { GroupPulseCard } from './GroupPulseCard';
@@ -41,7 +42,9 @@ export function HomeDashboard() {
         weeklyPoints={snapshot.user.weeklyPoints}
       />
 
-      <QuickActions hasAnyGroup={snapshot.group.rows.length > 0 || !!snapshot.group.groupName} />
+      <LogHero activeGroupName={snapshot.group.groupName || null} />
+
+      <StandingCard />
 
       <div className="grid gap-4 md:grid-cols-2 md:gap-5 items-start">
         <div className="flex flex-col gap-4 md:gap-5">
@@ -64,36 +67,6 @@ export function HomeDashboard() {
         </p>
       )}
     </div>
-  );
-}
-
-function QuickActions({ hasAnyGroup }: { hasAnyGroup: boolean }) {
-  return (
-    <nav aria-label="Quick actions" className="flex flex-wrap gap-2">
-      <button
-        type="button"
-        onClick={() => openLogSheet({ tab: 'run' })}
-        className="inline-flex items-center gap-1.5 rounded-pill bg-accent text-white px-4 py-2 text-sm font-semibold shadow-sm shadow-accent/20 active:scale-[0.98] transition-transform"
-      >
-        <Footprints size={14} strokeWidth={2} />
-        Log run
-      </button>
-      <button
-        type="button"
-        onClick={() => openLogSheet({ tab: 'workout' })}
-        className="inline-flex items-center gap-1.5 rounded-pill border border-border bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-ink/5"
-      >
-        <Dumbbell size={14} strokeWidth={2} />
-        Log workout
-      </button>
-      <Link
-        to="/group"
-        className="inline-flex items-center gap-1.5 rounded-pill border border-border bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-ink/5"
-      >
-        <Users size={14} strokeWidth={2} />
-        {hasAnyGroup ? 'Your groups' : 'Create or join a group'}
-      </Link>
-    </nav>
   );
 }
 

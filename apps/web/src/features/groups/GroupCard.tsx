@@ -26,6 +26,11 @@ export function GroupCard({ group, youUserId, units, onOpen }: GroupCardProps) {
   // Distance shown in the user's units; the API returns canonical meters.
   const distance = you ? metersToDisplayDistance(you.distance_meters, units) : null;
 
+  // `score_gap_to_first` is computed server-side in /groups/:id/stats. We
+  // surface it as motivation copy ONLY when there's a real positive gap —
+  // never invent a number, never frame it negatively ("you're losing").
+  const motivation = pickMotivation(stats.data, you);
+
   return (
     <button
       type="button"
@@ -53,12 +58,17 @@ export function GroupCard({ group, youUserId, units, onOpen }: GroupCardProps) {
 
       {/* Stats strip — only shown when /stats has returned a non-empty board */}
       {you ? (
-        <div className="mt-4 grid grid-cols-4 gap-2">
-          <Stat label="Rank" value={rank ? `#${rank}` : '—'} />
-          <Stat label="Score" value={`${you.score}`} />
-          <Stat label={units} value={distance ? distance.value.toFixed(1) : '—'} />
-          <Stat label="Runs" value={`${you.runs}`} />
-        </div>
+        <>
+          <div className="mt-4 grid grid-cols-4 gap-2">
+            <Stat label="Rank" value={rank ? `#${rank}` : '—'} />
+            <Stat label="Score" value={`${you.score}`} />
+            <Stat label={units} value={distance ? distance.value.toFixed(1) : '—'} />
+            <Stat label="Runs" value={`${you.runs}`} />
+          </div>
+          {motivation && (
+            <p className="mt-3 text-xs text-ink-muted leading-snug">{motivation}</p>
+          )}
+        </>
       ) : stats.isLoading ? (
         <div className="mt-4 h-12 rounded-card bg-ink/5 animate-pulse" />
       ) : (
@@ -70,6 +80,24 @@ export function GroupCard({ group, youUserId, units, onOpen }: GroupCardProps) {
       )}
     </button>
   );
+}
+
+// Pure copy chooser. Only returns a string when the underlying numbers
+// support it. Never invents motivation from missing data.
+function pickMotivation(
+  stats: import('./useGroups').GroupStats | undefined,
+  you: import('./useGroups').LeaderboardRow | null,
+): string | null {
+  if (!stats || !you) return null;
+  const gap = stats.you_vs_group.score_gap_to_first;
+  const rank = stats.you_vs_group.rank;
+  const board = stats.leaderboard;
+  if (rank === 1) return "You're leading the pack.";
+  if (gap > 0 && gap <= 5) return `${gap} pt${gap === 1 ? '' : 's'} behind first place.`;
+  if (gap > 0 && gap <= 20) return `One workout could move you up.`;
+  if (gap > 0) return `${gap} pts behind first — plenty of week left.`;
+  if (board.length === 1) return 'Invite teammates to compete together.';
+  return null;
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
