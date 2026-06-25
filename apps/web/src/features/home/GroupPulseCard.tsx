@@ -1,0 +1,81 @@
+import type { GroupPulse, LeaderboardRow } from './home.mock';
+
+interface GroupPulseCardProps {
+  pulse: GroupPulse;
+}
+
+export function GroupPulseCard({ pulse }: GroupPulseCardProps) {
+  const top = pulse.rows[0];
+  const you = pulse.rows.find((r) => r.isYou);
+  // Friendly nudge — never the negative framing ("you're losing"). Falls back
+  // to celebration when the user is on top.
+  const motivation = motivationFor(top, you);
+
+  return (
+    <section
+      aria-labelledby="group-pulse-heading"
+      className="rounded-card border border-border bg-surface p-5 shadow-sm flex flex-col gap-4"
+    >
+      <header className="flex items-center justify-between">
+        <h2 id="group-pulse-heading" className="font-display text-lg font-semibold text-ink">
+          Group pulse
+        </h2>
+        <span className="text-xs text-ink-muted truncate max-w-[60%] text-right">
+          {pulse.groupName}
+        </span>
+      </header>
+
+      <ol className="flex flex-col gap-1.5" role="list">
+        {pulse.rows.map((row, i) => (
+          <LeaderRow key={row.id} rank={i + 1} row={row} />
+        ))}
+      </ol>
+
+      {motivation && (
+        <p className="text-sm text-ink font-medium leading-snug">{motivation}</p>
+      )}
+    </section>
+  );
+}
+
+function LeaderRow({ rank, row }: { rank: number; row: LeaderboardRow }) {
+  return (
+    <li
+      className={`flex items-center gap-3 rounded-card border px-3 py-2 ${
+        row.isYou
+          ? 'border-accent/30 bg-accent/5'
+          : 'border-border bg-surface'
+      }`}
+    >
+      <span
+        aria-label={`Rank ${rank}`}
+        className={`grid place-items-center w-7 h-7 rounded-pill text-xs font-semibold ${
+          rank === 1 ? 'bg-streak/15 text-streak' : 'bg-ink/5 text-ink-muted'
+        }`}
+      >
+        {rank}
+      </span>
+      <span
+        className={`flex-1 truncate text-sm ${
+          row.isYou ? 'text-ink font-semibold' : 'text-ink'
+        }`}
+      >
+        {row.name}
+      </span>
+      <span className="font-display text-base font-bold text-ink tabular-nums">
+        {row.points}
+        <span className="text-xs text-ink-muted font-medium ml-1">pts</span>
+      </span>
+    </li>
+  );
+}
+
+function motivationFor(
+  top: LeaderboardRow | undefined,
+  you: LeaderboardRow | undefined,
+): string | null {
+  if (!top || !you) return null;
+  if (you.id === top.id) return `You're leading the pack — keep it up!`;
+  const gap = top.points - you.points;
+  return `You're only ${gap} pt${gap === 1 ? '' : 's'} from first place`;
+}

@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router'
 import { Home, BarChart2, Users, Trophy, User, Plus } from 'lucide-react'
+import { openLogSheet } from '../features/logging/LogSheet'
 
 const tabs = [
   { to: '/', label: 'Home', Icon: Home },
@@ -26,6 +27,7 @@ export default function Nav() {
           ))}
         </div>
         <button
+          onClick={() => openLogSheet()}
           className="-mt-5 w-14 h-14 rounded-full bg-accent text-white flex items-center justify-center shadow-lg shadow-accent/25 active:scale-95 transition-transform shrink-0"
           aria-label="Log activity"
         >

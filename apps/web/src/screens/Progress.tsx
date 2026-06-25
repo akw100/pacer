@@ -3,6 +3,8 @@ import { Button } from '../components/Button'
 import HabitsSection from '../features/habits/HabitsSection'
 import ProgressCalendar from '../features/progress/ProgressCalendar'
 import ProgressRecords from '../features/progress/ProgressRecords'
+import { HistorySection } from '../features/logging/HistorySection'
+import { TrendsSection } from '../features/logging/TrendsSection'
 
 const tabs = ['Trends', 'Calendar', 'History', 'Records'] as const
 
@@ -66,18 +68,8 @@ export default function Progress() {
       <div className="mt-6 space-y-6">
         {selectedTab === 'Calendar' && <ProgressCalendar />}
         {selectedTab === 'Records' && <ProgressRecords />}
-        {selectedTab === 'Trends' && (
-          <div className="rounded-card border border-border bg-white p-5">
-            <h2 className="text-xl font-semibold text-ink">Trends coming soon</h2>
-            <p className="mt-3 text-sm text-ink-muted">This tab will show weekly distance bars, pace line, and score trends.</p>
-          </div>
-        )}
-        {selectedTab === 'History' && (
-          <div className="rounded-card border border-border bg-white p-5">
-            <h2 className="text-xl font-semibold text-ink">History coming soon</h2>
-            <p className="mt-3 text-sm text-ink-muted">This tab will show your reverse-chronological activity feed and past habit checks.</p>
-          </div>
-        )}
+        {selectedTab === 'Trends' && <TrendsSection />}
+        {selectedTab === 'History' && <HistorySection />}
       </div>
     </div>
   )
