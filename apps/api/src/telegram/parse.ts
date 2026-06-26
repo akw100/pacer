@@ -28,7 +28,14 @@ const SYSTEM =
 
 /** Validate the model's JSON string against RunDraftSchema. Throws on bad shape. */
 export function parseRunDraftJson(raw: string): RunDraft {
-  return RunDraftSchema.parse(JSON.parse(raw));
+  const obj = JSON.parse(raw) as Record<string, unknown>;
+  // The model occasionally emits run_date as prose ("this morning") instead of
+  // yyyy-mm-dd. Our schema requires the strict format; treat anything malformed
+  // as absent — draftToRunCreate defaults run_date to today.
+  if (typeof obj['run_date'] === 'string' && !/^\d{4}-\d{2}-\d{2}$/.test(obj['run_date'])) {
+    obj['run_date'] = null;
+  }
+  return RunDraftSchema.parse(obj);
 }
 
 /** Parse free text into a RunDraft via OpenAI structured output. */

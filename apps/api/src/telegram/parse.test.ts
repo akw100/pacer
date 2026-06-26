@@ -15,3 +15,13 @@ test('parseRunDraftJson throws on malformed json', () => {
 test('parseRunDraftJson throws when units are wrong (negative)', () => {
   assert.throws(() => parseRunDraftJson('{"distance_meters":-1,"duration_seconds":10,"confidence":0.5}'));
 });
+
+test('parseRunDraftJson nulls a malformed run_date instead of throwing', () => {
+  const d = parseRunDraftJson('{"distance_meters":5000,"duration_seconds":1680,"run_date":"this morning","confidence":1}');
+  assert.equal(d.run_date, null);
+});
+
+test('parseRunDraftJson keeps a valid run_date', () => {
+  const d = parseRunDraftJson('{"distance_meters":5000,"duration_seconds":1680,"run_date":"2026-06-20","confidence":1}');
+  assert.equal(d.run_date, '2026-06-20');
+});
