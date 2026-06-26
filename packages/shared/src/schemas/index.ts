@@ -5,5 +5,6 @@ export * from './habit';
 export * from './score-event';
 export * from './runs';
 export * from './workouts';
+export * from './platform-stats';
 export * from './group';
 export * from './reaction';

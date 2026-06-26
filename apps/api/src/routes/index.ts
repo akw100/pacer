@@ -6,6 +6,7 @@ import { habits } from './habits';
 import { score } from './score';
 import { runs } from './runs';
 import { workouts } from './workouts';
+import { platformStats } from './platform-stats';
 import { groups } from './groups';
 import { reactions } from './reactions';
 
@@ -25,6 +26,7 @@ export function registerRoutes(app: Hono<AppEnv>): void {
   app.route('/score', score); // authed
   app.route('/runs', runs); // authed
   app.route('/workouts', workouts); // authed
+  app.route('/stats/platform', platformStats); // authed
   app.route('/groups', groups); // authed
   app.route('/reactions', reactions); // authed
   // ↑ add your slice's route here, one line.
