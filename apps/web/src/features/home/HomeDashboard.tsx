@@ -1,5 +1,6 @@
 import { Link } from 'react-router';
 import { AlertCircle, LogIn, Plus, Sparkles } from 'lucide-react';
+import { FriendsStandingCard } from '../friends/FriendsStandingCard';
 import { HomeHeader } from './HomeHeader';
 import { LogHero } from './LogHero';
 import { StandingCard } from './StandingCard';
@@ -45,6 +46,8 @@ export function HomeDashboard() {
       <LogHero activeGroupName={snapshot.group.groupName || null} />
 
       <StandingCard />
+
+      <FriendsStandingCard />
 
       <div className="grid gap-4 md:grid-cols-2 md:gap-5 items-start">
         <div className="flex flex-col gap-4 md:gap-5">
