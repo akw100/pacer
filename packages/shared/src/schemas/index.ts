@@ -8,3 +8,4 @@ export * from './workouts';
 export * from './platform-stats';
 export * from './group';
 export * from './reaction';
+export * from './friendship';
