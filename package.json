@@ -8,6 +8,7 @@
     "pnpm": ">=11"
   },
   "scripts": {
+    "dev": "pnpm -r --parallel --if-present run dev",
     "typecheck": "pnpm -r --if-present run typecheck",
     "test": "pnpm -r --if-present run test"
   },
