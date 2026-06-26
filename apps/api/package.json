@@ -14,6 +14,7 @@
     "@hono/zod-validator": "^0.4.1",
     "@pacer/shared": "workspace:*",
     "@supabase/supabase-js": "^2.46.1",
+    "date-fns": "^4.1.0",
     "grammy": "^1.30.0",
     "hono": "^4.6.13",
     "openai": "^4.73.0",

@@ -1,37 +1,25 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Run, RunCreate, RunUpdate, Workout, WorkoutCreate } from '@pacer/shared';
+import { apiFetch } from '../../lib/api';
+import { useAuth } from '../auth/AuthProvider';
 import { invalidateLogging, loggingKeys } from './logging.queries';
 
-// Slice-local fetch wrapper. The shell-owned `lib/api.ts` does not exist yet,
-// so we resolve the API base from VITE_API_URL and ship a tiny `apiFetch` here.
-// When the shell adds its typed client, swap this for that import in a single
-// edit — no caller changes.
+// Uses the shell-owned typed API client which attaches the Supabase JWT as a
+// bearer token. Every hook reads the live session via useAuth() so a token
+// refresh during a session never strands a mutation with a stale jwt.
+//
+// Previously this file shipped a tiny inline `apiFetch` that DID NOT attach
+// any Authorization header — so /runs and /workouts requests hit the API
+// without a bearer and were 401'd by the auth middleware. This is the fix.
 
-// `import.meta.env` is provided by Vite at build/dev time. We read it via a
-// narrow cast so we don't depend on the shell adding the `vite/client` types
-// reference yet.
-const API_BASE =
-  ((import.meta as { env?: Record<string, string | undefined> }).env?.VITE_API_URL) ?? '';
-
-async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...init,
-    headers: {
-      'content-type': 'application/json',
-      ...(init?.headers ?? {}),
-    },
-  });
-  if (!res.ok) {
-    // Body may be a zod-shaped 422 or a plain error; surface text either way.
-    const text = await res.text().catch(() => '');
-    throw new Error(text || `${res.status} ${res.statusText}`);
-  }
-  return (await res.json()) as T;
+function useToken(): string | null {
+  return useAuth().session?.access_token ?? null;
 }
 
 // ── Runs ───────────────────────────────────────────────────────────────────
 
 export function useRuns(range?: { from?: string; to?: string }) {
+  const token = useToken();
   return useQuery<Run[]>({
     queryKey: loggingKeys.runsRange(range?.from, range?.to),
     queryFn: () => {
@@ -39,33 +27,38 @@ export function useRuns(range?: { from?: string; to?: string }) {
       if (range?.from) params.set('from', range.from);
       if (range?.to) params.set('to', range.to);
       const qs = params.toString();
-      return apiFetch<Run[]>(`/runs${qs ? `?${qs}` : ''}`);
+      return apiFetch<Run[]>(`/runs${qs ? `?${qs}` : ''}`, { token: token! });
     },
+    enabled: !!token,
   });
 }
 
 export function useCreateRun() {
+  const token = useToken();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: RunCreate) =>
-      apiFetch<Run>(`/runs`, { method: 'POST', body: JSON.stringify(input) }),
+      apiFetch<Run>('/runs', { token: token!, method: 'POST', body: input }),
     onSuccess: () => invalidateLogging(qc),
   });
 }
 
 export function useUpdateRun() {
+  const token = useToken();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, patch }: { id: string; patch: RunUpdate }) =>
-      apiFetch<Run>(`/runs/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+      apiFetch<Run>(`/runs/${id}`, { token: token!, method: 'PATCH', body: patch }),
     onSuccess: () => invalidateLogging(qc),
   });
 }
 
 export function useDeleteRun() {
+  const token = useToken();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => apiFetch<void>(`/runs/${id}`, { method: 'DELETE' }),
+    mutationFn: (id: string) =>
+      apiFetch<void>(`/runs/${id}`, { token: token!, method: 'DELETE' }),
     onSuccess: () => invalidateLogging(qc),
   });
 }
@@ -73,6 +66,7 @@ export function useDeleteRun() {
 // ── Workouts ───────────────────────────────────────────────────────────────
 
 export function useWorkouts(range?: { from?: string; to?: string }) {
+  const token = useToken();
   return useQuery<Workout[]>({
     queryKey: loggingKeys.workoutsRange(range?.from, range?.to),
     queryFn: () => {
@@ -80,24 +74,28 @@ export function useWorkouts(range?: { from?: string; to?: string }) {
       if (range?.from) params.set('from', range.from);
       if (range?.to) params.set('to', range.to);
       const qs = params.toString();
-      return apiFetch<Workout[]>(`/workouts${qs ? `?${qs}` : ''}`);
+      return apiFetch<Workout[]>(`/workouts${qs ? `?${qs}` : ''}`, { token: token! });
     },
+    enabled: !!token,
   });
 }
 
 export function useCreateWorkout() {
+  const token = useToken();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: WorkoutCreate) =>
-      apiFetch<Workout>(`/workouts`, { method: 'POST', body: JSON.stringify(input) }),
+      apiFetch<Workout>('/workouts', { token: token!, method: 'POST', body: input }),
     onSuccess: () => invalidateLogging(qc),
   });
 }
 
 export function useDeleteWorkout() {
+  const token = useToken();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => apiFetch<void>(`/workouts/${id}`, { method: 'DELETE' }),
+    mutationFn: (id: string) =>
+      apiFetch<void>(`/workouts/${id}`, { token: token!, method: 'DELETE' }),
     onSuccess: () => invalidateLogging(qc),
   });
 }

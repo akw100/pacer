@@ -1,210 +1,305 @@
 import { useMemo, useState } from 'react'
-import { CheckCircle2, Flame, Sparkles, CalendarDays } from 'lucide-react'
+import { CheckCircle2, Circle, Plus, Sparkles, Trash2, X } from 'lucide-react'
 import { scoreFor } from '@pacer/shared'
+import { toast } from 'sonner'
+import {
+  useCheckHabitToday,
+  useCreateHabit,
+  useDeleteHabit,
+  useHabits,
+  useTodayChecks,
+  useUncheckHabitToday,
+} from './useHabits'
 
-type LocalHabit = {
-  id: string
-  userId: string
-  name: string
-  emoji: string
-  sort: number
-  createdAt: string
-  checkedToday: boolean
-  weeklyChecks: string[]
-}
+// HabitsSection — real data only. Reads habits from GET /habits and today's
+// `habit_checks` directly from Supabase (own-rows RLS). Toggling a row
+// persists via PUT/DELETE /habits/:id/check?date=today. Adding a habit
+// hits POST /habits. No hardcoded counts, no fake streaks, no fake weekly
+// scores: side cards that previously showed mock numbers are gone.
 
-const initialHabits: Array<LocalHabit> = [
-  {
-    id: '00000000-0000-0000-0000-000000000001',
-    userId: '00000000-0000-0000-0000-000000000010',
-    name: 'Stretching',
-    emoji: '🧘',
-    sort: 0,
-    createdAt: new Date().toISOString(),
-    checkedToday: true,
-    weeklyChecks: ['2026-06-18', '2026-06-19', '2026-06-20', '2026-06-21', '2026-06-22', '2026-06-23', '2026-06-24'],
-  },
-  {
-    id: '00000000-0000-0000-0000-000000000002',
-    userId: '00000000-0000-0000-0000-000000000010',
-    name: 'Nutrition',
-    emoji: '🥗',
-    sort: 1,
-    createdAt: new Date().toISOString(),
-    checkedToday: true,
-    weeklyChecks: ['2026-06-18', '2026-06-19', '2026-06-20', '2026-06-21', '2026-06-22', '2026-06-23', '2026-06-24'],
-  },
-  {
-    id: '00000000-0000-0000-0000-000000000003',
-    userId: '00000000-0000-0000-0000-000000000010',
-    name: 'Hydration',
-    emoji: '🥤',
-    sort: 2,
-    createdAt: new Date().toISOString(),
-    checkedToday: false,
-    weeklyChecks: ['2026-06-18', '2026-06-19', '2026-06-20', '2026-06-21', '2026-06-22', '2026-06-23'],
-  },
-]
-
-const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-
-function formatDayLabel(dateString: string) {
-  const date = new Date(dateString)
-  return `${date.getDate()}`
-}
-
-function chipValue(value: number) {
-  return value.toString().padStart(2, '0')
-}
+const EMOJI_PALETTE = ['🧘', '🥗', '🥤', '😴', '📚', '💪', '🚶', '🧹', '🎯', '✨']
 
 export default function HabitsSection() {
-  const [habits, setHabits] = useState(initialHabits)
+  const habits = useHabits()
+  const todayChecks = useTodayChecks()
+  const create = useCreateHabit()
+  const check = useCheckHabitToday()
+  const uncheck = useUncheckHabitToday()
+  const remove = useDeleteHabit()
 
-  const completedToday = habits.filter((habit) => habit.checkedToday).length
-  const allDone = completedToday === habits.length
-  const todayPoints = useMemo(() => {
-    const habitPoints = completedToday * scoreFor({ reason: 'habit' })
-    return habitPoints + (allDone ? scoreFor({ reason: 'habit_day_bonus' }) : 0)
-  }, [completedToday, allDone])
+  const [adding, setAdding] = useState(false)
+  const [draftName, setDraftName] = useState('')
+  const [draftEmoji, setDraftEmoji] = useState<string>(EMOJI_PALETTE[0]!)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
-  const toggleHabit = (habitId: string) => {
-    setHabits((current) =>
-      current.map((habit) =>
-        habit.id === habitId ? { ...habit, checkedToday: !habit.checkedToday } : habit,
-      ),
+  const checkedIds = useMemo(
+    () => new Set((todayChecks.data ?? []).map((c) => c.habit_id)),
+    [todayChecks.data],
+  )
+  const rows = habits.data ?? []
+  const total = rows.length
+  const done = rows.filter((h) => checkedIds.has(h.id)).length
+  const allDone = total > 0 && done === total
+  const todayPoints =
+    done * scoreFor({ reason: 'habit' }) +
+    (allDone ? scoreFor({ reason: 'habit_day_bonus' }) : 0)
+
+  async function submitNewHabit() {
+    const name = draftName.trim()
+    if (!name) return
+    try {
+      await create.mutateAsync({ name, emoji: draftEmoji })
+      toast.success(`Added "${name}"`)
+      setDraftName('')
+      setDraftEmoji(EMOJI_PALETTE[0]!)
+      setAdding(false)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not add habit')
+    }
+  }
+
+  async function toggleHabit(habitId: string) {
+    const isChecked = checkedIds.has(habitId)
+    try {
+      if (isChecked) {
+        await uncheck.mutateAsync(habitId)
+      } else {
+        await check.mutateAsync(habitId)
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not update')
+    }
+  }
+
+  async function deleteHabit(habitId: string) {
+    try {
+      await remove.mutateAsync(habitId)
+      toast.success('Habit removed')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not delete')
+    } finally {
+      setConfirmDeleteId(null)
+    }
+  }
+
+  if (habits.isLoading) {
+    return (
+      <section
+        aria-label="Loading habits"
+        className="rounded-card border border-border bg-surface p-5 shadow-sm"
+      >
+        <div className="h-5 w-32 rounded bg-ink/10 animate-pulse" />
+        <div className="mt-4 space-y-2">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-12 rounded-card bg-ink/5 animate-pulse" />
+          ))}
+        </div>
+      </section>
     )
   }
 
-  const firstHabit = habits[0]
+  if (habits.isError) {
+    return (
+      <section className="rounded-card border border-accent/30 bg-accent/5 p-4 text-sm text-ink">
+        Couldn't load habits. Refresh to retry.
+      </section>
+    )
+  }
 
   return (
-    <section className="space-y-6">
-      <div className="rounded-card border border-border bg-surface p-5 shadow-sm shadow-ink/5">
-        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-ink-muted">Daily ritual</p>
-            <h1 className="mt-2 text-2xl font-display font-bold text-ink">Habits & score</h1>
-          </div>
-          <div className="rounded-pill bg-accent/10 px-3 py-2 text-sm font-semibold text-accent inline-flex items-center gap-2">
-            <Sparkles size={16} />
-            +{chipValue(todayPoints)} pts possible today
-          </div>
+    <section
+      aria-labelledby="habits-heading"
+      className="rounded-card border border-border bg-surface p-5 shadow-sm flex flex-col gap-4"
+    >
+      <header className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h2 id="habits-heading" className="font-display text-lg font-semibold text-ink">
+            Daily habits
+          </h2>
+          <p className="text-xs text-ink-muted mt-1">
+            Tap to mark complete today. Streak is shared with your weekly score.
+          </p>
         </div>
+        {total > 0 && (
+          <span className="inline-flex items-center gap-1.5 rounded-pill bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent">
+            <Sparkles size={12} strokeWidth={2} />
+            +{todayPoints} pts possible today
+          </span>
+        )}
+      </header>
 
-        <div className="mt-6 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="space-y-4 rounded-card border border-border bg-white p-4">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <h2 className="text-base font-semibold text-ink">Today</h2>
-                <p className="text-sm text-ink-muted">Tap to mark a habit complete.</p>
-              </div>
-              <span className="inline-flex items-center gap-2 rounded-pill bg-success/10 px-3 py-2 text-sm font-semibold text-success">
-                <CheckCircle2 size={16} /> {completedToday}/{habits.length} done
-              </span>
-            </div>
+      {total === 0 && !adding && (
+        <EmptyState onAdd={() => setAdding(true)} />
+      )}
 
-            <div className="space-y-3">
-              {habits.map((habit) => (
-                <button
-                  key={habit.id}
-                  type="button"
-                  onClick={() => toggleHabit(habit.id)}
-                  className={`flex items-center justify-between gap-4 rounded-card border px-4 py-3 text-left transition ${
-                    habit.checkedToday
-                      ? 'border-success bg-success/10 text-ink'
-                      : 'border-border bg-surface text-ink'
+      {total > 0 && (
+        <ul role="list" className="flex flex-col gap-2">
+          {rows.map((habit) => {
+            const isChecked = checkedIds.has(habit.id)
+            const isConfirming = confirmDeleteId === habit.id
+            return (
+              <li key={habit.id}>
+                <div
+                  className={`group flex items-center gap-3 rounded-card border px-3 py-2.5 transition-colors ${
+                    isChecked
+                      ? 'border-success/30 bg-success/10'
+                      : 'border-border bg-surface'
                   }`}
                 >
-                  <span className="text-xl">{habit.emoji}</span>
-                  <span className="min-w-0 flex-1 text-sm font-medium">{habit.name}</span>
-                  <span className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-muted">
-                    {habit.checkedToday ? 'Done' : 'Tap'}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
+                  <button
+                    type="button"
+                    onClick={() => toggleHabit(habit.id)}
+                    aria-label={`${habit.name}: ${isChecked ? 'mark not done' : 'mark done'}`}
+                    aria-pressed={isChecked}
+                    className="flex-1 flex items-center gap-3 text-left focus:outline-none focus:ring-2 focus:ring-accent/40 rounded-card"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={`grid place-items-center w-9 h-9 rounded-pill shrink-0 ${
+                        isChecked ? 'bg-success/20 text-success' : 'bg-ink/5 text-ink-muted'
+                      }`}
+                    >
+                      {isChecked ? (
+                        <CheckCircle2 size={18} strokeWidth={1.8} />
+                      ) : (
+                        <Circle size={18} strokeWidth={1.8} />
+                      )}
+                    </span>
+                    <span aria-hidden="true" className="text-xl">{habit.emoji}</span>
+                    <span className="text-sm font-medium text-ink truncate">{habit.name}</span>
+                  </button>
 
-          <div className="rounded-card border border-border bg-white p-4">
-            <div className="flex items-center gap-3">
-              <Flame size={20} className="text-streak" />
-              <div>
-                <p className="text-sm font-semibold text-ink">Streak heat</p>
-                <p className="text-lg font-semibold text-ink">6 days in a row</p>
-              </div>
-            </div>
-            <div className="mt-5 space-y-4">
-              <div className="rounded-card border border-border bg-surface p-3">
-                <p className="text-sm text-ink-muted">Today’s score</p>
-                <p className="mt-1 text-3xl font-display font-bold text-ink">+{todayPoints}</p>
-              </div>
-              <div className="rounded-card border border-border bg-surface p-3">
-                <div className="flex items-center gap-2 text-sm text-ink-muted">
-                  <CalendarDays size={16} />
-                  <span>7-day habit grid</span>
-                </div>
-                <div className="mt-3 grid grid-cols-7 gap-2 text-center text-xs text-ink-muted">
-                  {weekDays.map((day) => (
-                    <div key={day} className="font-semibold">{day}</div>
-                  ))}
-                </div>
-                <div className="mt-2 grid grid-cols-7 gap-2 text-center text-sm">
-                  {firstHabit?.weeklyChecks.map((dateString: string) => (
-                    <div key={dateString} className="flex flex-col items-center gap-1">
-                      <span className="text-sm font-semibold text-ink">{formatDayLabel(dateString)}</span>
-                      <span className="h-2.5 w-2.5 rounded-full bg-accent" />
+                  {isConfirming ? (
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDeleteId(null)}
+                        className="rounded-pill text-xs text-ink-muted hover:bg-ink/5 px-2 py-1"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteHabit(habit.id)}
+                        className="rounded-pill bg-accent text-white px-2.5 py-1 text-xs font-semibold"
+                      >
+                        Remove
+                      </button>
                     </div>
-                  ))}
+                  ) : (
+                    <button
+                      type="button"
+                      aria-label={`Delete ${habit.name}`}
+                      onClick={() => setConfirmDeleteId(habit.id)}
+                      className="p-1.5 rounded-pill text-ink-muted hover:text-accent hover:bg-accent/10 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                    >
+                      <Trash2 size={14} strokeWidth={1.8} />
+                    </button>
+                  )}
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+              </li>
+            )
+          })}
+        </ul>
+      )}
 
-      <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-        <div className="rounded-card border border-border bg-white p-5">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-ink-muted">Habit score</p>
-              <h2 className="mt-2 text-xl font-semibold text-ink">Weekly momentum</h2>
-            </div>
-            <span className="rounded-pill bg-accent/10 px-3 py-2 text-sm font-semibold text-accent">
-              {completedToday}/{habits.length} habits
-            </span>
+      {adding ? (
+        <div className="rounded-card border border-accent/30 bg-accent/5 p-3 flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              autoFocus
+              placeholder="e.g. Stretching"
+              value={draftName}
+              onChange={(e) => setDraftName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void submitNewHabit()
+                else if (e.key === 'Escape') {
+                  setAdding(false)
+                  setDraftName('')
+                }
+              }}
+              className="flex-1 rounded-pill border border-border bg-surface px-3 py-1.5 text-sm text-ink focus:outline-none focus:border-accent"
+            />
+            <button
+              type="button"
+              onClick={submitNewHabit}
+              disabled={create.isPending || !draftName.trim()}
+              className="rounded-pill bg-accent text-white px-3 py-1.5 text-sm font-semibold disabled:opacity-50"
+            >
+              {create.isPending ? 'Adding…' : 'Add'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAdding(false)
+                setDraftName('')
+              }}
+              aria-label="Cancel"
+              className="p-1.5 rounded-pill text-ink-muted hover:text-ink hover:bg-ink/5"
+            >
+              <X size={14} strokeWidth={1.8} />
+            </button>
           </div>
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-card border border-border bg-surface p-4">
-              <p className="text-sm text-ink-muted">Habit points</p>
-              <p className="mt-2 text-3xl font-display font-bold text-ink">+{completedToday * scoreFor({ reason: 'habit' })}</p>
-            </div>
-            <div className="rounded-card border border-border bg-surface p-4">
-              <p className="text-sm text-ink-muted">All-habits bonus</p>
-              <p className="mt-2 text-3xl font-display font-bold text-ink">+2</p>
-            </div>
+          <div role="radiogroup" aria-label="Habit emoji" className="flex flex-wrap gap-1">
+            {EMOJI_PALETTE.map((emoji) => {
+              const active = draftEmoji === emoji
+              return (
+                <button
+                  key={emoji}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  onClick={() => setDraftEmoji(emoji)}
+                  className={`w-9 h-9 rounded-pill text-lg transition-colors ${
+                    active ? 'bg-accent/20 ring-2 ring-accent' : 'bg-ink/5 hover:bg-ink/10'
+                  }`}
+                >
+                  {emoji}
+                </button>
+              )
+            })}
           </div>
         </div>
-
-        <div className="rounded-card border border-border bg-white p-5">
-          <div className="flex items-center gap-3">
-            <Sparkles size={22} className="text-accent" />
-            <div>
-              <p className="text-sm font-semibold text-ink-muted">Habit rhythm</p>
-              <p className="mt-1 text-lg font-semibold text-ink">4 of 7 days complete</p>
-            </div>
-          </div>
-          <div className="mt-5 grid gap-3">
-            <div className="rounded-card border border-border bg-surface p-4">
-              <p className="text-sm text-ink-muted">This week</p>
-              <p className="mt-2 text-2xl font-display font-bold text-ink">18 pts</p>
-            </div>
-            <div className="rounded-card border border-border bg-surface p-4">
-              <p className="text-sm text-ink-muted">Next milestone</p>
-              <p className="mt-2 text-base font-semibold text-ink">Complete every habit tomorrow</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      ) : (
+        total > 0 && (
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            className="self-start inline-flex items-center gap-1 rounded-pill border border-dashed border-border bg-surface px-3 py-1.5 text-xs font-medium text-ink-muted hover:text-ink hover:bg-ink/5"
+          >
+            <Plus size={12} strokeWidth={2.2} />
+            Add habit
+          </button>
+        )
+      )}
     </section>
+  )
+}
+
+function EmptyState({ onAdd }: { onAdd: () => void }) {
+  return (
+    <div className="rounded-card border border-dashed border-border bg-surface p-6 text-center flex flex-col items-center gap-3">
+      <span className="grid place-items-center w-12 h-12 rounded-full bg-accent/10 text-accent">
+        <Sparkles size={20} strokeWidth={1.8} />
+      </span>
+      <div>
+        <div className="font-display text-base font-semibold text-ink">
+          Start your daily ritual
+        </div>
+        <p className="mt-1 text-xs text-ink-muted leading-relaxed max-w-xs">
+          Add habits like Stretching, Nutrition or Hydration. Tap to mark them done each day to
+          build your streak.
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={onAdd}
+        className="inline-flex items-center gap-1.5 rounded-pill bg-accent text-white px-4 py-2 text-sm font-semibold shadow-sm shadow-accent/20"
+      >
+        <Plus size={14} strokeWidth={2.2} />
+        Add your first habit
+      </button>
+    </div>
   )
 }
