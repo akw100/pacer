@@ -50,10 +50,12 @@ type FormValues = z.infer<typeof FormSchema>;
 interface RunFormProps {
   units: Units;
   initial?: Run;
+  /** Optional group to count this run in (null = personal only). */
+  sharedGroupId?: string | null;
   onDone: () => void;
 }
 
-export function RunForm({ units, initial, onDone }: RunFormProps) {
+export function RunForm({ units, initial, sharedGroupId, onDone }: RunFormProps) {
   const create = useCreateRun();
   const update = useUpdateRun();
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -113,6 +115,10 @@ export function RunForm({ units, initial, onDone }: RunFormProps) {
       sleep_hours: sleepHours,
       notes: values.notes || null,
       source: 'web',
+      // Additive: present only when the user opted to count this run in a
+      // group. Null = personal only (the canonical user record is unchanged
+      // either way).
+      shared_group_id: sharedGroupId ?? null,
     };
 
     try {

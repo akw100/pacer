@@ -17,7 +17,7 @@ export default function Nav() {
   return (
     <>
       {/* Mobile bottom bar — 2 | FAB | 3 split */}
-      <nav className="fixed bottom-0 inset-x-0 h-16 bg-surface border-t border-border flex items-center md:hidden z-10">
+      <nav className="fixed bottom-0 inset-x-0 h-16 bg-panel border-t border-border flex items-center md:hidden z-10">
         <div className="flex-1 flex items-center justify-around">
           {tabs.slice(0, 2).map(({ to, label, Icon }) => (
             <NavLink key={to} to={to} end={to === '/'} className={tabLink}>
@@ -44,7 +44,7 @@ export default function Nav() {
       </nav>
 
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex fixed left-0 inset-y-0 w-56 flex-col bg-surface border-r border-border z-10 p-4 gap-1">
+      <aside className="hidden md:flex fixed left-0 inset-y-0 w-56 flex-col bg-panel border-r border-border z-10 p-4 gap-1">
         <span className="font-display font-bold text-xl text-ink px-3 py-2 mb-4">Pacer</span>
         {tabs.map(({ to, label, Icon }) => (
           <NavLink

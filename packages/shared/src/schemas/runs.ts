@@ -13,6 +13,10 @@ export const RunCreateSchema = z.object({
   sleep_hours:      z.number().min(0).max(24).nullish(),
   notes:            z.string().max(2000).nullish(),
   source:           z.enum(['web', 'telegram']).default('web'),
+  // Optional group share — the run is ALWAYS personal; this only flags it for
+  // a single group's feed/leaderboard. Server validates membership. Null /
+  // omitted = personal only. See migration 0003_groups_and_share.sql.
+  shared_group_id:  z.string().uuid().nullish(),
 });
 export type RunCreate = z.infer<typeof RunCreateSchema>;
 
