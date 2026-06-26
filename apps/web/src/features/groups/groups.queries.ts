@@ -9,6 +9,7 @@ export const groupKeys = {
   detail: (id: string) => ['groups', 'detail', id] as const,
   stats: (id: string) => ['groups', 'stats', id] as const,
   feed: (id: string) => ['groups', 'feed', id] as const,
+  goals: (id: string) => ['groups', 'goals', id] as const,
 };
 
 export function invalidateGroup(qc: QueryClient, groupId: string): void {
