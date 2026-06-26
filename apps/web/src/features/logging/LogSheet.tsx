@@ -4,6 +4,8 @@ import { X } from 'lucide-react';
 import type { Run, Units } from '@pacer/shared';
 import { RunForm } from './RunForm';
 import { WorkoutForm } from './WorkoutForm';
+import { GroupSelector } from './GroupSelector';
+import { useGroupContext } from '../groups/GroupContext';
 
 // Vaul `Drawer` is a native-feeling bottom sheet on phones AND a centered
 // overlay on desktop — we add a `md:` width cap so it doesn't span the screen.
@@ -19,6 +21,8 @@ const OPEN_EVENT = 'pacer:open-log';
 interface OpenDetail {
   tab?: Tab;
   editRun?: Run;
+  /** Pre-select a group for the "Count in group" picker. Pass null/undefined for personal default. */
+  groupId?: string | null;
 }
 
 /** Open the Log sheet from anywhere — e.g. the floating + button. */
@@ -36,17 +40,34 @@ export function LogSheetMount({ units = 'km' }: LogSheetMountProps) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>('run');
   const [editRun, setEditRun] = useState<Run | undefined>(undefined);
+  const { activeGroupId, lastSharedGroupId, rememberLastShared } = useGroupContext();
+  // null = "Personal only" (the safe default per the card).
+  const [sharedGroupId, setSharedGroupId] = useState<string | null>(null);
 
   useEffect(() => {
     function onOpen(e: Event) {
       const ce = e as CustomEvent<OpenDetail>;
       setTab(ce.detail?.tab ?? 'run');
       setEditRun(ce.detail?.editRun);
+      // Priority of group default on open:
+      //   1. explicit groupId in the open call (e.g. "Log to group" CTA)
+      //   2. group the user is currently viewing
+      //   3. last group they explicitly shared to (sticky for repeat use)
+      //   4. null = personal only (safe default, never silently shares)
+      const explicit = ce.detail && 'groupId' in ce.detail ? ce.detail.groupId ?? null : undefined;
+      const next =
+        explicit !== undefined ? explicit : activeGroupId ?? lastSharedGroupId ?? null;
+      setSharedGroupId(next);
       setOpen(true);
     }
     window.addEventListener(OPEN_EVENT, onOpen);
     return () => window.removeEventListener(OPEN_EVENT, onOpen);
-  }, []);
+  }, [activeGroupId, lastSharedGroupId]);
+
+  function handleShareChange(next: string | null) {
+    setSharedGroupId(next);
+    rememberLastShared(next);
+  }
 
   const close = () => {
     setOpen(false);
@@ -76,9 +97,21 @@ export function LogSheetMount({ units = 'km' }: LogSheetMountProps) {
             </button>
           </header>
 
-          <div className="flex-1 overflow-y-auto px-5 pb-6">
-            {tab === 'run' && <RunForm units={units} initial={editRun} onDone={close} />}
-            {tab === 'workout' && !editRun && <WorkoutForm onDone={close} />}
+          <div className="flex-1 overflow-y-auto px-5 pb-6 flex flex-col gap-4">
+            {tab !== 'habits' && (
+              <GroupSelector value={sharedGroupId} onChange={handleShareChange} />
+            )}
+            {tab === 'run' && (
+              <RunForm
+                units={units}
+                initial={editRun}
+                sharedGroupId={sharedGroupId}
+                onDone={close}
+              />
+            )}
+            {tab === 'workout' && !editRun && (
+              <WorkoutForm sharedGroupId={sharedGroupId} onDone={close} />
+            )}
             {tab === 'habits' && <HabitsTabSlot />}
           </div>
         </Drawer.Content>

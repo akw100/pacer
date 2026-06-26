@@ -23,6 +23,7 @@ import { HowPacerWorksSheet } from './features/onboarding/HowPacerWorksSheet'
 import { InstallPrompt } from './pwa/InstallPrompt'
 import { OfflineShell } from './pwa/OfflineShell'
 import { useAuth } from './features/auth/AuthProvider'
+import { GroupProvider } from './features/groups/GroupContext'
 
 function Shell() {
   return (
@@ -95,9 +96,11 @@ function AuthedOverlays() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-      <LogSheetMount />
-      <AuthedOverlays />
+      <GroupProvider>
+        <RouterProvider router={router} />
+        <LogSheetMount />
+        <AuthedOverlays />
+      </GroupProvider>
       <OfflineShell />
       <InstallPrompt />
       <Toaster richColors position="top-center" />

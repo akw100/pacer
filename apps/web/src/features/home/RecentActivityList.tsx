@@ -16,11 +16,17 @@ export function RecentActivityList({ items }: RecentActivityListProps) {
         </h2>
       </header>
 
-      <ul className="flex flex-col gap-3" role="list">
-        {items.map((item) => (
-          <ActivityRow key={item.id} item={item} />
-        ))}
-      </ul>
+      {items.length === 0 ? (
+        <p className="text-sm text-ink-muted leading-relaxed">
+          Log a run or workout to see it appear here.
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-3" role="list">
+          {items.map((item) => (
+            <ActivityRow key={item.id} item={item} />
+          ))}
+        </ul>
+      )}
     </section>
   );
 }

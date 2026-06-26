@@ -55,11 +55,17 @@ export function TodayCard({ planned, habits }: TodayCardProps) {
 
       <div>
         <div className="text-xs uppercase tracking-wide text-ink-muted mb-2">Habits</div>
-        <ul className="flex flex-wrap gap-2" role="list">
-          {habits.map((h) => (
-            <HabitPill key={h.id} habit={h} />
-          ))}
-        </ul>
+        {habits.length === 0 ? (
+          <p className="text-xs text-ink-muted leading-snug">
+            Set up daily habits in Progress to track them here.
+          </p>
+        ) : (
+          <ul className="flex flex-wrap gap-2" role="list">
+            {habits.map((h) => (
+              <HabitPill key={h.id} habit={h} />
+            ))}
+          </ul>
+        )}
       </div>
 
       <button
