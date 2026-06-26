@@ -7,3 +7,4 @@ export * from './runs';
 export * from './workouts';
 export * from './group';
 export * from './reaction';
+export * from './friendship';
