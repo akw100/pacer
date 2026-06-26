@@ -3,6 +3,7 @@
 @theme {
   /* Colors */
   --color-surface: #FAF8F5;
+  --color-panel: #FFFFFF;
   --color-ink: #1F2733;
   --color-ink-muted: #8A93A2;
   --color-accent: #FF5A36;
