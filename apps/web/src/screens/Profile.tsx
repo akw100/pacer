@@ -4,8 +4,9 @@ import { useProfile } from '../features/auth/useProfile'
 import { FriendsSection } from '../features/friends/FriendsSection'
 
 export default function Profile() {
-  const { signOut } = useAuth()
+  const { session, signOut } = useAuth()
   const { profile } = useProfile()
+  const email = session?.user.email
 
   return (
     <div className="p-4 md:p-6 lg:p-8 mx-auto w-full max-w-3xl flex flex-col gap-5">
@@ -16,6 +17,7 @@ export default function Profile() {
             {profile.displayName} · @{profile.handle}
           </p>
         )}
+        {email && <p className="mt-0.5 text-sm text-ink-muted">{email}</p>}
       </header>
 
       <FriendsSection />
