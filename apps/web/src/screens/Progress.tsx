@@ -7,6 +7,7 @@ import { HistorySection } from '../features/logging/HistorySection'
 import { TrendsSection } from '../features/logging/TrendsSection'
 import { CommunityCard } from '../features/platform-stats/CommunityCard'
 import { FriendsContextCard } from '../features/progress/FriendsContextCard'
+import { GroupContextCard } from '../features/progress/GroupContextCard'
 import { apiFetch } from '../lib/api'
 import { useAuth } from '../features/auth/AuthProvider'
 
@@ -101,6 +102,7 @@ export default function Progress() {
             <div className="flex flex-col gap-5">
               <CommunityCard />
               <FriendsContextCard />
+              <GroupContextCard />
             </div>
           </div>
         )}
