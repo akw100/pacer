@@ -20,6 +20,20 @@
   --radius-pill: 9999px;
 }
 
+/* Dark mode: re-point the color tokens under `html.dark`. Every component
+   references these via Tailwind utilities (bg-surface, text-ink, …), so the
+   whole app flips by overriding the variables here — no per-component dark:
+   variants. The class is set by the no-flash script in index.html and toggled
+   by ThemeToggle. Accent/success/streak carry over — they read on both. */
+html.dark {
+  color-scheme: dark;
+  --color-surface: #10151C;
+  --color-panel: #1A212B;
+  --color-ink: #E8EAED;
+  --color-ink-muted: #97A0AE;
+  --color-border: #2C333D;
+}
+
 @layer base {
   html,
   body {

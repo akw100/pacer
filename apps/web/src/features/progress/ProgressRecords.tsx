@@ -16,7 +16,7 @@ export default function ProgressRecords() {
   const { records, isLoading, isError } = useProgressRecords()
 
   return (
-    <section className="space-y-4 rounded-card border border-border bg-white p-5">
+    <section className="space-y-4 rounded-card border border-border bg-panel p-5">
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-ink-muted">Records</p>

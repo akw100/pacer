@@ -6,6 +6,7 @@ import { useAuth } from '../features/auth/AuthProvider'
 import { useProfile } from '../features/auth/useProfile'
 import { usePatchOnboarding } from '../features/onboarding/useOnboardingState'
 import { FriendsSection } from '../features/friends/FriendsSection'
+import { ThemeToggle } from '../components/ThemeToggle'
 
 export default function Profile() {
   const { session, signOut } = useAuth()
@@ -67,6 +68,17 @@ export default function Profile() {
       </header>
 
       <FriendsSection />
+
+      <section className="flex flex-col gap-3">
+        <h2 className="font-display text-lg font-bold text-ink">Appearance</h2>
+        <div className="flex items-center justify-between gap-4 rounded-card border border-border bg-panel p-4">
+          <div>
+            <p className="text-sm font-medium text-ink">Dark mode</p>
+            <p className="text-xs text-ink-muted">Switch between light and dark.</p>
+          </div>
+          <ThemeToggle className="[--toggle-size:24px]" />
+        </div>
+      </section>
 
       <section className="flex flex-col gap-3">
         <h2 className="font-display text-lg font-bold text-ink">Account</h2>

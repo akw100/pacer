@@ -60,7 +60,7 @@ export default function Progress() {
             Explore your habit momentum, see your logged activity on the calendar, and celebrate your personal bests.
           </p>
         </div>
-        <div className="flex flex-col gap-3 rounded-card border border-border bg-white p-4">
+        <div className="flex flex-col gap-3 rounded-card border border-border bg-panel p-4">
           <HeroStat
             label="Weekly score"
             value={score.data ? `${score.data.weeklyScore} pts` : '—'}
@@ -80,7 +80,7 @@ export default function Progress() {
 
       <HabitsSection />
 
-      <div className="mt-8 rounded-card border border-border bg-white p-5">
+      <div className="mt-8 rounded-card border border-border bg-panel p-5">
         <div className="flex flex-wrap items-center gap-3">
           {tabs.map((tab) => (
             <TabButton
