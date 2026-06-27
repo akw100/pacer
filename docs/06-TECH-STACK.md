@@ -107,4 +107,5 @@ Counter-programming:
 **Railway** — `pacer-api` (tsx, no build) + `pacer-web` (Vite build, static SPA via
 `RAILPACK_SPA_OUTPUT_DIR`) + `pacer-frames` (Python, built from `services/frames/Dockerfile`),
 `main` → production, `dev` → staging, `RAILPACK_NODE_VERSION=22`.
-**Supabase** for Postgres/Auth/Realtime/Storage — separate projects for production and staging.
+**Supabase** for Postgres/Auth/Realtime/Storage — **one shared project across production and staging**
+(staging is not data-isolated from prod; see `docs/09-DEPLOY.md`).
