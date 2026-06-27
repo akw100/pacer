@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 import { ChevronLeft, ChevronRight, Maximize, Minimize, X } from 'lucide-react';
 import { formatDuration } from '@pacer/shared';
+import { Loader } from '../../components/Loader';
 import { Tooltip } from '../../components/Tooltip';
 import { useVideoRoutine } from './useVideoRoutines';
 
@@ -69,7 +70,7 @@ export function RoutineCarousel({ id, onClose }: { id: string; onClose: () => vo
       className="fixed inset-0 z-[70] bg-ink text-white"
     >
       {isLoading ? (
-        <Centered>Loading…</Centered>
+        <Centered><Loader /></Centered>
       ) : sections.length === 0 ? (
         <Centered>No frames available for this routine.</Centered>
       ) : (
