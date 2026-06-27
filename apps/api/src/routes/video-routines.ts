@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { VideoRoutineCreateSchema } from '@pacer/shared';
+import { VideoRoutineCreateSchema, VideoRoutineUpdateSchema } from '@pacer/shared';
 import type { VideoRoutine, VideoSection, VideoSectionWithUrl } from '@pacer/shared';
 import type { AppEnv } from '../lib/auth';
 import { env } from '../lib/env';
@@ -17,11 +17,49 @@ export const videoRoutines = new Hono<AppEnv>()
     const userId = c.get('userId');
     const { data, error } = await db
       .from('video_routines')
-      .select('*')
+      .select('*, video_routine_likes(user_id)')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
     if (error) return c.json({ error: error.message }, 400);
-    return c.json((data as VideoRoutine[]).map(coerceTimeout));
+    return c.json((data as RoutineRow[]).map((row) => shape(row, userId)));
+  })
+
+  // Public "Discover" feed — ready, public routines from anyone.
+  .get('/public', async (c) => {
+    const db = c.get('userClient');
+    const userId = c.get('userId');
+    const { data, error } = await db
+      .from('video_routines')
+      .select('*, video_routine_likes(user_id)')
+      .eq('is_public', true)
+      .eq('status', 'ready')
+      .order('created_at', { ascending: false })
+      .limit(100);
+    if (error) return c.json({ error: error.message }, 400);
+    return c.json((data as RoutineRow[]).map((row) => shape(row, userId)));
+  })
+
+  // Saved = public flows the caller has liked but doesn't own — their personal
+  // collection of others' flows. Liking a flow in Discover is the "save".
+  .get('/saved', async (c) => {
+    const db = c.get('userClient');
+    const userId = c.get('userId');
+    const { data: likes, error: likesError } = await db
+      .from('video_routine_likes')
+      .select('routine_id')
+      .eq('user_id', userId);
+    if (likesError) return c.json({ error: likesError.message }, 400);
+    const ids = (likes ?? []).map((l) => l.routine_id as string);
+    if (ids.length === 0) return c.json([]);
+    const { data, error } = await db
+      .from('video_routines')
+      .select('*, video_routine_likes(user_id)')
+      .in('id', ids)
+      .eq('is_public', true)
+      .neq('user_id', userId)
+      .order('created_at', { ascending: false });
+    if (error) return c.json({ error: error.message }, 400);
+    return c.json((data as RoutineRow[]).map((row) => shape(row, userId)));
   })
 
   .get('/:id', async (c) => {
@@ -72,6 +110,49 @@ export const videoRoutines = new Hono<AppEnv>()
     return c.json(routine, 202);
   })
 
+  // Owner toggles public/private.
+  .patch('/:id', zValidator('json', VideoRoutineUpdateSchema), async (c) => {
+    const db = c.get('userClient');
+    const userId = c.get('userId');
+    const id = c.req.param('id');
+    const { is_public } = c.req.valid('json');
+    const { data, error } = await db
+      .from('video_routines')
+      .update({ is_public })
+      .eq('id', id)
+      .eq('user_id', userId)
+      .select('*')
+      .single();
+    if (error) return c.json({ error: error.message }, 400);
+    return c.json(data);
+  })
+
+  // Like / unlike any routine the caller can see (own or public). RLS scopes the
+  // like row to the caller; upsert makes a double-like idempotent.
+  .post('/:id/like', async (c) => {
+    const db = c.get('userClient');
+    const userId = c.get('userId');
+    const id = c.req.param('id');
+    const { error } = await db
+      .from('video_routine_likes')
+      .upsert({ routine_id: id, user_id: userId }, { onConflict: 'routine_id,user_id' });
+    if (error) return c.json({ error: error.message }, 400);
+    return c.json({ ok: true });
+  })
+
+  .delete('/:id/like', async (c) => {
+    const db = c.get('userClient');
+    const userId = c.get('userId');
+    const id = c.req.param('id');
+    const { error } = await db
+      .from('video_routine_likes')
+      .delete()
+      .eq('routine_id', id)
+      .eq('user_id', userId);
+    if (error) return c.json({ error: error.message }, 400);
+    return c.body(null, 204);
+  })
+
   .delete('/:id', async (c) => {
     const db = c.get('userClient');
     const id = c.req.param('id');
@@ -82,6 +163,20 @@ export const videoRoutines = new Hono<AppEnv>()
     if (error) return c.json({ error: error.message }, 400);
     return c.body(null, 204);
   });
+
+// A list row carries its likes embedded (PostgREST nested select).
+type RoutineRow = VideoRoutine & { video_routine_likes?: { user_id: string }[] };
+
+// Strip the embedded likes into derived like_count / liked_by_me, then apply the
+// processing-timeout coercion.
+function shape(row: RoutineRow, userId: string): VideoRoutine {
+  const { video_routine_likes = [], ...rest } = row;
+  return {
+    ...coerceTimeout(rest as VideoRoutine),
+    like_count: video_routine_likes.length,
+    liked_by_me: video_routine_likes.some((l) => l.user_id === userId),
+  };
+}
 
 // A row stuck in 'processing' past the timeout is reported as an error at read
 // time — no background sweeper. Pure: never writes back.
