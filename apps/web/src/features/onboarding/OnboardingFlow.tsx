@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
-import { X } from 'lucide-react';
+import { ChevronLeft, X } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useProfile } from '../auth/useProfile';
 import { StepGroup } from './steps/StepGroup';
@@ -65,6 +65,10 @@ export function OnboardingFlow() {
     embla?.scrollNext();
   }
 
+  function back() {
+    embla?.scrollPrev();
+  }
+
   return (
     <div
       role="dialog"
@@ -80,6 +84,16 @@ export function OnboardingFlow() {
       >
         <header className="flex items-center justify-between px-5 pt-4 pb-2">
           <div className="flex items-center gap-1.5">
+            {step > 0 && (
+              <button
+                type="button"
+                onClick={back}
+                aria-label="Back"
+                className="inline-flex items-center -ml-1.5 mr-1 rounded-pill text-ink-muted hover:text-ink hover:bg-ink/5 p-1"
+              >
+                <ChevronLeft size={16} strokeWidth={2} />
+              </button>
+            )}
             {STEP_TITLES.map((_, i) => (
               <span
                 key={i}

@@ -20,7 +20,6 @@ import { OnboardingFlow } from './features/onboarding/OnboardingFlow'
 import { CoachmarkTour } from './features/onboarding/CoachmarkTour'
 import { ContextualHints } from './features/onboarding/ContextualHints'
 import { HowPacerWorksSheet } from './features/onboarding/HowPacerWorksSheet'
-import { InstallPrompt } from './pwa/InstallPrompt'
 import { OfflineShell } from './pwa/OfflineShell'
 import { useAuth } from './features/auth/AuthProvider'
 import { GroupProvider } from './features/groups/GroupContext'
@@ -102,7 +101,6 @@ export default function App() {
         <AuthedOverlays />
       </GroupProvider>
       <OfflineShell />
-      <InstallPrompt />
       <Toaster richColors position="top-center" />
     </QueryClientProvider>
   )

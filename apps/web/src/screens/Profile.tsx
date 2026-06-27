@@ -10,6 +10,7 @@ import { FriendsSection } from '../features/friends/FriendsSection'
 export default function Profile() {
   const { session, signOut } = useAuth()
   const { profile } = useProfile()
+  const email = session?.user.email
   const token = session?.access_token
   const resetOnboarding = usePatchOnboarding()
   const [deleting, setDeleting] = useState(false)
@@ -54,9 +55,13 @@ export default function Profile() {
     <div className="p-4 md:p-6 lg:p-8 mx-auto w-full max-w-3xl flex flex-col gap-5">
       <header>
         <h1 className="font-display text-2xl font-bold text-ink">Profile</h1>
-        {profile && (
+        {(profile || email) && (
           <p className="mt-1 text-sm text-ink-muted">
-            {profile.displayName} · @{profile.handle}
+            {profile && (
+              <>{profile.displayName && `${profile.displayName} · `}@{profile.handle}</>
+            )}
+            {profile && email && ' | '}
+            {email}
           </p>
         )}
       </header>
