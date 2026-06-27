@@ -100,19 +100,7 @@ function RoutineCard({
         disabled={!ready}
         className="flex min-w-0 flex-1 items-center gap-3 text-left disabled:cursor-default"
       >
-        {ready ? (
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent/10 text-accent">
-            <Play size={16} />
-          </span>
-        ) : r.status === 'processing' ? (
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink/5 text-ink-muted">
-            <Loader2 size={16} className="animate-spin" />
-          </span>
-        ) : (
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent/10 text-accent">
-            <AlertCircle size={16} />
-          </span>
-        )}
+        <Thumb r={r} />
         <span className="min-w-0">
           <span className="block truncate text-sm font-medium text-ink">
             {r.title ?? r.youtube_url}
@@ -141,5 +129,38 @@ function RoutineCard({
         <Trash2 size={16} />
       </button>
     </div>
+  );
+}
+
+// The YouTube video id — prefer the worker-stored one, else parse the URL.
+function videoId(r: VideoRoutine): string | null {
+  if (r.video_id) return r.video_id;
+  const m = r.youtube_url.match(/(?:v=|youtu\.be\/)([\w-]{11})/);
+  return m?.[1] ?? null;
+}
+
+// Leading thumbnail: the YouTube poster with a status badge overlaid.
+function Thumb({ r }: { r: VideoRoutine }) {
+  const id = videoId(r);
+  return (
+    <span className="relative h-12 w-20 shrink-0 overflow-hidden rounded-card bg-ink/5">
+      {id && (
+        <img
+          src={`https://i.ytimg.com/vi/${id}/mqdefault.jpg`}
+          alt=""
+          loading="lazy"
+          className="h-full w-full object-cover"
+        />
+      )}
+      <span className="absolute inset-0 flex items-center justify-center bg-ink/25 text-white">
+        {r.status === 'ready' ? (
+          <Play size={16} />
+        ) : r.status === 'processing' ? (
+          <Loader2 size={16} className="animate-spin" />
+        ) : (
+          <AlertCircle size={16} />
+        )}
+      </span>
+    </span>
   );
 }
