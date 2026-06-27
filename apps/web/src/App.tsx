@@ -7,6 +7,7 @@ import Progress from './screens/Progress'
 import Group from './screens/Group'
 import Challenges from './screens/Challenges'
 import Profile from './screens/Profile'
+import NotFound from './screens/NotFound'
 import SignInPage from './features/auth/SignInPage'
 import ClaimHandlePage from './features/auth/ClaimHandlePage'
 import {
@@ -69,6 +70,7 @@ const router = createBrowserRouter([
       { path: 'group', element: <Group /> },
       { path: 'challenges', element: <Challenges /> },
       { path: 'profile', element: <Profile /> },
+      { path: '*', element: <NotFound /> },
     ],
   },
 ])
