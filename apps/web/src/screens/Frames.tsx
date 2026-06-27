@@ -194,6 +194,7 @@ function RoutineCard({
         target="_blank"
         rel="noreferrer"
         aria-label="Open original on YouTube"
+        title="Open original on YouTube"
         className="rounded-pill p-2 text-ink-muted hover:bg-ink/5 hover:text-ink"
       >
         <ExternalLink size={16} />
@@ -204,6 +205,7 @@ function RoutineCard({
           type="button"
           onClick={onDelete}
           aria-label="Delete routine"
+          title="Delete flow"
           className="rounded-pill p-2 text-ink-muted hover:bg-ink/5 hover:text-ink"
         >
           <Trash2 size={16} />
