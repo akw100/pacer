@@ -170,7 +170,17 @@ def process_video(user_id: str, routine_id: str, url: str) -> dict:
 
 
 def _ydl_opts(tmp: Path | None = None) -> dict:
-    opts: dict = {"quiet": True, "no_warnings": True, "noplaylist": True}
+    opts: dict = {
+        "quiet": True,
+        "no_warnings": True,
+        "noplaylist": True,
+        # Impersonate YouTube's mobile/TV apps — these clients often bypass the
+        # "sign in to confirm you're not a bot" check that hits datacenter IPs,
+        # without needing cookies or a proxy. Cat-and-mouse: if YouTube starts
+        # blocking these too, fall back to YTDLP_COOKIES / YTDLP_PROXY.
+        # ponytail: free no-cookie bypass; proxy is the durable fix if it breaks.
+        "extractor_args": {"youtube": {"player_client": ["ios", "android", "tv"]}},
+    }
     if _COOKIE_FILE:
         opts["cookiefile"] = _COOKIE_FILE
     if YTDLP_PROXY:
