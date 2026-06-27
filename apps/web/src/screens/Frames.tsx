@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Loader2, Play, Trash2, AlertCircle, ExternalLink, Heart, Globe, Lock } from 'lucide-react';
 import type { VideoRoutine } from '@pacer/shared';
 import { Button } from '../components/Button';
+import { Tooltip } from '../components/Tooltip';
 import { EmptyState } from '../features/video-frames/EmptyState';
 import { RoutineCarousel } from '../features/video-frames/RoutineCarousel';
 import {
@@ -161,28 +162,30 @@ function RoutineCard({
       </button>
 
       {ready && (
-        <button
-          type="button"
-          onClick={onToggleLike}
-          aria-label={r.liked_by_me ? 'Unlike' : 'Like'}
-          title={r.liked_by_me ? 'Unlike' : 'Like'}
-          className="flex items-center gap-1 rounded-pill p-2 text-ink-muted hover:bg-ink/5 hover:text-ink"
-        >
-          <Heart size={16} className={r.liked_by_me ? 'fill-accent text-accent' : ''} />
-          {!!r.like_count && <span className="text-xs">{r.like_count}</span>}
-        </button>
+        <Tooltip label={r.liked_by_me ? 'Unlike' : 'Like'}>
+          <button
+            type="button"
+            onClick={onToggleLike}
+            aria-label={r.liked_by_me ? 'Unlike' : 'Like'}
+            className="flex items-center gap-1 rounded-pill p-2 text-ink-muted hover:bg-ink/5 hover:text-ink"
+          >
+            <Heart size={16} className={r.liked_by_me ? 'fill-accent text-accent' : ''} />
+            {!!r.like_count && <span className="text-xs">{r.like_count}</span>}
+          </button>
+        </Tooltip>
       )}
 
       {mine && ready && (
-        <button
-          type="button"
-          onClick={onTogglePublic}
-          aria-label={r.is_public ? 'Make private' : 'Make public'}
-          title={r.is_public ? 'Make private' : 'Make public'}
-          className="rounded-pill p-2 text-ink-muted hover:bg-ink/5 hover:text-ink"
-        >
-          {r.is_public ? <Globe size={16} className="text-success" /> : <Lock size={16} />}
-        </button>
+        <Tooltip label={r.is_public ? 'Make private' : 'Make public'}>
+          <button
+            type="button"
+            onClick={onTogglePublic}
+            aria-label={r.is_public ? 'Make private' : 'Make public'}
+            className="rounded-pill p-2 text-ink-muted hover:bg-ink/5 hover:text-ink"
+          >
+            {r.is_public ? <Globe size={16} className="text-success" /> : <Lock size={16} />}
+          </button>
+        </Tooltip>
       )}
 
       {mine && r.status === 'error' && (
@@ -191,27 +194,29 @@ function RoutineCard({
         </Button>
       )}
 
-      <a
-        href={r.youtube_url}
-        target="_blank"
-        rel="noreferrer"
-        aria-label="Open original on YouTube"
-        title="Open original on YouTube"
-        className="rounded-pill p-2 text-ink-muted hover:bg-ink/5 hover:text-ink"
-      >
-        <ExternalLink size={16} />
-      </a>
-
-      {mine && (
-        <button
-          type="button"
-          onClick={onDelete}
-          aria-label="Delete routine"
-          title="Delete flow"
+      <Tooltip label="Open original on YouTube">
+        <a
+          href={r.youtube_url}
+          target="_blank"
+          rel="noreferrer"
+          aria-label="Open original on YouTube"
           className="rounded-pill p-2 text-ink-muted hover:bg-ink/5 hover:text-ink"
         >
-          <Trash2 size={16} />
-        </button>
+          <ExternalLink size={16} />
+        </a>
+      </Tooltip>
+
+      {mine && (
+        <Tooltip label="Delete flow">
+          <button
+            type="button"
+            onClick={onDelete}
+            aria-label="Delete routine"
+            className="rounded-pill p-2 text-ink-muted hover:bg-ink/5 hover:text-ink"
+          >
+            <Trash2 size={16} />
+          </button>
+        </Tooltip>
       )}
     </div>
   );

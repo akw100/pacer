@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 import { ChevronLeft, ChevronRight, Maximize, Minimize, X } from 'lucide-react';
 import { formatDuration } from '@pacer/shared';
+import { Tooltip } from '../../components/Tooltip';
 import { useVideoRoutine } from './useVideoRoutines';
 
 // Full-page, fullscreen-able step-through of a routine — one section per slide.
@@ -107,48 +108,57 @@ export function RoutineCarousel({ id, onClose }: { id: string; onClose: () => vo
               {data?.title ?? 'Routine'}
             </span>
             <div className="flex shrink-0 items-center gap-1">
-              <button
-                type="button"
-                onClick={toggleFullscreen}
-                aria-label={isFull ? 'Exit fullscreen' : 'Fullscreen'}
-                title={isFull ? 'Exit fullscreen' : 'Fullscreen'}
-                className="rounded-pill p-2 text-white/80 hover:bg-white/10 hover:text-white"
-              >
-                {isFull ? <Minimize size={20} /> : <Maximize size={20} />}
-              </button>
-              <button
-                type="button"
-                onClick={onClose}
-                aria-label="Close"
-                title="Close"
-                className="rounded-pill p-2 text-white/80 hover:bg-white/10 hover:text-white"
-              >
-                <X size={20} />
-              </button>
+              <Tooltip label={isFull ? 'Exit fullscreen' : 'Fullscreen'} side="bottom">
+                <button
+                  type="button"
+                  onClick={toggleFullscreen}
+                  aria-label={isFull ? 'Exit fullscreen' : 'Fullscreen'}
+                  className="rounded-pill p-2 text-white/80 hover:bg-white/10 hover:text-white"
+                >
+                  {isFull ? <Minimize size={20} /> : <Maximize size={20} />}
+                </button>
+              </Tooltip>
+              <Tooltip label="Close" side="bottom">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  aria-label="Close"
+                  className="rounded-pill p-2 text-white/80 hover:bg-white/10 hover:text-white"
+                >
+                  <X size={20} />
+                </button>
+              </Tooltip>
             </div>
           </div>
 
-          {/* Prev / Next */}
-          <button
-            type="button"
-            onClick={prev}
-            disabled={index === 0}
-            aria-label="Previous"
-            title="Previous"
-            className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-2 text-white hover:bg-white/20 disabled:opacity-30"
-          >
-            <ChevronLeft size={28} />
-          </button>
-          <button
-            type="button"
-            onClick={next}
-            disabled={index === sections.length - 1}
-            aria-label="Next"
-            title="Next"
-            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-2 text-white hover:bg-white/20 disabled:opacity-30"
-          >
-            <ChevronRight size={28} />
-          </button>
+          {/* Prev / Next — wrapper div carries the absolute placement so the
+              Tooltip's own relative anchor isn't overridden. */}
+          <div className="absolute left-2 top-1/2 -translate-y-1/2">
+            <Tooltip label="Previous">
+              <button
+                type="button"
+                onClick={prev}
+                disabled={index === 0}
+                aria-label="Previous"
+                className="rounded-full bg-white/10 p-2 text-white hover:bg-white/20 disabled:opacity-30"
+              >
+                <ChevronLeft size={28} />
+              </button>
+            </Tooltip>
+          </div>
+          <div className="absolute right-2 top-1/2 -translate-y-1/2">
+            <Tooltip label="Next">
+              <button
+                type="button"
+                onClick={next}
+                disabled={index === sections.length - 1}
+                aria-label="Next"
+                className="rounded-full bg-white/10 p-2 text-white hover:bg-white/20 disabled:opacity-30"
+              >
+                <ChevronRight size={28} />
+              </button>
+            </Tooltip>
+          </div>
         </>
       )}
     </div>
