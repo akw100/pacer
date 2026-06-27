@@ -29,6 +29,13 @@ export function RoutineCarousel({ id, onClose }: { id: string; onClose: () => vo
 
   const next = useCallback(() => embla?.scrollNext(), [embla]);
   const prev = useCallback(() => embla?.scrollPrev(), [embla]);
+  // Tapping the frame advances; wraps back to the first at the end so a tap
+  // always does something (handy on touch / fullscreen).
+  const advance = useCallback(() => {
+    if (!embla) return;
+    if (embla.selectedScrollSnap() >= sections.length - 1) embla.scrollTo(0);
+    else embla.scrollNext();
+  }, [embla, sections.length]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -94,13 +101,18 @@ export function RoutineCarousel({ id, onClose }: { id: string; onClose: () => vo
               <div className="flex h-full">
                 {sections.map((s) => (
                   <div key={s.idx} className="flex-[0_0_100%] min-w-0 h-full flex flex-col">
-                    <div className="flex-1 flex items-center justify-center p-2">
+                    <button
+                      type="button"
+                      onClick={advance}
+                      aria-label="Next frame"
+                      className="flex-1 flex items-center justify-center p-2"
+                    >
                       <img
                         src={s.frame_url}
                         alt={s.move_label ?? s.title}
                         className="max-h-full max-w-full object-contain rounded-card"
                       />
-                    </div>
+                    </button>
                     <div className="px-5 pb-6 pt-2 text-center">
                       <p className="font-display text-xl font-bold">{s.move_label ?? s.title}</p>
                       <p className="text-sm text-white/60">
