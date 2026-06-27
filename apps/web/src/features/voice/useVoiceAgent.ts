@@ -140,6 +140,10 @@ How to work:
 - Confirm out loud before anything destructive (deleting, leaving a group). Never invent data — ask the user for values you don't have.
 Speak naturally and concisely. You are talking while doing.`
 
+// Spoken the moment a session connects, so the user knows the agent is listening
+// and what it can do. Phrased as a prompt (not a fixed string) so it sounds natural.
+const GREETING = `Open the conversation now: in one warm, short sentence, greet the user as Pacer's voice assistant and mention you can move around the app, log workouts, and fill things in for them. Then stop and listen.`
+
 // Realtime uses the FLAT function-tool shape (name/description/parameters at top level).
 const TOOLS = [
   {
@@ -326,6 +330,8 @@ export function useVoiceAgent() {
           type: 'session.update',
           session: { type: 'realtime', instructions: INSTRUCTIONS, tools: TOOLS, tool_choice: 'auto' },
         })
+        // Greet first so the user hears the agent come alive.
+        send({ type: 'response.create', response: { instructions: GREETING } })
         setStatus('live')
       }
       dc.onmessage = (ev) => {
