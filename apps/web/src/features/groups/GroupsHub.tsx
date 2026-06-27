@@ -5,6 +5,7 @@ import { GroupCard } from './GroupCard';
 import { CreateGroupSheet } from './CreateGroupSheet';
 import { JoinGroupSheet } from './JoinGroupSheet';
 import { EmptyState } from './EmptyState';
+import { PendingGroupInvitesCard } from './PendingGroupInvitesCard';
 import { useMyGroups } from './useGroups';
 
 // Groups Hub — the entry view of /group. Lists every group the user belongs
@@ -40,12 +41,15 @@ export function GroupsHub({ youUserId, units, onOpenGroup }: GroupsHubProps) {
   }
 
   // Empty state — but Create / Join are mounted INSIDE so the user can act
-  // immediately. EmptyState is still used for its visual.
+  // immediately. EmptyState is still used for its visual. Pending invites
+  // (if any) appear above so a brand-new user can convert an invite into
+  // their first group without going through Create / Join.
   if (groups.length === 0) {
     return (
-      <div className="p-4 md:p-6 lg:p-8 max-w-3xl mx-auto">
+      <div className="p-4 md:p-6 lg:p-8 max-w-3xl mx-auto flex flex-col gap-4">
         <Header />
-        <div className="mt-4">
+        <PendingGroupInvitesCard />
+        <div>
           <EmptyState
             onEnterCode={() => setJoinOpen(true)}
             onCreate={() => setCreateOpen(true)}
@@ -68,6 +72,8 @@ export function GroupsHub({ youUserId, units, onOpenGroup }: GroupsHubProps) {
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-3xl mx-auto flex flex-col gap-5">
       <Header />
+
+      <PendingGroupInvitesCard />
 
       <section aria-label="Your groups" className="flex flex-col gap-3">
         {groups.map((g) => (

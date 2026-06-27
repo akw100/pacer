@@ -10,7 +10,18 @@ export const groupKeys = {
   stats: (id: string) => ['groups', 'stats', id] as const,
   feed: (id: string) => ['groups', 'feed', id] as const,
   goals: (id: string) => ['groups', 'goals', id] as const,
+  invites: (id: string) => ['groups', 'invites', id] as const,
+  myInvites: ['group-invites', 'me'] as const,
 };
+
+/** Invalidate every cache that surfaces group invites. Use after any
+ *  mutation that changes the invite graph (create, accept, decline,
+ *  cancel) so both the group's invite list and the caller's /me list
+ *  refresh. */
+export function invalidateGroupInvites(qc: QueryClient, groupId?: string): void {
+  if (groupId) qc.invalidateQueries({ queryKey: groupKeys.invites(groupId) });
+  qc.invalidateQueries({ queryKey: groupKeys.myInvites });
+}
 
 export function invalidateGroup(qc: QueryClient, groupId: string): void {
   qc.invalidateQueries({ queryKey: groupKeys.detail(groupId) });
