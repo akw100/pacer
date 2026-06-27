@@ -224,7 +224,7 @@ function videoId(r: VideoRoutine): string | null {
 function Thumb({ r }: { r: VideoRoutine }) {
   const id = videoId(r);
   return (
-    <span className="relative h-12 w-20 shrink-0 overflow-hidden rounded-card bg-ink/5">
+    <span className="relative h-16 w-28 shrink-0 overflow-hidden rounded-card bg-ink/5">
       {id && (
         <img
           src={`https://i.ytimg.com/vi/${id}/mqdefault.jpg`}
