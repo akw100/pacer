@@ -75,6 +75,7 @@ export function RoutineCarousel({ id, onClose }: { id: string; onClose: () => vo
             type="button"
             onClick={toggleFullscreen}
             aria-label={isFull ? 'Exit fullscreen' : 'Fullscreen'}
+            title={isFull ? 'Exit fullscreen' : 'Fullscreen'}
             className="rounded-pill p-2 text-white/80 hover:bg-white/10 hover:text-white"
           >
             {isFull ? <Minimize size={20} /> : <Maximize size={20} />}
@@ -83,6 +84,7 @@ export function RoutineCarousel({ id, onClose }: { id: string; onClose: () => vo
             type="button"
             onClick={onClose}
             aria-label="Close"
+            title="Close"
             className="rounded-pill p-2 text-white/80 hover:bg-white/10 hover:text-white"
           >
             <X size={20} />
@@ -131,6 +133,7 @@ export function RoutineCarousel({ id, onClose }: { id: string; onClose: () => vo
               onClick={prev}
               disabled={index === 0}
               aria-label="Previous"
+              title="Previous"
               className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-2 text-white hover:bg-white/20 disabled:opacity-30"
             >
               <ChevronLeft size={28} />
@@ -140,6 +143,7 @@ export function RoutineCarousel({ id, onClose }: { id: string; onClose: () => vo
               onClick={next}
               disabled={index === sections.length - 1}
               aria-label="Next"
+              title="Next"
               className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-2 text-white hover:bg-white/20 disabled:opacity-30"
             >
               <ChevronRight size={28} />

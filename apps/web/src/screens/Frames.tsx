@@ -165,6 +165,7 @@ function RoutineCard({
           type="button"
           onClick={onToggleLike}
           aria-label={r.liked_by_me ? 'Unlike' : 'Like'}
+          title={r.liked_by_me ? 'Unlike' : 'Like'}
           className="flex items-center gap-1 rounded-pill p-2 text-ink-muted hover:bg-ink/5 hover:text-ink"
         >
           <Heart size={16} className={r.liked_by_me ? 'fill-accent text-accent' : ''} />
@@ -177,6 +178,7 @@ function RoutineCard({
           type="button"
           onClick={onTogglePublic}
           aria-label={r.is_public ? 'Make private' : 'Make public'}
+          title={r.is_public ? 'Make private' : 'Make public'}
           className="rounded-pill p-2 text-ink-muted hover:bg-ink/5 hover:text-ink"
         >
           {r.is_public ? <Globe size={16} className="text-success" /> : <Lock size={16} />}
