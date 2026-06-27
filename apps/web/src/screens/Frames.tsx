@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { Loader2, Play, Trash2, AlertCircle, ExternalLink, Heart, Globe, Lock } from 'lucide-react';
 import type { VideoRoutine } from '@pacer/shared';
 import { Button } from '../components/Button';
+import { Loader } from '../components/Loader';
 import { Tooltip } from '../components/Tooltip';
 import { useAuth } from '../features/auth/AuthProvider';
 import { EmptyState } from '../features/video-frames/EmptyState';
 import { RoutineCarousel } from '../features/video-frames/RoutineCarousel';
+import { VideoPlayer } from '../features/video-frames/VideoPlayer';
 import {
   useCreateVideoRoutine,
   useDeleteVideoRoutine,
@@ -28,6 +30,7 @@ export default function Frames() {
   const like = useToggleLike();
   const [url, setUrl] = useState('');
   const [openId, setOpenId] = useState<string | null>(null);
+  const [playVideoId, setPlayVideoId] = useState<string | null>(null);
 
   const myRoutines = mine.data ?? [];
   const savedRoutines = saved.data ?? [];
@@ -47,6 +50,10 @@ export default function Frames() {
       routine={r}
       owned={r.user_id === userId}
       onOpen={() => setOpenId(r.id)}
+      onPlay={() => {
+        const id = videoId(r);
+        if (id) setPlayVideoId(id);
+      }}
       onDelete={() => del.mutate(r.id)}
       onRetry={() => create.mutate(r.youtube_url)}
       onTogglePublic={() => setPublic.mutate({ id: r.id, is_public: !r.is_public })}
@@ -107,7 +114,7 @@ export default function Frames() {
       {tab === 'mine' ? (
         <div className="mt-6 space-y-3">
           {mine.isLoading ? (
-            <p className="text-sm text-ink-muted">Loading…</p>
+            <Loader className="py-10" />
           ) : myRoutines.length === 0 && savedRoutines.length === 0 ? (
             <EmptyState />
           ) : (
@@ -125,7 +132,7 @@ export default function Frames() {
       ) : (
         <div className="mt-6 space-y-3">
           {pub.isLoading ? (
-            <p className="text-sm text-ink-muted">Loading…</p>
+            <Loader className="py-10" />
           ) : publicRoutines.length === 0 ? (
             <p className="rounded-card border border-border bg-panel px-6 py-10 text-center text-sm text-ink-muted">
               No public flows yet — make one of yours public to share it.
@@ -137,6 +144,9 @@ export default function Frames() {
       )}
 
       {openId && <RoutineCarousel id={openId} onClose={() => setOpenId(null)} />}
+      {playVideoId && (
+        <VideoPlayer videoId={playVideoId} onClose={() => setPlayVideoId(null)} />
+      )}
     </div>
   );
 }
@@ -145,6 +155,7 @@ function RoutineCard({
   routine: r,
   owned,
   onOpen,
+  onPlay,
   onDelete,
   onRetry,
   onTogglePublic,
@@ -153,6 +164,7 @@ function RoutineCard({
   routine: VideoRoutine;
   owned: boolean;
   onOpen: () => void;
+  onPlay: () => void;
   onDelete: () => void;
   onRetry: () => void;
   onTogglePublic: () => void;
@@ -171,14 +183,21 @@ function RoutineCard({
 
   return (
     <div className="flex items-center gap-2 rounded-card border border-border bg-panel p-3">
-      <button
-        type="button"
-        onClick={ready ? onOpen : undefined}
-        disabled={!ready}
-        className="flex min-w-0 flex-1 items-center gap-3 text-left disabled:cursor-default"
-      >
-        <Thumb r={r} />
-        <span className="min-w-0">
+      {/* Thumb + text are grouped (gap-3) so the row looks exactly like before;
+          only the click targets differ — thumb plays the video, text opens the
+          frames carousel. */}
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <Tooltip label="Play video" className="shrink-0">
+          <button type="button" onClick={onPlay} aria-label="Play video">
+            <Thumb r={r} />
+          </button>
+        </Tooltip>
+        <button
+          type="button"
+          onClick={ready ? onOpen : undefined}
+          disabled={!ready}
+          className="min-w-0 flex-1 text-left disabled:cursor-default"
+        >
           <span className="block truncate text-sm font-medium text-ink">
             {r.title ?? r.youtube_url}
           </span>
@@ -189,8 +208,8 @@ function RoutineCard({
                 ? 'Processing…'
                 : (r.error ?? 'Failed')}
           </span>
-        </span>
-      </button>
+        </button>
+      </div>
 
       {ready && (
         <Tooltip label={likeLabel}>
@@ -264,7 +283,7 @@ function videoId(r: VideoRoutine): string | null {
 function Thumb({ r }: { r: VideoRoutine }) {
   const id = videoId(r);
   return (
-    <span className="relative h-16 w-28 shrink-0 overflow-hidden rounded-card bg-ink/5">
+    <span className="relative block h-16 w-28 shrink-0 overflow-hidden rounded-card bg-ink/5">
       {id && (
         <img
           src={`https://i.ytimg.com/vi/${id}/mqdefault.jpg`}
