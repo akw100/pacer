@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Loader2, Play, Trash2, AlertCircle, ExternalLink, Heart, Globe, Lock } from 'lucide-react';
 import type { VideoRoutine } from '@pacer/shared';
 import { Button } from '../components/Button';
+import { Loader } from '../components/Loader';
 import { Tooltip } from '../components/Tooltip';
 import { useAuth } from '../features/auth/AuthProvider';
 import { EmptyState } from '../features/video-frames/EmptyState';
@@ -113,7 +114,7 @@ export default function Frames() {
       {tab === 'mine' ? (
         <div className="mt-6 space-y-3">
           {mine.isLoading ? (
-            <p className="text-sm text-ink-muted">Loading…</p>
+            <Loader className="py-10" />
           ) : myRoutines.length === 0 && savedRoutines.length === 0 ? (
             <EmptyState />
           ) : (
@@ -131,7 +132,7 @@ export default function Frames() {
       ) : (
         <div className="mt-6 space-y-3">
           {pub.isLoading ? (
-            <p className="text-sm text-ink-muted">Loading…</p>
+            <Loader className="py-10" />
           ) : publicRoutines.length === 0 ? (
             <p className="rounded-card border border-border bg-panel px-6 py-10 text-center text-sm text-ink-muted">
               No public flows yet — make one of yours public to share it.

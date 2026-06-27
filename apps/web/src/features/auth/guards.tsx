@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Navigate } from 'react-router';
+import { Loader } from '../../components/Loader';
 import { useAuth } from './AuthProvider';
 import { useProfile } from './useProfile';
 
@@ -14,7 +15,7 @@ function FullScreen({ children }: { children: ReactNode }) {
 /** Require a session. Unauthenticated users go to the sign-in page. */
 export function RequireAuth({ children }: { children: ReactNode }) {
   const { session, loading } = useAuth();
-  if (loading) return <FullScreen>Loading…</FullScreen>;
+  if (loading) return <FullScreen><Loader /></FullScreen>;
   if (!session) return <Navigate to="/signin" replace />;
   return <>{children}</>;
 }
@@ -22,7 +23,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
 /** Authed routes that need a claimed handle — first-timers go to onboarding. */
 export function RequireHandle({ children }: { children: ReactNode }) {
   const { status } = useProfile();
-  if (status === 'loading') return <FullScreen>Loading…</FullScreen>;
+  if (status === 'loading') return <FullScreen><Loader /></FullScreen>;
   if (status === 'error')
     return <FullScreen>Couldn’t load your profile. Refresh to retry.</FullScreen>;
   if (status === 'needs-handle')
@@ -33,7 +34,7 @@ export function RequireHandle({ children }: { children: ReactNode }) {
 /** The Claim-your-handle route: skip it if the user already has a handle. */
 export function RequireNeedsHandle({ children }: { children: ReactNode }) {
   const { status } = useProfile();
-  if (status === 'loading') return <FullScreen>Loading…</FullScreen>;
+  if (status === 'loading') return <FullScreen><Loader /></FullScreen>;
   if (status === 'error')
     return <FullScreen>Couldn’t load your profile. Refresh to retry.</FullScreen>;
   if (status === 'ready') return <Navigate to="/" replace />;
@@ -44,7 +45,7 @@ export function RequireNeedsHandle({ children }: { children: ReactNode }) {
  *  them to onboarding if they still need a handle). */
 export function RedirectIfAuthed({ children }: { children: ReactNode }) {
   const { session, loading } = useAuth();
-  if (loading) return <FullScreen>Loading…</FullScreen>;
+  if (loading) return <FullScreen><Loader /></FullScreen>;
   if (session) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
