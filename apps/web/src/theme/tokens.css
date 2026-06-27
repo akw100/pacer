@@ -28,4 +28,12 @@
     font-family: var(--font-body);
     -webkit-font-smoothing: antialiased;
   }
+
+  /* Tailwind v4 Preflight drops the default pointer cursor on buttons; restore
+     it site-wide so every button (and role=button) feels clickable. */
+  button:not(:disabled),
+  [role='button']:not(:disabled),
+  label[for] {
+    cursor: pointer;
+  }
 }
