@@ -6,6 +6,7 @@ import ProgressRecords from '../features/progress/ProgressRecords'
 import { HistorySection } from '../features/logging/HistorySection'
 import { TrendsSection } from '../features/logging/TrendsSection'
 import { CommunityCard } from '../features/platform-stats/CommunityCard'
+import { FriendsContextCard } from '../features/progress/FriendsContextCard'
 import { apiFetch } from '../lib/api'
 import { useAuth } from '../features/auth/AuthProvider'
 
@@ -97,7 +98,10 @@ export default function Progress() {
         {selectedTab === 'Trends' && (
           <div className="grid gap-6 lg:grid-cols-[1fr_22rem] items-start">
             <TrendsSection />
-            <CommunityCard />
+            <div className="flex flex-col gap-5">
+              <CommunityCard />
+              <FriendsContextCard />
+            </div>
           </div>
         )}
         {selectedTab === 'History' && <HistorySection />}
