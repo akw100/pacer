@@ -36,4 +36,13 @@ export const env = {
   get internalToken(): string {
     return required('INTERNAL_TOKEN');
   },
+  // OpenAI standing key — server-side only. Used to mint short-lived Realtime
+  // ephemeral tokens for the in-app voice agent (the key never reaches the browser).
+  get openaiKey(): string {
+    return required('OPENAI_KEY');
+  },
+  // Realtime model bound to the voice session. Override per-env if needed.
+  get openaiRealtimeModel(): string {
+    return process.env['OPENAI_REALTIME_MODEL'] ?? 'gpt-realtime';
+  },
 };

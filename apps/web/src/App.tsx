@@ -25,6 +25,7 @@ import { HowPacerWorksSheet } from './features/onboarding/HowPacerWorksSheet'
 import { OfflineShell } from './pwa/OfflineShell'
 import { useAuth } from './features/auth/AuthProvider'
 import { GroupProvider } from './features/groups/GroupContext'
+import { VoiceAgent } from './features/voice/VoiceAgent'
 
 function Shell() {
   return (
@@ -33,6 +34,7 @@ function Shell() {
       <main className="pb-16 md:pl-56">
         <Outlet />
       </main>
+      <VoiceAgent />
     </div>
   )
 }
