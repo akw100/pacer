@@ -7,7 +7,7 @@ for UI — packages that produce a distinctive feel rather than a default-templa
 
 | Concern    | Choice                                                                              |
 | ---------- | ----------------------------------------------------------------------------------- |
-| Workspace  | **pnpm** workspaces (`packages/shared`, `apps/api`, `apps/web`)                     |
+| Workspace  | **pnpm** workspaces (`packages/shared`, `apps/api`, `apps/web`) + one out-of-workspace Python service (`services/frames`) |
 | Language   | **TypeScript** strict everywhere; shared package consumed as raw TS (no build step) |
 | Validation | **zod** — one schema per entity in `shared`, reused by API validators and web forms |
 | Dates      | **date-fns** — tree-shakeable, plain functions, week-start configurable             |
@@ -17,7 +17,7 @@ for UI — packages that produce a distinctive feel rather than a default-templa
 | Concern | Package | Why |
 | --- | --- | --- |
 | Framework | **React 19 + Vite** | known quantity, fast |
-| Routing | **react-router v7** | boring on purpose; the app has 5 routes |
+| Routing | **react-router v7** | boring on purpose; a handful of top-level routes |
 | Server state | **@tanstack/react-query** | caching + optimistic updates; realtime events just invalidate queries |
 | Styling | **Tailwind v4** (`@tailwindcss/vite`) | tokens in CSS, fast iteration |
 | Component base | **shadcn/ui** (selected primitives only) | accessible Radix primitives we re-skin heavily — take Dialog, Popover, Slider; skip anything that locks in the default look |
@@ -45,6 +45,25 @@ for UI — packages that produce a distinctive feel rather than a default-templa
 | Telegram | **grammY** | the modern bot framework — typed webhook handling, inline keyboards (the ✓/✗ photo confirm), file downloads for photos; far nicer than hand-rolled fetch calls |
 | LLM | **openai** | the platform's single LLM provider — gpt-4o-mini structured outputs for Telegram text, gpt-4o-mini vision for watch photos, tool-calling for the in-app assistant, and the **Realtime API** (WebRTC + ephemeral tokens) for voice. Provider-agnostic JSON-schema tool layer keeps Gemini (Live API) as a drop-in alternative. |
 | Dev runner | **tsx** watch (also runs production — no build step) |
+
+## Video frames worker (`services/frames`)
+
+> **Exception to the TS-only rule.** This is the one non-TypeScript service in the repo. It turns a
+> YouTube workout video into a step-through routine (one still frame per section), which leans on the
+> Python media ecosystem (yt-dlp + ffmpeg + OpenCV). It runs as a separate Railway service, called
+> only by `pacer-api` over HTTP with a shared `INTERNAL_TOKEN`; it never faces the browser. Adding a
+> new dep here still goes in this table.
+
+| Concern | Package | Why |
+| --- | --- | --- |
+| Language | **Python 3.12** | the media-tooling ecosystem; isolated to this one service |
+| Web framework | **FastAPI** + **uvicorn** | tiny async HTTP surface (`/process`, `/health`) |
+| Video fetch | **yt-dlp** (pinned, bump often) | metadata + chapters + 720p download; breaks when YouTube changes |
+| Frame extract | **ffmpeg** (apt, via Dockerfile) | seek-then-extract candidate frames per section |
+| Frame scoring | **opencv-python-headless** | Laplacian-variance sharpness shortlist (headless = no libGL) |
+| Best-frame pick | **openai** (gpt-4o-mini vision) | picks the frame that best shows the move + a short label |
+| Storage upload | **supabase** (supabase-py) | service-role upload to the private `video-frames` bucket only |
+| Callback | **httpx** | POSTs results back to the api's `/internal/video-routines/:id/complete` |
 
 ## Realtime (no refresh)
 
@@ -86,5 +105,6 @@ Counter-programming:
 ## Hosting
 
 **Railway** — `pacer-api` (tsx, no build) + `pacer-web` (Vite build, static SPA via
-`RAILPACK_SPA_OUTPUT_DIR`), `main` → production, `dev` → staging, `RAILPACK_NODE_VERSION=22`.
-**Supabase** for Postgres/Auth/Realtime — separate projects for production and staging.
+`RAILPACK_SPA_OUTPUT_DIR`) + `pacer-frames` (Python, built from `services/frames/Dockerfile`),
+`main` → production, `dev` → staging, `RAILPACK_NODE_VERSION=22`.
+**Supabase** for Postgres/Auth/Realtime/Storage — separate projects for production and staging.

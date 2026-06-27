@@ -6,7 +6,9 @@ import Home from './screens/Home'
 import Progress from './screens/Progress'
 import Group from './screens/Group'
 import Challenges from './screens/Challenges'
+import Frames from './screens/Frames'
 import Profile from './screens/Profile'
+import NotFound from './screens/NotFound'
 import SignInPage from './features/auth/SignInPage'
 import ClaimHandlePage from './features/auth/ClaimHandlePage'
 import {
@@ -68,7 +70,9 @@ const router = createBrowserRouter([
       { path: 'progress', element: <Progress /> },
       { path: 'group', element: <Group /> },
       { path: 'challenges', element: <Challenges /> },
+      { path: 'flows', element: <Frames /> },
       { path: 'profile', element: <Profile /> },
+      { path: '*', element: <NotFound /> },
     ],
   },
 ])
