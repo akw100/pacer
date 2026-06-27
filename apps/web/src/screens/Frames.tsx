@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Loader2, Play, Trash2, ExternalLink, Heart, Globe, Lock } from 'lucide-react';
+import { Loader2, Play, Trash2, AlertCircle, ExternalLink, Heart, Globe, Lock } from 'lucide-react';
 import type { VideoRoutine } from '@pacer/shared';
 import { Button } from '../components/Button';
 import { Tooltip } from '../components/Tooltip';
@@ -182,31 +182,33 @@ function RoutineCard({
 
   return (
     <div className="flex items-center gap-2 rounded-card border border-border bg-panel p-3">
-      {/* Thumbnail → play the original video in an iframe. */}
-      <Tooltip label="Play video" className="shrink-0">
-        <button type="button" onClick={onPlay} aria-label="Play video">
-          <Thumb r={r} />
+      {/* Thumb + text are grouped (gap-3) so the row looks exactly like before;
+          only the click targets differ — thumb plays the video, text opens the
+          frames carousel. */}
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <Tooltip label="Play video" className="shrink-0">
+          <button type="button" onClick={onPlay} aria-label="Play video">
+            <Thumb r={r} />
+          </button>
+        </Tooltip>
+        <button
+          type="button"
+          onClick={ready ? onOpen : undefined}
+          disabled={!ready}
+          className="min-w-0 flex-1 text-left disabled:cursor-default"
+        >
+          <span className="block truncate text-sm font-medium text-ink">
+            {r.title ?? r.youtube_url}
+          </span>
+          <span className="block text-xs text-ink-muted">
+            {r.status === 'ready'
+              ? `${r.sections?.length ?? 0} sections`
+              : r.status === 'processing'
+                ? 'Processing…'
+                : (r.error ?? 'Failed')}
+          </span>
         </button>
-      </Tooltip>
-
-      {/* Title area → open the step-through frames carousel. */}
-      <button
-        type="button"
-        onClick={ready ? onOpen : undefined}
-        disabled={!ready}
-        className="flex min-w-0 flex-1 flex-col items-start text-left disabled:cursor-default"
-      >
-        <span className="block w-full truncate text-sm font-medium text-ink">
-          {r.title ?? r.youtube_url}
-        </span>
-        <span className="block text-xs text-ink-muted">
-          {r.status === 'ready'
-            ? `${r.sections?.length ?? 0} sections`
-            : r.status === 'processing'
-              ? 'Processing…'
-              : (r.error ?? 'Failed')}
-        </span>
-      </button>
+      </div>
 
       {ready && (
         <Tooltip label={likeLabel}>
@@ -290,7 +292,13 @@ function Thumb({ r }: { r: VideoRoutine }) {
         />
       )}
       <span className="absolute inset-0 flex items-center justify-center bg-ink/25 text-white">
-        <Play size={18} />
+        {r.status === 'ready' ? (
+          <Play size={16} />
+        ) : r.status === 'processing' ? (
+          <Loader2 size={16} className="animate-spin" />
+        ) : (
+          <AlertCircle size={16} />
+        )}
       </span>
     </span>
   );
