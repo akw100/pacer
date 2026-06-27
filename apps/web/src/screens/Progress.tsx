@@ -1,15 +1,23 @@
 import { useState } from 'react'
-import { Button } from '../components/Button'
+import { useQuery } from '@tanstack/react-query'
 import HabitsSection from '../features/habits/HabitsSection'
 import ProgressCalendar from '../features/progress/ProgressCalendar'
 import ProgressRecords from '../features/progress/ProgressRecords'
 import { HistorySection } from '../features/logging/HistorySection'
 import { TrendsSection } from '../features/logging/TrendsSection'
 import { CommunityCard } from '../features/platform-stats/CommunityCard'
+import { apiFetch } from '../lib/api'
+import { useAuth } from '../features/auth/AuthProvider'
 
 const tabs = ['Trends', 'Calendar', 'History', 'Records'] as const
 
 type Tab = (typeof tabs)[number]
+
+interface ScoreSummary {
+  weeklyScore: number
+  lifetimeScore: number
+  streak: number
+}
 
 function TabButton({ label, active, onClick }: { label: Tab; active: boolean; onClick: () => void }) {
   return (
@@ -25,8 +33,20 @@ function TabButton({ label, active, onClick }: { label: Tab; active: boolean; on
   )
 }
 
+function useScoreSummary() {
+  const { session } = useAuth()
+  const token = session?.access_token ?? null
+  return useQuery<ScoreSummary>({
+    queryKey: ['score', 'summary'],
+    queryFn: () => apiFetch<ScoreSummary>('/score/summary', { token: token! }),
+    enabled: !!token,
+    staleTime: 30 * 1000,
+  })
+}
+
 export default function Progress() {
   const [selectedTab, setSelectedTab] = useState<Tab>('Calendar')
+  const score = useScoreSummary()
 
   return (
     <div className="p-4 md:p-6 lg:p-8">
@@ -39,15 +59,20 @@ export default function Progress() {
           </p>
         </div>
         <div className="flex flex-col gap-3 rounded-card border border-border bg-white p-4">
-          <div className="rounded-card bg-surface p-4">
-            <p className="text-sm text-ink-muted">Weekly score</p>
-            <p className="mt-2 text-3xl font-display font-bold text-ink">142 pts</p>
-          </div>
-          <div className="rounded-card bg-surface p-4">
-            <p className="text-sm text-ink-muted">Current streak</p>
-            <p className="mt-2 text-3xl font-display font-bold text-ink">14 days</p>
-          </div>
-          <Button variant="secondary" className="w-full">View all trends</Button>
+          <HeroStat
+            label="Weekly score"
+            value={score.data ? `${score.data.weeklyScore} pts` : '—'}
+            isLoading={score.isLoading}
+          />
+          <HeroStat
+            label="Current streak"
+            value={
+              score.data
+                ? `${score.data.streak} ${score.data.streak === 1 ? 'day' : 'days'}`
+                : '—'
+            }
+            isLoading={score.isLoading}
+          />
         </div>
       </div>
 
@@ -77,6 +102,27 @@ export default function Progress() {
         )}
         {selectedTab === 'History' && <HistorySection />}
       </div>
+    </div>
+  )
+}
+
+function HeroStat({
+  label,
+  value,
+  isLoading,
+}: {
+  label: string
+  value: string
+  isLoading: boolean
+}) {
+  return (
+    <div className="rounded-card bg-surface p-4">
+      <p className="text-sm text-ink-muted">{label}</p>
+      {isLoading ? (
+        <div className="mt-2 h-9 w-20 rounded bg-ink/10 animate-pulse" />
+      ) : (
+        <p className="mt-2 text-3xl font-display font-bold text-ink tabular-nums">{value}</p>
+      )}
     </div>
   )
 }
