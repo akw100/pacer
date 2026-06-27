@@ -39,6 +39,29 @@ export const videoRoutines = new Hono<AppEnv>()
     return c.json((data as RoutineRow[]).map((row) => shape(row, userId)));
   })
 
+  // Saved = public flows the caller has liked but doesn't own — their personal
+  // collection of others' flows. Liking a flow in Discover is the "save".
+  .get('/saved', async (c) => {
+    const db = c.get('userClient');
+    const userId = c.get('userId');
+    const { data: likes, error: likesError } = await db
+      .from('video_routine_likes')
+      .select('routine_id')
+      .eq('user_id', userId);
+    if (likesError) return c.json({ error: likesError.message }, 400);
+    const ids = (likes ?? []).map((l) => l.routine_id as string);
+    if (ids.length === 0) return c.json([]);
+    const { data, error } = await db
+      .from('video_routines')
+      .select('*, video_routine_likes(user_id)')
+      .in('id', ids)
+      .eq('is_public', true)
+      .neq('user_id', userId)
+      .order('created_at', { ascending: false });
+    if (error) return c.json({ error: error.message }, 400);
+    return c.json((data as RoutineRow[]).map((row) => shape(row, userId)));
+  })
+
   .get('/:id', async (c) => {
     const db = c.get('userClient');
     const id = c.req.param('id');

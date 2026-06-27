@@ -14,6 +14,7 @@ function useToken(): string | null {
 const keys = {
   all: ['video-routines'] as const,
   public: ['video-routines', 'public'] as const,
+  saved: ['video-routines', 'saved'] as const,
   one: (id: string) => ['video-routines', id] as const,
 };
 
@@ -67,6 +68,17 @@ export function usePublicVideoRoutines() {
   return useQuery<VideoRoutine[]>({
     queryKey: keys.public,
     queryFn: () => apiFetch<VideoRoutine[]>('/video-routines/public', { token: token! }),
+    enabled: !!token,
+  });
+}
+
+// Public flows the user has liked (saved) — shown under My Flows so liked flows
+// are easy to revisit.
+export function useSavedVideoRoutines() {
+  const token = useToken();
+  return useQuery<VideoRoutine[]>({
+    queryKey: keys.saved,
+    queryFn: () => apiFetch<VideoRoutine[]>('/video-routines/saved', { token: token! }),
     enabled: !!token,
   });
 }

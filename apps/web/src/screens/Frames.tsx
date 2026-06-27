@@ -3,12 +3,14 @@ import { Loader2, Play, Trash2, AlertCircle, ExternalLink, Heart, Globe, Lock } 
 import type { VideoRoutine } from '@pacer/shared';
 import { Button } from '../components/Button';
 import { Tooltip } from '../components/Tooltip';
+import { useAuth } from '../features/auth/AuthProvider';
 import { EmptyState } from '../features/video-frames/EmptyState';
 import { RoutineCarousel } from '../features/video-frames/RoutineCarousel';
 import {
   useCreateVideoRoutine,
   useDeleteVideoRoutine,
   usePublicVideoRoutines,
+  useSavedVideoRoutines,
   useSetRoutinePublic,
   useToggleLike,
   useVideoRoutines,
@@ -16,7 +18,9 @@ import {
 
 export default function Frames() {
   const [tab, setTab] = useState<'mine' | 'public'>('mine');
+  const userId = useAuth().session?.user.id;
   const mine = useVideoRoutines();
+  const saved = useSavedVideoRoutines();
   const pub = usePublicVideoRoutines();
   const create = useCreateVideoRoutine();
   const del = useDeleteVideoRoutine();
@@ -26,6 +30,8 @@ export default function Frames() {
   const [openId, setOpenId] = useState<string | null>(null);
 
   const myRoutines = mine.data ?? [];
+  const savedRoutines = saved.data ?? [];
+  const publicRoutines = pub.data ?? [];
   const anyProcessing = myRoutines.some((r) => r.status === 'processing');
 
   function submit(e: React.FormEvent) {
@@ -35,8 +41,18 @@ export default function Frames() {
     create.mutate(value, { onSuccess: () => setUrl('') });
   }
 
-  const list = tab === 'mine' ? myRoutines : (pub.data ?? []);
-  const loading = tab === 'mine' ? mine.isLoading : pub.isLoading;
+  const card = (r: VideoRoutine) => (
+    <RoutineCard
+      key={r.id}
+      routine={r}
+      owned={r.user_id === userId}
+      onOpen={() => setOpenId(r.id)}
+      onDelete={() => del.mutate(r.id)}
+      onRetry={() => create.mutate(r.youtube_url)}
+      onTogglePublic={() => setPublic.mutate({ id: r.id, is_public: !r.is_public })}
+      onToggleLike={() => like.mutate({ id: r.id, liked: !!r.liked_by_me })}
+    />
+  );
 
   return (
     <div className="mx-auto max-w-2xl p-4">
@@ -88,32 +104,37 @@ export default function Frames() {
         </>
       )}
 
-      <div className="mt-6 space-y-3">
-        {loading ? (
-          <p className="text-sm text-ink-muted">Loading…</p>
-        ) : list.length === 0 ? (
-          tab === 'mine' ? (
+      {tab === 'mine' ? (
+        <div className="mt-6 space-y-3">
+          {mine.isLoading ? (
+            <p className="text-sm text-ink-muted">Loading…</p>
+          ) : myRoutines.length === 0 && savedRoutines.length === 0 ? (
             <EmptyState />
           ) : (
+            <>
+              {myRoutines.map(card)}
+              {savedRoutines.length > 0 && (
+                <>
+                  <h2 className="pt-2 text-sm font-semibold text-ink-muted">Saved from others</h2>
+                  {savedRoutines.map(card)}
+                </>
+              )}
+            </>
+          )}
+        </div>
+      ) : (
+        <div className="mt-6 space-y-3">
+          {pub.isLoading ? (
+            <p className="text-sm text-ink-muted">Loading…</p>
+          ) : publicRoutines.length === 0 ? (
             <p className="rounded-card border border-border bg-panel px-6 py-10 text-center text-sm text-ink-muted">
               No public flows yet — make one of yours public to share it.
             </p>
-          )
-        ) : (
-          list.map((r) => (
-            <RoutineCard
-              key={r.id}
-              routine={r}
-              mine={tab === 'mine'}
-              onOpen={() => setOpenId(r.id)}
-              onDelete={() => del.mutate(r.id)}
-              onRetry={() => create.mutate(r.youtube_url)}
-              onTogglePublic={() => setPublic.mutate({ id: r.id, is_public: !r.is_public })}
-              onToggleLike={() => like.mutate({ id: r.id, liked: !!r.liked_by_me })}
-            />
-          ))
-        )}
-      </div>
+          ) : (
+            publicRoutines.map(card)
+          )}
+        </div>
+      )}
 
       {openId && <RoutineCarousel id={openId} onClose={() => setOpenId(null)} />}
     </div>
@@ -122,7 +143,7 @@ export default function Frames() {
 
 function RoutineCard({
   routine: r,
-  mine,
+  owned,
   onOpen,
   onDelete,
   onRetry,
@@ -130,7 +151,7 @@ function RoutineCard({
   onToggleLike,
 }: {
   routine: VideoRoutine;
-  mine: boolean;
+  owned: boolean;
   onOpen: () => void;
   onDelete: () => void;
   onRetry: () => void;
@@ -138,6 +159,16 @@ function RoutineCard({
   onToggleLike: () => void;
 }) {
   const ready = r.status === 'ready';
+  // On your own flows the heart is a plain like; on others' it doubles as the
+  // "save to My Flows" control.
+  const likeLabel = owned
+    ? r.liked_by_me
+      ? 'Unlike'
+      : 'Like'
+    : r.liked_by_me
+      ? 'Remove from My Flows'
+      : 'Save to My Flows';
+
   return (
     <div className="flex items-center gap-2 rounded-card border border-border bg-panel p-3">
       <button
@@ -162,11 +193,11 @@ function RoutineCard({
       </button>
 
       {ready && (
-        <Tooltip label={r.liked_by_me ? 'Unlike' : 'Like'}>
+        <Tooltip label={likeLabel}>
           <button
             type="button"
             onClick={onToggleLike}
-            aria-label={r.liked_by_me ? 'Unlike' : 'Like'}
+            aria-label={likeLabel}
             className="flex items-center gap-1 rounded-pill p-2 text-ink-muted hover:bg-ink/5 hover:text-ink"
           >
             <Heart size={16} className={r.liked_by_me ? 'fill-accent text-accent' : ''} />
@@ -175,7 +206,7 @@ function RoutineCard({
         </Tooltip>
       )}
 
-      {mine && ready && (
+      {owned && ready && (
         <Tooltip label={r.is_public ? 'Make private' : 'Make public'}>
           <button
             type="button"
@@ -188,7 +219,7 @@ function RoutineCard({
         </Tooltip>
       )}
 
-      {mine && r.status === 'error' && (
+      {owned && r.status === 'error' && (
         <Button variant="secondary" onClick={onRetry} className="px-3 py-1.5 text-xs">
           Try again
         </Button>
@@ -206,7 +237,7 @@ function RoutineCard({
         </a>
       </Tooltip>
 
-      {mine && (
+      {owned && (
         <Tooltip label="Delete flow">
           <button
             type="button"
