@@ -13,6 +13,8 @@ import { reactions } from './reactions';
 import { friends } from './friends';
 import { groupGoals } from './group-goals';
 import { groupInvitesActions, groupInvitesUnderGroup } from './group-invites';
+import { videoRoutines } from './video-routines';
+import { videoRoutinesInternal } from './video-routines-internal';
 
 // ── Route registry (APPEND-ONLY) ───────────────────────────────────────────
 // The single place routes are mounted onto the app. Each slice adds ONE line
@@ -38,5 +40,7 @@ export function registerRoutes(app: Hono<AppEnv>): void {
   app.route('/groups/:id/goals', groupGoals); // authed
   app.route('/groups/:id/invites', groupInvitesUnderGroup); // authed
   app.route('/group-invites', groupInvitesActions); // authed
+  app.route('/video-routines', videoRoutines); // authed
+  app.route('/internal/video-routines', videoRoutinesInternal); // public prefix, INTERNAL_TOKEN-gated
   // ↑ add your slice's route here, one line.
 }

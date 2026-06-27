@@ -12,3 +12,9 @@ coverage/
 supabase/.temp/
 supabase/.branches/
 .claude/
+
+# Python (services/frames)
+__pycache__/
+*.pyc
+.venv/
+venv/

@@ -28,4 +28,12 @@ export const env = {
   get webOrigin(): string {
     return process.env['WEB_ORIGIN'] ?? 'http://localhost:5173';
   },
+  // Python frames worker (services/frames). Only the video-routines slice uses these.
+  get framesServiceUrl(): string {
+    return required('FRAMES_SERVICE_URL');
+  },
+  // Shared secret guarding the worker ↔ api internal callback (both directions).
+  get internalToken(): string {
+    return required('INTERNAL_TOKEN');
+  },
 };

@@ -12,7 +12,7 @@ That's the whole deploy story. If you ever feel tempted to deploy by hand, you'r
 something that isn't on `main` — open a PR instead.
 
 ## Topology
-Two Railway **environments**, each running the same two **services** from this repo:
+Two Railway **environments**, each running the same three **services** from this repo:
 
 | Environment | Tracks branch | Supabase project | Telegram bot |
 | --- | --- | --- | --- |
@@ -23,6 +23,7 @@ Two Railway **environments**, each running the same two **services** from this r
 | --- | --- | --- | --- |
 | `pacer-api` | Hono on Node | no build — `tsx` runs it; start `pnpm --filter @pacer/api start` | `RAILPACK_NODE_VERSION=22` |
 | `pacer-web` | Vite SPA | `pnpm --filter @pacer/web build` → static | `RAILPACK_SPA_OUTPUT_DIR=apps/web/dist`, `RAILPACK_NODE_VERSION=22` |
+| `pacer-frames` | Python video worker | Dockerfile build, root `services/frames/` | needs `ffmpeg` (in the Dockerfile); called only by `pacer-api` |
 
 > Staging and production get **separate Supabase projects** and **separate Telegram bots** — staging
 > traffic must never touch production data. (Migrations: `supabase db push` against each project.)
@@ -48,16 +49,20 @@ with the variable **names**. Staging variables point at the staging Supabase/bot
 
 | Service | Variables (set in Railway, per environment) |
 | --- | --- |
-| `pacer-api` | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY`, `OPENAI_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `WEB_ORIGIN` |
+| `pacer-api` | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY`, `OPENAI_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `WEB_ORIGIN`, `FRAMES_SERVICE_URL`, `INTERNAL_TOKEN` |
 | `pacer-web` | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_API_URL` |
+| `pacer-frames` | `INTERNAL_TOKEN` (same value as api), `API_BASE_URL` (the env's `pacer-api` URL), `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `OPENAI_API_KEY`, optional `YTDLP_COOKIES`, `YTDLP_PROXY`, and tuning (`MAX_VIDEO_MINUTES`, …) |
 
 The browser gets **only** the anon key (`VITE_*`). The service-role key lives in `pacer-api` and is
 never exposed to the web build.
 
 ## One-time setup (whoever owns the Railway account)
 1. **New Project** → *Deploy from GitHub repo* → pick the Pacer repo. Authorize Railway on the repo.
-2. Create the two services (`pacer-api`, `pacer-web`) from the same repo; set each one's build/start
-   commands and `RAILPACK_*` variables as above (pnpm workspace, so install runs at the repo root).
+2. Create the three services from the same repo. `pacer-api`/`pacer-web` set build/start commands and
+   `RAILPACK_*` as above (pnpm workspace, install runs at the repo root). `pacer-frames` builds from
+   `services/frames/Dockerfile` (set the service root to `services/frames`); `FRAMES_SERVICE_URL` on
+   the api points at this service's URL, and both share one `INTERNAL_TOKEN`. The private
+   `video-frames` Storage bucket is created by migration `0008`, not the dashboard.
 3. Rename the default environment to **production** and set its services to deploy from **`main`**.
 4. **Create a second environment, staging**, and set its services to deploy from **`dev`**.
 5. Add the env vars per environment (step above), pointing each at its own Supabase project + bot.
