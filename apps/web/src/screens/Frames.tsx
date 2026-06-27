@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Loader2, Play, Trash2, AlertCircle, ExternalLink, Heart, Globe, Lock } from 'lucide-react';
+import { Loader2, Play, Trash2, ExternalLink, Heart, Globe, Lock } from 'lucide-react';
 import type { VideoRoutine } from '@pacer/shared';
 import { Button } from '../components/Button';
 import { Tooltip } from '../components/Tooltip';
 import { useAuth } from '../features/auth/AuthProvider';
 import { EmptyState } from '../features/video-frames/EmptyState';
 import { RoutineCarousel } from '../features/video-frames/RoutineCarousel';
+import { VideoPlayer } from '../features/video-frames/VideoPlayer';
 import {
   useCreateVideoRoutine,
   useDeleteVideoRoutine,
@@ -28,6 +29,7 @@ export default function Frames() {
   const like = useToggleLike();
   const [url, setUrl] = useState('');
   const [openId, setOpenId] = useState<string | null>(null);
+  const [playVideoId, setPlayVideoId] = useState<string | null>(null);
 
   const myRoutines = mine.data ?? [];
   const savedRoutines = saved.data ?? [];
@@ -47,6 +49,10 @@ export default function Frames() {
       routine={r}
       owned={r.user_id === userId}
       onOpen={() => setOpenId(r.id)}
+      onPlay={() => {
+        const id = videoId(r);
+        if (id) setPlayVideoId(id);
+      }}
       onDelete={() => del.mutate(r.id)}
       onRetry={() => create.mutate(r.youtube_url)}
       onTogglePublic={() => setPublic.mutate({ id: r.id, is_public: !r.is_public })}
@@ -137,6 +143,9 @@ export default function Frames() {
       )}
 
       {openId && <RoutineCarousel id={openId} onClose={() => setOpenId(null)} />}
+      {playVideoId && (
+        <VideoPlayer videoId={playVideoId} onClose={() => setPlayVideoId(null)} />
+      )}
     </div>
   );
 }
@@ -145,6 +154,7 @@ function RoutineCard({
   routine: r,
   owned,
   onOpen,
+  onPlay,
   onDelete,
   onRetry,
   onTogglePublic,
@@ -153,6 +163,7 @@ function RoutineCard({
   routine: VideoRoutine;
   owned: boolean;
   onOpen: () => void;
+  onPlay: () => void;
   onDelete: () => void;
   onRetry: () => void;
   onTogglePublic: () => void;
@@ -171,24 +182,29 @@ function RoutineCard({
 
   return (
     <div className="flex items-center gap-2 rounded-card border border-border bg-panel p-3">
+      {/* Thumbnail → play the original video in an iframe. */}
+      <Tooltip label="Play video" className="shrink-0">
+        <button type="button" onClick={onPlay} aria-label="Play video">
+          <Thumb r={r} />
+        </button>
+      </Tooltip>
+
+      {/* Title area → open the step-through frames carousel. */}
       <button
         type="button"
         onClick={ready ? onOpen : undefined}
         disabled={!ready}
-        className="flex min-w-0 flex-1 items-center gap-3 text-left disabled:cursor-default"
+        className="flex min-w-0 flex-1 flex-col items-start text-left disabled:cursor-default"
       >
-        <Thumb r={r} />
-        <span className="min-w-0">
-          <span className="block truncate text-sm font-medium text-ink">
-            {r.title ?? r.youtube_url}
-          </span>
-          <span className="block text-xs text-ink-muted">
-            {r.status === 'ready'
-              ? `${r.sections?.length ?? 0} sections`
-              : r.status === 'processing'
-                ? 'Processing…'
-                : (r.error ?? 'Failed')}
-          </span>
+        <span className="block w-full truncate text-sm font-medium text-ink">
+          {r.title ?? r.youtube_url}
+        </span>
+        <span className="block text-xs text-ink-muted">
+          {r.status === 'ready'
+            ? `${r.sections?.length ?? 0} sections`
+            : r.status === 'processing'
+              ? 'Processing…'
+              : (r.error ?? 'Failed')}
         </span>
       </button>
 
@@ -274,13 +290,7 @@ function Thumb({ r }: { r: VideoRoutine }) {
         />
       )}
       <span className="absolute inset-0 flex items-center justify-center bg-ink/25 text-white">
-        {r.status === 'ready' ? (
-          <Play size={16} />
-        ) : r.status === 'processing' ? (
-          <Loader2 size={16} className="animate-spin" />
-        ) : (
-          <AlertCircle size={16} />
-        )}
+        <Play size={18} />
       </span>
     </span>
   );
