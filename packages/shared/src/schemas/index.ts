@@ -10,3 +10,4 @@ export * from './group';
 export * from './reaction';
 export * from './friendship';
 export * from './group-goal';
+export * from './group-invite';
