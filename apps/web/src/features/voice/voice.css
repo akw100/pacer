@@ -1,0 +1,64 @@
+/* Star-burst hover effect for the voice FAB.
+   Ported from Uiverse.io by MuhammadHasann (silent-lizard-44), re-themed to
+   Pacer tokens: all 6 sparkles are amber (streak) and fly outward + glow on
+   hover. Sizes/positions are the effect's own tuning constants, not design
+   tokens. */
+
+.voice-fab {
+  border: 3px solid transparent;
+  transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out,
+    border-color 0.3s ease-in-out, box-shadow 0.3s ease-in-out, transform 0.15s ease;
+}
+
+/* Like the original button: on hover the fill drops out, leaving an accent
+   outline + icon and a glow (the sparkles burst over it). */
+.voice-fab:hover {
+  background-color: transparent;
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 25px color-mix(in srgb, var(--color-accent) 55%, transparent);
+}
+
+.voice-fab .star {
+  position: absolute;
+  height: auto;
+  z-index: -5;
+  pointer-events: none;
+  opacity: 0;
+  filter: drop-shadow(0 0 0 var(--color-streak));
+}
+
+/* Only ever visible on hover — never at rest, regardless of where a star sits
+   relative to the round button (some poke past its edge after the Y-flip). */
+.voice-fab:hover .star {
+  opacity: 1;
+}
+
+.voice-fab .star svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Every sparkle the same: amber (streak). */
+.voice-fab .fil0 {
+  fill: var(--color-streak);
+}
+
+/* Resting positions (tucked behind the button) — mirrored on the Y axis */
+.voice-fab .star-1 { top: 20%; left: 80%; width: 25px; transition: all 1s cubic-bezier(0.05, 0.83, 0.43, 0.96); }
+.voice-fab .star-2 { top: 45%; left: 55%; width: 15px; transition: all 1s cubic-bezier(0, 0.4, 0, 1.01); }
+.voice-fab .star-3 { top: 40%; left: 60%; width: 5px;  transition: all 1s cubic-bezier(0, 0.4, 0, 1.01); }
+.voice-fab .star-4 { top: 20%; left: 60%; width: 8px;  transition: all 0.8s cubic-bezier(0, 0.4, 0, 1.01); }
+.voice-fab .star-5 { top: 25%; left: 55%; width: 15px; transition: all 0.6s cubic-bezier(0, 0.4, 0, 1.01); }
+.voice-fab .star-6 { top: 5%;  left: 50%; width: 5px;  transition: all 0.8s ease; }
+
+/* Burst outward + glow on hover — mirrored on the Y axis (right ↔ left).
+   The FAB sits in the bottom-right corner, so the right-side stars (1/2/3) are
+   pulled in closer than a mirror would put them, to stay on-screen. */
+.voice-fab:hover .star-1 { top: -80%; left: 78%; filter: drop-shadow(0 0 10px var(--color-streak)); z-index: 2; }
+.voice-fab:hover .star-2 { top: -25%; left: 70%; filter: drop-shadow(0 0 10px var(--color-streak)); z-index: 2; }
+.voice-fab:hover .star-3 { top: 55%;  left: 62%; filter: drop-shadow(0 0 10px var(--color-streak)); z-index: 2; }
+.voice-fab:hover .star-4 { top: 30%;  left: 20%;  filter: drop-shadow(0 0 10px var(--color-streak)); z-index: 2; }
+.voice-fab:hover .star-5 { top: 25%;  left: -15%; filter: drop-shadow(0 0 10px var(--color-streak)); z-index: 2; }
+.voice-fab:hover .star-6 { top: 5%;   left: 40%;  filter: drop-shadow(0 0 10px var(--color-streak)); z-index: 2; }

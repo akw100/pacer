@@ -41,7 +41,7 @@ export default function ProgressCalendar() {
     return (
       <section
         aria-label="Loading calendar"
-        className="space-y-4 rounded-card border border-border bg-white p-5"
+        className="space-y-4 rounded-card border border-border bg-panel p-5"
       >
         <div className="h-6 w-40 rounded bg-ink/5 animate-pulse" />
         <div className="grid grid-cols-7 gap-2">
@@ -55,14 +55,14 @@ export default function ProgressCalendar() {
 
   if (isError) {
     return (
-      <section className="rounded-card border border-border bg-white p-5 text-sm text-ink-muted">
+      <section className="rounded-card border border-border bg-panel p-5 text-sm text-ink-muted">
         Couldn't load this month's activity. Refresh to retry.
       </section>
     )
   }
 
   return (
-    <section className="space-y-4 rounded-card border border-border bg-white p-5">
+    <section className="space-y-4 rounded-card border border-border bg-panel p-5">
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-ink-muted">Calendar</p>
@@ -117,7 +117,7 @@ export default function ProgressCalendar() {
             <CircleDot size={16} />
             <span>Selected day</span>
           </div>
-          <div className="mt-4 rounded-card border border-border bg-white p-4">
+          <div className="mt-4 rounded-card border border-border bg-panel p-4">
             <p className="text-sm text-ink-muted">
               {selected ? labels[selected.type] : 'No entry'}
             </p>
@@ -131,7 +131,7 @@ export default function ProgressCalendar() {
             </p>
           </div>
 
-          <div className="mt-5 grid gap-3 rounded-card border border-border bg-white p-4">
+          <div className="mt-5 grid gap-3 rounded-card border border-border bg-panel p-4">
             <SummaryRow label="Run days" value={summary.runDays} tone="accent" />
             <SummaryRow label="Workout days" value={summary.workoutDays} tone="success" />
             <SummaryRow label="Habit days" value={summary.habitDays} tone="streak" />
