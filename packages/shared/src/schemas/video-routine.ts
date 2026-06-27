@@ -36,7 +36,8 @@ export const VideoRoutineCreateSchema = z.object({
 });
 export type VideoRoutineCreate = z.infer<typeof VideoRoutineCreateSchema>;
 
-// The stored row (frame paths, not URLs).
+// The stored row (frame paths, not URLs). like_count / liked_by_me are derived
+// and attached by the api on list endpoints (absent on the raw row).
 export const VideoRoutineSchema = z.object({
   id:          z.string().uuid(),
   user_id:     z.string().uuid(),
@@ -46,9 +47,16 @@ export const VideoRoutineSchema = z.object({
   status:      VideoRoutineStatus,
   error:       z.string().nullish(),
   sections:    z.array(VideoSectionSchema).nullish(),
+  is_public:   z.boolean(),
+  like_count:  z.number().int().nonnegative().optional(),
+  liked_by_me: z.boolean().optional(),
   created_at:  z.string(),
 });
 export type VideoRoutine = z.infer<typeof VideoRoutineSchema>;
+
+// Owner-only update (currently just the public toggle).
+export const VideoRoutineUpdateSchema = z.object({ is_public: z.boolean() });
+export type VideoRoutineUpdate = z.infer<typeof VideoRoutineUpdateSchema>;
 
 // A routine as returned by GET /:id — sections carry signed frame URLs.
 export const VideoRoutineWithUrlsSchema = VideoRoutineSchema.omit({ sections: true }).extend({
