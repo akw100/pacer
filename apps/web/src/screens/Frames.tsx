@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Loader2, Play, Trash2, AlertCircle } from 'lucide-react';
+import { Loader2, Play, Trash2, AlertCircle, ExternalLink } from 'lucide-react';
 import type { VideoRoutine } from '@pacer/shared';
 import { Button } from '../components/Button';
 import { EmptyState } from '../features/video-frames/EmptyState';
@@ -120,6 +120,15 @@ function RoutineCard({
           Try again
         </Button>
       )}
+      <a
+        href={r.youtube_url}
+        target="_blank"
+        rel="noreferrer"
+        aria-label="Open original on YouTube"
+        className="rounded-pill p-2 text-ink-muted hover:bg-ink/5 hover:text-ink"
+      >
+        <ExternalLink size={16} />
+      </a>
       <button
         type="button"
         onClick={onDelete}
