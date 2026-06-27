@@ -33,6 +33,7 @@ for UI — packages that produce a distinctive feel rather than a default-templa
 | Onboarding carousel | **embla-carousel-react** | tiny, gesture-friendly |
 | PWA | **vite-plugin-pwa** | manifest + service worker; installable on phone and desktop |
 | Supabase | **@supabase/supabase-js** | auth + realtime channels (anon key only) |
+| Dev DX (dev-only) | **react-grab** | hover an element + Cmd/Ctrl+C copies its file/component/source for pasting into a coding agent. `devDependency`, imported only under `import.meta.env.DEV` in `index.html` — dropped from prod builds. |
 
 ## API (`apps/api`)
 

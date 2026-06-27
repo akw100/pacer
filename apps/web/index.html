@@ -13,5 +13,10 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <!-- react-grab: dev-only DX tool — hover an element + Cmd/Ctrl+C copies its
+         file/component/source for pasting into a coding agent. Dropped from prod builds. -->
+    <script type="module">
+      if (import.meta.env.DEV) import('react-grab');
+    </script>
   </body>
 </html>
