@@ -55,12 +55,15 @@ export default function Profile() {
     <div className="p-4 md:p-6 lg:p-8 mx-auto w-full max-w-3xl flex flex-col gap-5">
       <header>
         <h1 className="font-display text-2xl font-bold text-ink">Profile</h1>
-        {profile && (
+        {(profile || email) && (
           <p className="mt-1 text-sm text-ink-muted">
-            {profile.displayName} · @{profile.handle}
+            {profile && (
+              <>{profile.displayName && `${profile.displayName} · `}@{profile.handle}</>
+            )}
+            {profile && email && ' | '}
+            {email}
           </p>
         )}
-        {email && <p className="mt-0.5 text-sm text-ink-muted">{email}</p>}
       </header>
 
       <FriendsSection />
