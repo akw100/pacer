@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 import { ChevronLeft, ChevronRight, Maximize, Minimize, X } from 'lucide-react';
 import { formatDuration } from '@pacer/shared';
+import { CircularProgress } from '../../components/CircularProgress';
 import { Loader } from '../../components/Loader';
 import { Tooltip } from '../../components/Tooltip';
 import { useVideoRoutine } from './useVideoRoutines';
@@ -105,9 +106,21 @@ export function RoutineCarousel({ id, onClose }: { id: string; onClose: () => vo
 
           {/* Top bar (overlaid) */}
           <div className="absolute inset-x-0 top-0 flex items-center justify-between gap-2 bg-gradient-to-b from-ink/70 to-transparent px-4 py-3">
-            <span className="min-w-0 truncate font-display text-base font-semibold">
-              {data?.title ?? 'Routine'}
-            </span>
+            <div className="flex min-w-0 items-center gap-2.5">
+              <Tooltip label="Back" side="bottom">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  aria-label="Back"
+                  className="shrink-0 rounded-pill p-2 text-white/80 hover:bg-white/10 hover:text-white"
+                >
+                  <ChevronLeft size={24} />
+                </button>
+              </Tooltip>
+              <span className="min-w-0 truncate font-display text-base font-semibold">
+                {data?.title ?? 'Routine'}
+              </span>
+            </div>
             <div className="flex shrink-0 items-center gap-1">
               <Tooltip label={isFull ? 'Exit fullscreen' : 'Fullscreen'} side="bottom">
                 <button
@@ -130,6 +143,17 @@ export function RoutineCarousel({ id, onClose }: { id: string; onClose: () => vo
                 </button>
               </Tooltip>
             </div>
+          </div>
+
+          {/* Big progress timer — prominent on-screen ring (like a workout-video timer) */}
+          <div className="pointer-events-none absolute right-4 top-16 z-10">
+            <CircularProgress
+              value={index + 1}
+              max={sections.length}
+              size="clamp(7rem, 24vmin, 17rem)"
+              trackColor="rgba(255, 255, 255, 0.3)"
+              className="rounded-full bg-ink/30 ring-1 ring-white/15 backdrop-blur-sm drop-shadow-lg"
+            />
           </div>
 
           {/* Prev / Next — wrapper div carries the absolute placement so the
