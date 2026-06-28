@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "../components/magicui/magicui.css";
 
 @theme {
   /* Colors */
@@ -20,11 +21,30 @@
   --radius-pill: 9999px;
 }
 
+/* MagicUI animation utilities (apps/web/src/components/magicui/*).
+   @theme INLINE, NOT plain @theme, is required here: several of these
+   reference var(--duration), which each component sets on its animated element.
+   A plain @theme var is computed at :root (where --duration is undefined), so it
+   resolves to a guaranteed-invalid (empty) value that inherits down, making
+   `animation: var(--animate-orbit)` collapse to `animation: none`. @theme inline
+   instead inlines the value into the generated `animate-*` utility, so
+   var(--duration) resolves in the element's own context. @keyframes: magicui.css. */
+@theme inline {
+  --animate-orbit: orbit calc(var(--duration) * 1s) linear infinite;
+  --animate-shine: shine var(--duration) infinite linear;
+  --animate-line-shadow: line-shadow 15s linear infinite;
+  --animate-gradient: gradient 8s linear infinite;
+  --animate-rippling: rippling var(--duration) ease-out;
+  --animate-background-position-spin: background-position-spin 3000ms infinite alternate;
+  --animate-pulsate: pulsate var(--duration) ease-out infinite;
+  --animate-pulse-ripple: pulse-ripple var(--duration) cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
 /* Dark mode: re-point the color tokens under `html.dark`. Every component
    references these via Tailwind utilities (bg-surface, text-ink, …), so the
-   whole app flips by overriding the variables here — no per-component dark:
+   whole app flips by overriding the variables here; no per-component dark:
    variants. The class is set by the no-flash script in index.html and toggled
-   by ThemeToggle. Accent/success/streak carry over — they read on both. */
+   by ThemeToggle. Accent/success/streak carry over; they read on both. */
 html.dark {
   color-scheme: dark;
   --color-surface: #10151C;

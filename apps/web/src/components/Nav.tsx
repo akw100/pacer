@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router'
-import { Home, BarChart2, Users, Trophy, User, Plus, Clapperboard } from 'lucide-react'
+import { Home, BarChart2, Users, Trophy, User, Plus, Clapperboard, Sparkles } from 'lucide-react'
 import { openLogSheet } from '../features/logging/LogSheet'
 
 const tabs = [
@@ -64,6 +64,15 @@ export default function Nav() {
             {label}
           </NavLink>
         ))}
+
+        {/* Link to the public marketing landing page (also the logged-out root). */}
+        <NavLink
+          to="/welcome"
+          className="mt-auto flex items-center gap-3 px-3 py-2.5 rounded-card text-sm text-ink-muted transition-colors hover:bg-ink/5 hover:text-ink"
+        >
+          <Sparkles size={18} strokeWidth={1.8} />
+          Landing page
+        </NavLink>
       </aside>
     </>
   )

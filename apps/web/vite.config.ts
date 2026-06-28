@@ -6,4 +6,7 @@ import { pwaConfig } from './src/pwa/manifest.config'
 
 export default defineConfig({
   plugins: [react(), tailwindcss(), VitePWA(pwaConfig)],
+  resolve: {
+    alias: { '@': new URL('./src', import.meta.url).pathname },
+  },
 })
