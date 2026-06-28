@@ -8,6 +8,7 @@ import { runs } from './runs';
 import { workouts } from './workouts';
 import { onboarding } from './onboarding';
 import { platformStats } from './platform-stats';
+import { publicStats } from './public-stats';
 import { groups } from './groups';
 import { reactions } from './reactions';
 import { friends } from './friends';
@@ -34,6 +35,7 @@ export function registerRoutes(app: Hono<AppEnv>): void {
   app.route('/runs', runs); // authed
   app.route('/workouts', workouts); // authed
   app.route('/stats/platform', platformStats); // authed
+  app.route('/public/stats', publicStats); // public (see PUBLIC_PATH_PREFIXES)
   app.route('/onboarding', onboarding); // authed
   app.route('/groups', groups); // authed
   app.route('/reactions', reactions); // authed

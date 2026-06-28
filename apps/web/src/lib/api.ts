@@ -39,3 +39,16 @@ export async function apiFetch<T>(path: string, opts: ApiOptions): Promise<T> {
   }
   return data as T;
 }
+
+// No-auth GET for endpoints under the API's public prefixes (e.g. the
+// marketing landing page reading anonymous community totals while logged out).
+export async function publicGet<T>(path: string): Promise<T> {
+  const res = await fetch(`${API_URL}${path}`);
+  const text = await res.text();
+  const data = text ? (JSON.parse(text) as unknown) : null;
+
+  if (!res.ok) {
+    throw new ApiError(res.status, data);
+  }
+  return data as T;
+}

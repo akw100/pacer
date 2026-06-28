@@ -1,5 +1,8 @@
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { Activity, Flame, Trophy, Users, Zap } from 'lucide-react'
+
+import { publicGet } from '@/lib/api'
 
 import { ScrollProgress } from '@/components/magicui/scroll-progress'
 import { Pointer } from '@/components/magicui/pointer'
@@ -339,9 +342,26 @@ function Reveal() {
 
 /* --------------------------------------------------------------- stat band */
 
-// Site-wide social-proof stat. Tap it for a burst of runners (cool-mode).
-// ponytail: number is hard-coded marketing chrome, not wired to real totals.
+// Site-wide social-proof stat: real all-time kilometers across all users,
+// from the public (no-auth) /public/stats endpoint. Tap it for a burst of
+// runners (cool-mode).
 function StatBand() {
+  const [totalKm, setTotalKm] = useState<number | null>(null)
+
+  useEffect(() => {
+    let alive = true
+    publicGet<{ totalKm: number }>('/public/stats')
+      .then((d) => alive && setTotalKm(d.totalKm))
+      .catch(() => {}) // non-critical; the stat just stays hidden on failure
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  // Render nothing until there's real mileage (or if the call fails) — better a
+  // missing band than "—", a fake figure, or a "0 km" brag on a marketing page.
+  if (totalKm == null || totalKm <= 0) return null
+
   return (
     <section className="flex justify-center px-5 pb-4 md:px-10">
       <CoolMode options={{ particle: '🏃', size: 32, particleCount: 14 }}>
@@ -350,7 +370,7 @@ function StatBand() {
           aria-label="Tap to celebrate the kilometers Pacers have logged"
         >
           <span className="font-display text-6xl font-bold text-accent md:text-7xl">
-            12,940
+            {totalKm.toLocaleString()}
           </span>
           <span className="text-sm uppercase tracking-wide text-ink-muted">
             kilometers logged by Pacers
