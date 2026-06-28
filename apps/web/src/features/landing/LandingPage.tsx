@@ -40,7 +40,7 @@ export default function LandingPage() {
       <Header onSignIn={goSignIn} />
       <Hero onSignIn={goSignIn} />
       <Marquee />
-      <Features />
+      <Features onSignIn={goSignIn} />
       <Reveal />
       <StatBand />
       <InviteCta onSignIn={goSignIn} />
@@ -111,7 +111,6 @@ function Hero({ onSignIn }: { onSignIn: () => void }) {
           <InteractiveHoverButton onClick={onSignIn}>
             Get started for free
           </InteractiveHoverButton>
-          <ShinyButton onClick={onSignIn}>See how it works</ShinyButton>
         </div>
       </div>
 
@@ -175,13 +174,16 @@ function Marquee() {
 
 /* ---------------------------------------------------------------- features */
 
-function Features() {
+function Features({ onSignIn }: { onSignIn: () => void }) {
   return (
-    <section className="px-5 py-20 md:px-10">
+    <section id="features" className="px-5 py-20 md:px-10">
       <div className="mx-auto mb-10 max-w-2xl text-center">
         <h2 className="font-display text-4xl font-bold text-ink md:text-5xl">
           Everything you need to keep moving
         </h2>
+        <div className="mt-6 flex justify-center">
+          <ShinyButton onClick={onSignIn}>See how it works</ShinyButton>
+        </div>
       </div>
 
       <BentoGrid className="mx-auto max-w-5xl auto-rows-[20rem] grid-cols-1 gap-4 md:grid-cols-3">
