@@ -10,6 +10,7 @@ import { OrbitingCircles } from '@/components/magicui/orbiting-circles'
 import { CoolMode } from '@/components/magicui/cool-mode'
 import { InteractiveHoverButton } from '@/components/magicui/interactive-hover-button'
 import { ShinyButton } from '@/components/magicui/shiny-button'
+import { SparklesText } from '@/components/magicui/sparkles-text'
 import { RippleButton } from '@/components/magicui/ripple-button'
 import { PulsatingButton } from '@/components/magicui/pulsating-button'
 import {
@@ -401,9 +402,12 @@ function FinalCta({ onSignIn }: { onSignIn: () => void }) {
   return (
     <section className="flex flex-col items-center gap-6 px-5 pb-24 text-center md:px-10">
       <Activity size={32} strokeWidth={1.8} className="text-accent" />
-      <h2 className="max-w-2xl font-display text-4xl font-bold text-ink md:text-6xl">
+      <SparklesText
+        sparklesCount={8}
+        className="max-w-2xl font-display text-4xl font-bold text-ink md:text-6xl"
+      >
         Start your streak today
-      </h2>
+      </SparklesText>
       <PulsatingButton onClick={onSignIn} className="px-7 py-3 text-base">
         Get started, it's free
       </PulsatingButton>
