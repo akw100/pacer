@@ -1,4 +1,3 @@
-import { useRef } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { Activity, Flame, Trophy, Users, Zap, Plus } from 'lucide-react'
 
@@ -19,7 +18,6 @@ import {
 } from '@/components/magicui/scroll-based-velocity'
 import { BentoCard, BentoGrid } from '@/components/magicui/bento-grid'
 import { AnimatedList } from '@/components/magicui/animated-list'
-import { AnimatedBeam } from '@/components/magicui/animated-beam'
 import { NeonGradientCard } from '@/components/magicui/neon-gradient-card'
 import { DiaTextReveal } from '@/components/magicui/dia-text-reveal'
 import Text3DFlip from '@/components/magicui/text-3d-flip'
@@ -203,11 +201,7 @@ function Features({ onSignIn }: { onSignIn: () => void }) {
           description="Daily habits and momentum you won't want to break."
           href="/signin"
           cta="Start a streak"
-          background={
-            <div className="pointer-events-none absolute -right-6 -top-6 text-[10rem] opacity-10 transition-transform duration-300 group-hover:scale-110">
-              🔥
-            </div>
-          }
+          background={<StreakChart />}
         />
         <BentoCard
           name="Everything in sync"
@@ -216,7 +210,7 @@ function Features({ onSignIn }: { onSignIn: () => void }) {
           description="Log on your phone, watch or via Telegram, and it shows up everywhere instantly."
           href="/signin"
           cta="Learn more"
-          background={<SyncBeam />}
+          background={<SyncedDevices />}
         />
         <BentoCard
           name="Climb the leaderboard"
@@ -263,41 +257,42 @@ function FeedBackground() {
   )
 }
 
-function SyncBeam() {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const a = useRef<HTMLDivElement>(null)
-  const b = useRef<HTMLDivElement>(null)
-  const c = useRef<HTMLDivElement>(null)
-  const hub = useRef<HTMLDivElement>(null)
+// Momentum bars for the "Streaks that stick" card.
+// ponytail: sample data; this is decoration, not a real chart.
+const STREAK_BARS = [35, 50, 42, 65, 58, 80, 96]
 
-  const node = (ref: React.RefObject<HTMLDivElement | null>, emoji: string) => (
-    <div
-      ref={ref}
-      className="z-10 grid size-11 place-items-center rounded-pill border border-border bg-panel text-lg shadow-sm"
-    >
-      {emoji}
+function StreakChart() {
+  return (
+    <div className="pointer-events-none absolute inset-x-0 top-0 flex h-[56%] items-end gap-2 p-5 [mask-image:linear-gradient(to_bottom,black_70%,transparent)]">
+      {STREAK_BARS.map((h, i) => (
+        <div
+          key={i}
+          style={{ height: `${h}%` }}
+          className="flex-1 rounded-pill bg-streak/60 transition-all duration-300 group-hover:bg-streak"
+        />
+      ))}
     </div>
   )
+}
 
+const SYNC_DEVICES = ['📱', '⌚', '💬']
+
+// Calm "everything in sync" visual: devices on a single static line,
+// no animated beams. They lift together on hover.
+function SyncedDevices() {
   return (
-    <div
-      ref={containerRef}
-      className="absolute inset-x-0 top-0 flex h-[52%] items-center justify-between px-10 pt-3"
-    >
-      <div className="flex flex-col gap-4">
-        {node(a, '📱')}
-        {node(b, '⌚')}
-        {node(c, '💬')}
+    <div className="pointer-events-none absolute inset-x-0 top-0 flex h-[52%] items-center justify-center px-6 pt-3">
+      <div className="absolute left-1/2 top-1/2 h-px w-2/3 -translate-x-1/2 -translate-y-1/2 bg-border" />
+      <div className="relative flex items-center gap-3 transition-transform duration-300 group-hover:-translate-y-1">
+        {SYNC_DEVICES.map((e) => (
+          <div
+            key={e}
+            className="grid size-12 place-items-center rounded-card border border-border bg-surface text-2xl shadow-sm"
+          >
+            {e}
+          </div>
+        ))}
       </div>
-      <div
-        ref={hub}
-        className="z-10 grid size-14 place-items-center rounded-pill border border-accent/40 bg-accent/10 text-2xl shadow-sm"
-      >
-        ⚡
-      </div>
-      <AnimatedBeam containerRef={containerRef} fromRef={a} toRef={hub} curvature={20} />
-      <AnimatedBeam containerRef={containerRef} fromRef={b} toRef={hub} />
-      <AnimatedBeam containerRef={containerRef} fromRef={c} toRef={hub} curvature={-20} />
     </div>
   )
 }
