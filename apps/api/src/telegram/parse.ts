@@ -1,0 +1,76 @@
+import { RunDraftSchema, type RunDraft } from './draft';
+import { openai } from '../lib/openai';
+
+const MODEL = 'gpt-4o-mini';
+
+// JSON-schema the model must satisfy. Units are explicit so the model returns
+// canonical meters & seconds, never display values.
+const RUN_JSON_SCHEMA = {
+  name: 'run_draft',
+  strict: true,
+  schema: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {
+      distance_meters:  { type: 'number', description: 'total distance in METERS' },
+      duration_seconds: { type: 'integer', description: 'total duration in SECONDS' },
+      run_date:         { type: ['string', 'null'], description: 'yyyy-mm-dd if stated, else null' },
+      pace:             { type: ['string', 'null'], description: 'pace text if shown, else null' },
+      confidence:       { type: 'number', description: '0..1 confidence in the extraction' },
+    },
+    required: ['distance_meters', 'duration_seconds', 'run_date', 'pace', 'confidence'],
+  },
+} as const;
+
+const SYSTEM =
+  'Extract a single run from the input. Distance in METERS, duration in SECONDS. ' +
+  'If the input is not a run, set confidence to 0. Use null for unknown fields.';
+
+/** Validate the model's JSON string against RunDraftSchema. Throws on bad shape. */
+export function parseRunDraftJson(raw: string): RunDraft {
+  const obj = JSON.parse(raw) as Record<string, unknown>;
+  // The model occasionally emits run_date as prose ("this morning") instead of
+  // yyyy-mm-dd. Our schema requires the strict format; treat anything malformed
+  // as absent — draftToRunCreate defaults run_date to today.
+  if (typeof obj['run_date'] === 'string' && !/^\d{4}-\d{2}-\d{2}$/.test(obj['run_date'])) {
+    obj['run_date'] = null;
+  }
+  try {
+    return RunDraftSchema.parse(obj);
+  } catch (e) {
+    console.error('[telegram] parseRunDraftJson rejected model output:', raw);
+    throw e;
+  }
+}
+
+/** Parse free text into a RunDraft via OpenAI structured output. */
+export async function parseText(message: string): Promise<RunDraft> {
+  const res = await openai().chat.completions.create({
+    model: MODEL,
+    response_format: { type: 'json_schema', json_schema: RUN_JSON_SCHEMA },
+    messages: [
+      { role: 'system', content: SYSTEM },
+      { role: 'user', content: message },
+    ],
+  });
+  return parseRunDraftJson(res.choices[0]?.message.content ?? '');
+}
+
+/** Parse a watch/treadmill photo into a RunDraft via OpenAI vision. */
+export async function parsePhoto(imageUrl: string): Promise<RunDraft> {
+  const res = await openai().chat.completions.create({
+    model: MODEL,
+    response_format: { type: 'json_schema', json_schema: RUN_JSON_SCHEMA },
+    messages: [
+      { role: 'system', content: SYSTEM },
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Extract the run shown on this screen.' },
+          { type: 'image_url', image_url: { url: imageUrl } },
+        ],
+      },
+    ],
+  });
+  return parseRunDraftJson(res.choices[0]?.message.content ?? '');
+}

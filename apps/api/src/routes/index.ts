@@ -6,6 +6,8 @@ import { habits } from './habits';
 import { score } from './score';
 import { runs } from './runs';
 import { workouts } from './workouts';
+import { telegram } from './telegram';
+import { webhook } from './webhook';
 import { onboarding } from './onboarding';
 import { platformStats } from './platform-stats';
 import { publicStats } from './public-stats';
@@ -29,11 +31,13 @@ import { voice } from './voice';
 // prefix must be added to PUBLIC_PATH_PREFIXES in app.ts.
 export function registerRoutes(app: Hono<AppEnv>): void {
   app.route('/health', health); // public (see PUBLIC_PATH_PREFIXES)
+  app.route('/webhook', webhook); // public (see PUBLIC_PATH_PREFIXES)
   app.route('/profile', profile); // authed
   app.route('/habits', habits); // authed
   app.route('/score', score); // authed
   app.route('/runs', runs); // authed
   app.route('/workouts', workouts); // authed
+  app.route('/telegram', telegram); // authed
   app.route('/stats/platform', platformStats); // authed
   app.route('/public/stats', publicStats); // public (see PUBLIC_PATH_PREFIXES)
   app.route('/onboarding', onboarding); // authed

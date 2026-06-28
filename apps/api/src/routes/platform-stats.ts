@@ -5,6 +5,7 @@ import {
   paceSecondsPerUnit,
   streakLength,
   toDateKey,
+  WEEK_START,
   type PlatformCommunity,
   type PlatformPercentiles,
   type PlatformStats,
@@ -26,17 +27,14 @@ import { readCachedCommunity, writeCachedCommunity } from '../lib/platform-stats
 // Community block is cached ~5 min (in `lib/platform-stats-cache.ts`).
 // Caller percentiles are computed fresh per request — they're cheap and per-user.
 
-// Card 08 specifies weeks for the community block; we use ISO weeks (Monday
-// start) regardless of the caller's profile preference so the platform number
-// is consistent for everyone. Personal Trends still uses the caller's
-// week_start elsewhere.
-const WEEK_STARTS_ON = 1 as const;
+// Community block weeks use the app-wide WEEK_START (Sunday) so the platform
+// number is consistent for everyone.
 
 export const platformStats = new Hono<AppEnv>().get('/', async (c) => {
   const userId = c.get('userId');
   const now = new Date();
-  const start = startOfWeek(now, { weekStartsOn: WEEK_STARTS_ON });
-  const end = endOfWeek(now, { weekStartsOn: WEEK_STARTS_ON });
+  const start = startOfWeek(now, { weekStartsOn: WEEK_START });
+  const end = endOfWeek(now, { weekStartsOn: WEEK_START });
   const weekStartIso = toDateKey(start);
   const todayIso = toDateKey(now);
 

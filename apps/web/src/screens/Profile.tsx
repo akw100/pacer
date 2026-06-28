@@ -8,6 +8,7 @@ import { useAuth } from '../features/auth/AuthProvider'
 import { useProfile } from '../features/auth/useProfile'
 import { usePatchOnboarding } from '../features/onboarding/useOnboardingState'
 import { FriendsSection } from '../features/friends/FriendsSection'
+import { TelegramSection } from '../features/telegram/TelegramSection'
 import { ThemeToggle } from '../components/ThemeToggle'
 
 export default function Profile() {
@@ -71,6 +72,8 @@ export default function Profile() {
 
       <FriendsSection />
 
+      <TelegramSection />
+
       <section className="flex flex-col gap-3">
         <h2 className="font-display text-lg font-bold text-ink">Appearance</h2>
         <div className="flex items-center justify-between gap-4 rounded-card border border-border bg-panel p-4">
@@ -84,7 +87,6 @@ export default function Profile() {
 
       <section className="flex flex-col gap-3">
         <h2 className="font-display text-lg font-bold text-ink">Account</h2>
-
         <div className="flex flex-wrap items-center gap-3">
           <Button variant="secondary" onClick={() => void signOut()}>
             Sign out
@@ -96,6 +98,12 @@ export default function Profile() {
           >
             {resetOnboarding.isPending ? 'Resetting…' : 'Reset onboarding'}
           </Button>
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="font-display text-lg font-bold text-ink">Explore</h2>
+        <div className="flex flex-wrap items-center gap-3">
           <Link
             to="/welcome"
             className="inline-flex items-center justify-center gap-2 rounded-pill border border-border bg-surface px-5 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-ink/5"
@@ -115,11 +123,14 @@ export default function Profile() {
             Presentation
           </a>
         </div>
+      </section>
 
-        <div className="mt-2">
+      <section className="flex flex-col gap-2 rounded-card border border-accent/30 bg-accent/5 p-4">
+        <h2 className="font-display text-lg font-bold text-ink">Danger zone</h2>
+        <div>
           <Button
             variant="ghost"
-            className="text-accent hover:text-accent hover:bg-accent/5"
+            className="text-accent hover:text-accent hover:bg-accent/10"
             onClick={() => void handleDeleteAccount()}
             disabled={deleting}
           >

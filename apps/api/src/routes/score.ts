@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { streakLength, toDateKey, weekRange } from '@pacer/shared';
+import { streakLength, toDateKey, weekRange, WEEK_START } from '@pacer/shared';
 import type { AppEnv } from '../lib/auth';
 
 export const score = new Hono<AppEnv>()
@@ -7,18 +7,8 @@ export const score = new Hono<AppEnv>()
     const db = c.get('userClient');
     const userId = c.get('userId');
 
-    const { data: profile, error: profileError } = await db
-      .from('profiles')
-      .select('week_start')
-      .eq('id', userId)
-      .single();
-
-    if (profileError || !profile) {
-      return c.json({ error: profileError?.message ?? 'Profile not found' }, 500);
-    }
-
     const today = new Date();
-    const { start, end } = weekRange(today, profile.week_start);
+    const { start, end } = weekRange(today, WEEK_START);
     const startKey = toDateKey(start);
     const endKey = toDateKey(end);
     const eventsResult = await db

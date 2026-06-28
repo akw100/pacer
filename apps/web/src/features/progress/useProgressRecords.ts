@@ -5,6 +5,7 @@ import {
   formatPace,
   metersToDisplayDistance,
   paceSecondsPerUnit,
+  WEEK_START,
   type Run,
   type Units,
 } from '@pacer/shared';
@@ -98,7 +99,7 @@ function computeRecords(runs: Run[], score: ScoreSummary, units: Units): Persona
     const m = Number(r.distance_meters);
     if (!(m > 0)) continue;
     const wkStart = format(
-      startOfWeek(parseISO(r.run_date), { weekStartsOn: 1 }),
+      startOfWeek(parseISO(r.run_date), { weekStartsOn: WEEK_START }),
       'yyyy-MM-dd',
     );
     byWeek.set(wkStart, (byWeek.get(wkStart) ?? 0) + m);

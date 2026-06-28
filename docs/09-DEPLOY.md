@@ -58,8 +58,8 @@ with the variable **names**. Both environments point at the **same Supabase proj
 
 | Service | Variables (set in Railway, per environment) |
 | --- | --- |
-| `pacer-api` | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY`, `OPENAI_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `WEB_ORIGIN`, `FRAMES_SERVICE_URL`, `INTERNAL_TOKEN` |
-| `pacer-web` | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_API_URL` |
+| `pacer-api` | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY`, `OPENAI_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `WEB_ORIGIN`, `FRAMES_SERVICE_URL`, `INTERNAL_TOKEN`, `APP_TIMEZONE` (IANA zone the bot stamps run dates in, e.g. `Asia/Jerusalem`; defaults to UTC) |
+| `pacer-web` | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_API_URL`, `VITE_TELEGRAM_BOT` (the env's bot username, no `@` — onboarding builds the `t.me/<bot>?start=<code>` deep link from it; defaults to `pacer_bot` if unset) |
 | `pacer-frames` | `INTERNAL_TOKEN` (same value as api), `API_BASE_URL` (the env's `pacer-api` URL), `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `OPENAI_API_KEY`, optional `YTDLP_COOKIES`, `YTDLP_PROXY`, and tuning (`MAX_VIDEO_MINUTES`, …) |
 
 The browser gets **only** the anon key (`VITE_*`). The service-role key lives in `pacer-api` and is

@@ -3,6 +3,7 @@ import {
   FriendRequestInputSchema,
   HandleSchema,
   scoreFor,
+  WEEK_START,
   type FriendLeaderboardRow,
   type FriendLookupResponse,
   type FriendProfile,
@@ -458,10 +459,10 @@ export const friends = new Hono<AppEnv>()
     // Caller always in the set so the leaderboard always renders "you".
     const participantIds = [callerId, ...friendIds];
 
-    // 2) Week boundaries — ISO week (Monday start) to match group-stats.
+    // 2) Week boundaries — app-wide WEEK_START (Sunday), matching group-stats.
     const now = new Date();
-    const start = startOfWeek(now, { weekStartsOn: 1 });
-    const end = endOfWeek(now, { weekStartsOn: 1 });
+    const start = startOfWeek(now, { weekStartsOn: WEEK_START });
+    const end = endOfWeek(now, { weekStartsOn: WEEK_START });
     const weekStartKey = toDateKey(start);
     const weekEndKey = toDateKey(end);
 

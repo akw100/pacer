@@ -3,6 +3,7 @@ import {
   metersToDisplayDistance,
   toDateKey,
   weekRange,
+  WEEK_START,
   type Run,
   type Units,
   type WeekStart,
@@ -175,7 +176,7 @@ export function useHomeData(): HomeData {
   const displayName = profileLoose?.displayName ?? profileLoose?.display_name ?? '';
   const handle = profileLoose?.handle ?? '';
   const units: Units = profileLoose?.units ?? 'km';
-  const weekStart: WeekStart = (profileLoose?.weekStart ?? profileLoose?.week_start ?? 1) as WeekStart;
+  const weekStart: WeekStart = WEEK_START;
 
   // Bug history: a previous version returned `{ snapshot: null }` until the
   // profile finished loading, AND used a single `isLoading = OR of every
@@ -372,39 +373,54 @@ function computeRecent(
   workouts: Workout[],
   yourName: string,
 ): RecentActivityItem[] {
+  // Newest first. created_at is ISO 8601, so a plain string compare is
+  // chronological; descending puts the most recent on top.
+  const byCreatedDesc = <T extends { created_at: string }>(a: T, b: T) =>
+    a.created_at < b.created_at ? 1 : -1;
+
   // Prefer the group feed (richer — other members' activity with reactions).
   if (feed && feed.length > 0) {
-    return feed.slice(0, 3).map((f) => ({
-      id: `${f.kind}-${f.id}`,
-      actorName: f.display_name,
-      description: describeFeed(f),
-      ago: relativeFrom(f.created_at),
-      reactions: f.reactions.map((r) => ({
-        emoji: r.emoji,
-        label: emojiLabel(r.emoji),
-        count: r.count,
-      })),
-    }));
+    return [...feed]
+      .sort(byCreatedDesc)
+      .slice(0, 3)
+      .map((f) => ({
+        id: `${f.kind}-${f.id}`,
+        actorName: f.display_name,
+        description: describeFeed(f),
+        ago: relativeFrom(f.created_at),
+        reactions: f.reactions.map((r) => ({
+          emoji: r.emoji,
+          label: emojiLabel(r.emoji),
+          count: r.count,
+        })),
+      }));
   }
-  // Fallback: the user's own latest runs + workouts.
-  const personal: RecentActivityItem[] = [
-    ...runs.slice(0, 3).map((r) => ({
-      id: `run-${r.id}`,
-      actorName: yourName,
-      description: `logged a ${(Number(r.distance_meters) / 1000).toFixed(1)} km run`,
-      ago: relativeFrom(r.created_at),
-      reactions: [],
+  // Fallback: the user's own latest runs + workouts, newest first. Sort on the
+  // real created_at timestamp (not the "5m ago" display string) before slicing.
+  const personal = [
+    ...runs.map((r) => ({
+      created_at: r.created_at,
+      item: {
+        id: `run-${r.id}`,
+        actorName: yourName,
+        description: `logged a ${(Number(r.distance_meters) / 1000).toFixed(1)} km run`,
+        ago: relativeFrom(r.created_at),
+        reactions: [],
+      } satisfies RecentActivityItem,
     })),
-    ...workouts.slice(0, 3).map((w) => ({
-      id: `wo-${w.id}`,
-      actorName: yourName,
-      description: `completed ${w.name}`,
-      ago: relativeFrom(w.created_at),
-      reactions: [],
+    ...workouts.map((w) => ({
+      created_at: w.created_at,
+      item: {
+        id: `wo-${w.id}`,
+        actorName: yourName,
+        description: `completed ${w.name}`,
+        ago: relativeFrom(w.created_at),
+        reactions: [],
+      } satisfies RecentActivityItem,
     })),
   ];
-  personal.sort((a, b) => (a.ago < b.ago ? -1 : 1));
-  return personal.slice(0, 3);
+  personal.sort(byCreatedDesc);
+  return personal.slice(0, 3).map((x) => x.item);
 }
 
 function describeFeed(f: FeedItem): string {
