@@ -119,12 +119,13 @@ const applyParticleEffect = (
     particleContent: string,
     size: number,
   ) => {
-    const fontSizeMultiplier = 3;
-    const emojiSize = size * fontSizeMultiplier;
     const content = document.createElement("div");
 
+    // Render the emoji/text at the requested particle size. (The original
+    // multiplied the font size by 3 AND scaled the box by 3 ~ size*9, which
+    // produced absurdly large particles.)
     content.textContent = particleContent;
-    content.style.fontSize = `${emojiSize}px`;
+    content.style.fontSize = `${size}px`;
     content.style.lineHeight = "1";
     content.style.textAlign = "center";
     content.style.width = `${size}px`;
@@ -132,8 +133,6 @@ const applyParticleEffect = (
     content.style.display = "flex";
     content.style.alignItems = "center";
     content.style.justifyContent = "center";
-    content.style.transform = `scale(${fontSizeMultiplier})`;
-    content.style.transformOrigin = "center";
 
     particle.appendChild(content);
   };

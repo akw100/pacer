@@ -118,7 +118,7 @@ function Hero({ onSignIn }: { onSignIn: () => void }) {
 
       {/* orbiting activities around a tappable score (cool-mode confetti) */}
       <div className="relative flex h-[22rem] items-center justify-center md:h-[26rem]">
-        <CoolMode options={{ particle: '🔥', particleCount: 24 }}>
+        <CoolMode options={{ particle: '🔥', size: 26, particleCount: 16 }}>
           <button
             className="z-10 flex aspect-square w-36 flex-col items-center justify-center rounded-card border border-border bg-panel shadow-sm transition-transform active:scale-95"
             aria-label="Tap to celebrate"
