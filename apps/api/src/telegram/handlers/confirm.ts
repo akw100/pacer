@@ -1,7 +1,7 @@
 import type { Context } from 'grammy';
 import { takeDraft } from '../draft';
 import { logRunForUser } from '../save';
-import { today, linkedUserId } from './shared';
+import { today, linkedUserId, userGroups } from './shared';
 
 export async function handleConfirm(ctx: Context): Promise<void> {
   const from = ctx.from;
@@ -27,10 +27,17 @@ export async function handleConfirm(ctx: Context): Promise<void> {
     await ctx.editMessageText('Discarded — nothing saved.');
     return;
   }
-  const result = await logRunForUser(userId, draft, today());
+  // `save` (personal) or `save:<groupId>` (tag the run to that group).
+  const sharedGroupId = action?.startsWith('save:') ? action.slice('save:'.length) : null;
+  const result = await logRunForUser(userId, draft, today(), sharedGroupId);
   if (result.ok) {
     await ctx.answerCallbackQuery('Saved!');
-    await ctx.editMessageText('✅ Run saved to Pacer.');
+    if (sharedGroupId) {
+      const name = (await userGroups(userId)).find((g) => g.id === sharedGroupId)?.name;
+      await ctx.editMessageText(`✅ Run saved and shared to ${name ?? 'your group'}.`);
+    } else {
+      await ctx.editMessageText('✅ Run saved to Pacer.');
+    }
   } else {
     await ctx.answerCallbackQuery('Save failed.');
     await ctx.editMessageText('Could not save that run — please try again.');

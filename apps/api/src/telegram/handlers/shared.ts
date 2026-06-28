@@ -32,3 +32,13 @@ export async function linkedUserId(telegramUserId: number): Promise<string | nul
     .maybeSingle();
   return (data?.user_id as string) ?? null;
 }
+
+/** Groups the user belongs to (id + name) — drives the share-to-group buttons. */
+export async function userGroups(userId: string): Promise<{ id: string; name: string }[]> {
+  const { data } = await serviceClient()
+    .from('group_members')
+    .select('group_id, groups!inner(name)')
+    .eq('user_id', userId);
+  type Row = { group_id: string; groups: { name: string } };
+  return ((data ?? []) as unknown as Row[]).map((r) => ({ id: r.group_id, name: r.groups.name }));
+}

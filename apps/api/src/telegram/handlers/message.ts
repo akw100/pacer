@@ -5,16 +5,24 @@ import { parseText, parsePhoto } from '../parse';
 import { putDraft, type RunDraft } from '../draft';
 import { tryConsumePhoto } from '../dailyCap';
 import { botToken } from '../env';
-import { today, linkedUserId } from './shared';
+import { today, linkedUserId, userGroups } from './shared';
 
 const CONFIDENCE_FLOOR = 0.6;
 
 async function offerConfirm(ctx: Context, userId: string, draft: RunDraft): Promise<void> {
   const km = metersToKm(draft.distance_meters).toFixed(2);
   const dur = formatDuration(draft.duration_seconds);
+  // One "Save to <group>" button per group the user is in, plus a personal
+  // save and discard. Callback data is `save:<groupId>` (group) or `save`
+  // (personal); the confirm handler tags shared_group_id accordingly.
+  const groups = await userGroups(userId);
+  const kb = new InlineKeyboard();
+  for (const g of groups) kb.text(`✓ Save to ${g.name}`, `save:${g.id}`).row();
+  kb.text(groups.length ? '✓ Save (just me)' : '✓ Save', 'save').row();
+  kb.text('✗ Discard', 'discard');
   const sent = await ctx.reply(
     `Got: ${km} km in ${dur}${draft.run_date ? ` on ${draft.run_date}` : ''}. Save it?`,
-    { reply_markup: new InlineKeyboard().text('✓ Save', 'save').text('✗ Discard', 'discard') },
+    { reply_markup: kb },
   );
   putDraft(`${sent.chat.id}:${sent.message_id}:${userId}`, draft);
 }

@@ -19,11 +19,12 @@ export async function logRunForUser(
   userId: string,
   draft: RunDraft,
   today: string,
+  sharedGroupId: string | null = null,
 ): Promise<SaveResult> {
   const body = draftToRunCreate(draft, today);
   const { data, error } = await serviceClient()
     .from('runs')
-    .insert({ ...body, user_id: userId })
+    .insert({ ...body, user_id: userId, shared_group_id: sharedGroupId })
     .select('*')
     .single();
   if (error || !data) {
