@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Drawer } from 'vaul';
+import { Drawer } from '../../components/drawer';
 import { toast } from 'sonner';
 import { LogOut, Pencil, RefreshCw, X } from 'lucide-react';
 import type { Group } from '@pacer/shared';

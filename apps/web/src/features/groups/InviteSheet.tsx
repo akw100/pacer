@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Drawer } from 'vaul';
+import { Drawer } from '../../components/drawer';
 import { Copy, RefreshCw, UserPlus, X } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Group, GroupInviteWithProfiles } from '@pacer/shared';

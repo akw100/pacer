@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Drawer } from 'vaul';
+import { Drawer } from '../../components/drawer';
 import { X } from 'lucide-react';
 import { toast } from 'sonner';
 import {
