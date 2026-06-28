@@ -36,13 +36,18 @@ export const env = {
   get internalToken(): string {
     return required('INTERNAL_TOKEN');
   },
-  // OpenAI standing key — server-side only. Used to mint short-lived Realtime
-  // ephemeral tokens for the in-app voice agent (the key never reaches the browser).
+  // OpenAI standing key — server-side only. Shared by the voice agent
+  // (Realtime ephemeral tokens) and Pacer Coach (Responses API).
   get openaiKey(): string {
     return required('OPENAI_KEY');
   },
   // Realtime model bound to the voice session. Override per-env if needed.
   get openaiRealtimeModel(): string {
     return process.env['OPENAI_REALTIME_MODEL'] ?? 'gpt-realtime';
+  },
+  // Chat model bound to Pacer Coach (POST /assistant/chat). Distinct from
+  // the realtime voice model.
+  get openaiChatModel(): string {
+    return process.env['OPENAI_CHAT_MODEL'] ?? 'gpt-4o-mini';
   },
 };
