@@ -21,7 +21,6 @@ import { BentoCard, BentoGrid } from '@/components/magicui/bento-grid'
 import { AnimatedList } from '@/components/magicui/animated-list'
 import { AnimatedBeam } from '@/components/magicui/animated-beam'
 import { NeonGradientCard } from '@/components/magicui/neon-gradient-card'
-import { SparklesText } from '@/components/magicui/sparkles-text'
 import { DiaTextReveal } from '@/components/magicui/dia-text-reveal'
 import Text3DFlip from '@/components/magicui/text-3d-flip'
 import { StripedPattern } from '@/components/magicui/striped-pattern'
@@ -345,16 +344,11 @@ function Reveal() {
         className="max-w-3xl font-display text-3xl font-bold leading-tight md:text-5xl"
       />
 
-      <div className="flex max-w-xl flex-wrap items-center justify-center gap-x-1.5 text-lg text-ink-muted">
-        <span>No ads, no strangers, no noise. Just</span>
-        <SparklesText
-          className="font-display text-lg font-bold text-ink"
-          colors={{ first: '#FF5A36', second: '#F5A623' }}
-        >
-          your people
-        </SparklesText>
-        <span>cheering each other on.</span>
-      </div>
+      <p className="max-w-xl text-lg text-ink-muted">
+        No ads, no strangers, no noise. Just{' '}
+        <span className="font-semibold text-accent">your people</span> cheering
+        each other on.
+      </p>
     </section>
   )
 }
