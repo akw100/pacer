@@ -35,7 +35,12 @@ export function parseRunDraftJson(raw: string): RunDraft {
   if (typeof obj['run_date'] === 'string' && !/^\d{4}-\d{2}-\d{2}$/.test(obj['run_date'])) {
     obj['run_date'] = null;
   }
-  return RunDraftSchema.parse(obj);
+  try {
+    return RunDraftSchema.parse(obj);
+  } catch (e) {
+    console.error('[telegram] parseRunDraftJson rejected model output:', raw);
+    throw e;
+  }
 }
 
 /** Parse free text into a RunDraft via OpenAI structured output. */

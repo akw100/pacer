@@ -45,9 +45,14 @@ export async function handleMessage(ctx: Context): Promise<void> {
       }
       const tgUrl = `https://api.telegram.org/file/bot${botToken()}/${filePath}`;
       const resp = await fetch(tgUrl);
-      const contentType = resp.headers.get('content-type') ?? 'image/jpeg';
       const base64 = Buffer.from(await resp.arrayBuffer()).toString('base64');
-      const draft = await parsePhoto(`data:${contentType};base64,${base64}`);
+      // Telegram serves file downloads as application/octet-stream, so the
+      // response content-type can't be trusted — OpenAI rejects a non-image
+      // MIME ("invalid_image_format"). `photo` messages are always JPEG; derive
+      // the type from the file extension to stay correct for any image kind.
+      const ext = filePath.split('.').pop()?.toLowerCase();
+      const mime = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+      const draft = await parsePhoto(`data:${mime};base64,${base64}`);
       if (draft.confidence < CONFIDENCE_FLOOR) {
         await ctx.reply("I couldn't read that clearly — please type the run (e.g. \"5k in 28 min\").");
         return;
@@ -65,7 +70,8 @@ export async function handleMessage(ctx: Context): Promise<void> {
       }
       await offerConfirm(ctx, userId, draft);
     }
-  } catch {
+  } catch (err) {
+    console.error('[telegram] message handler failed:', err);
     await ctx.reply('Something went wrong reading that — please try again.');
   }
 }
