@@ -344,7 +344,7 @@ function Reveal() {
 function StatBand() {
   return (
     <section className="flex justify-center px-5 pb-4 md:px-10">
-      <CoolMode options={{ particle: '🏃', size: 24, particleCount: 14 }}>
+      <CoolMode options={{ particle: '🏃', size: 32, particleCount: 14 }}>
         <button
           className="flex flex-col items-center gap-1 rounded-card px-8 py-6 transition-transform active:scale-95"
           aria-label="Tap to celebrate the kilometers Pacers have logged"
