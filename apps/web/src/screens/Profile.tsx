@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
+import { Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '../components/Button'
 import { apiFetch } from '../lib/api'
@@ -94,6 +96,13 @@ export default function Profile() {
           >
             {resetOnboarding.isPending ? 'Resetting…' : 'Reset onboarding'}
           </Button>
+          <Link
+            to="/welcome"
+            className="inline-flex items-center justify-center gap-2 rounded-pill border border-border bg-surface px-5 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-ink/5"
+          >
+            <Sparkles size={16} strokeWidth={1.8} />
+            Landing page
+          </Link>
         </div>
 
         <div className="mt-2">
