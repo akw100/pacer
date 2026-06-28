@@ -44,7 +44,7 @@ export default function LandingPage() {
       <Marquee />
       <Features />
       <Reveal />
-      <BetaInvite onSignIn={goSignIn} />
+      <InviteCta onSignIn={goSignIn} />
       <FinalCta onSignIn={goSignIn} />
       <Footer />
     </div>
@@ -365,9 +365,9 @@ function Reveal() {
   )
 }
 
-/* ------------------------------------------------------------- beta invite */
+/* --------------------------------------------------------------- invite cta */
 
-function BetaInvite({ onSignIn }: { onSignIn: () => void }) {
+function InviteCta({ onSignIn }: { onSignIn: () => void }) {
   return (
     <section className="px-5 pb-20 md:px-10">
       <NeonGradientCard
@@ -376,14 +376,14 @@ function BetaInvite({ onSignIn }: { onSignIn: () => void }) {
       >
         <div className="flex flex-col items-center gap-3 p-2">
           <span className="text-4xl">🎉</span>
-          <h3 className="font-display text-2xl font-bold text-ink">Pacer is in beta</h3>
+          <h3 className="font-display text-2xl font-bold text-ink">Bring your people</h3>
           <p className="text-sm text-ink-muted">
-            Free while we build. Bring your family or training crew and start
-            logging today.
+            Free to start. Add your family or training crew and start logging
+            today.
           </p>
           <RippleButton onClick={onSignIn} className="mt-2" rippleColor="#FFFFFF">
             <Plus size={16} strokeWidth={2.4} className="mr-1 inline" />
-            Request an invite
+            Get started
           </RippleButton>
         </div>
       </NeonGradientCard>
