@@ -1,0 +1,80 @@
+/* @keyframes for the MagicUI components under this directory (plain CSS).
+   The matching `--animate-*` theme vars that generate the `animate-*` utilities
+   live in theme/tokens.css's @theme block — Tailwind v4 only registers theme
+   vars for utility generation from the entry stylesheet, not @imported files. */
+
+@keyframes orbit {
+  0% {
+    transform: rotate(calc(var(--angle) * 1deg)) translateY(calc(var(--radius) * 1px))
+      rotate(calc(var(--angle) * -1deg));
+  }
+  100% {
+    transform: rotate(calc(var(--angle) * 1deg + 360deg)) translateY(calc(var(--radius) * 1px))
+      rotate(calc((var(--angle) * -1deg) - 360deg));
+  }
+}
+
+@keyframes shine {
+  0% {
+    background-position: 0% 0%;
+  }
+  50% {
+    background-position: 100% 100%;
+  }
+  100% {
+    background-position: 0% 0%;
+  }
+}
+
+@keyframes line-shadow {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 100% -100%;
+  }
+}
+
+@keyframes gradient {
+  to {
+    background-position: var(--bg-size, 300%) 0;
+  }
+}
+
+@keyframes rippling {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+@keyframes background-position-spin {
+  0% {
+    background-position: top center;
+  }
+  100% {
+    background-position: bottom center;
+  }
+}
+
+@keyframes pulsate {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--pulse-color, oklch(from var(--bg) l c h / 0.5));
+  }
+  50% {
+    box-shadow: 0 0 0 var(--distance) var(--pulse-color, oklch(from var(--bg) l c h / 0.5));
+  }
+}
+
+@keyframes pulse-ripple {
+  0% {
+    box-shadow: 0 0 0 0 oklch(from var(--pulse-color, var(--bg)) l c h / 1);
+  }
+  100% {
+    box-shadow: 0 0 0 var(--distance) oklch(from var(--pulse-color, var(--bg)) l c h / 0);
+  }
+}
