@@ -113,17 +113,8 @@ function Hero({ onSignIn }: { onSignIn: () => void }) {
         </div>
       </div>
 
-      {/* orbiting activities around a sample weekly score */}
+      {/* orbiting activities */}
       <div className="relative flex h-[22rem] items-center justify-center md:h-[26rem]">
-        <div className="z-10 flex aspect-square w-36 flex-col items-center justify-center rounded-card border border-border bg-panel shadow-sm">
-          <span className="font-display text-5xl font-bold text-accent">
-            2,480
-          </span>
-          <span className="text-xs uppercase tracking-wide text-ink-muted">
-            points this week
-          </span>
-        </div>
-
         <OrbitingCircles radius={150} iconSize={46} duration={26}>
           {ORBIT_OUTER.map((e) => (
             <span key={e} className="text-2xl">
