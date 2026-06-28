@@ -1,0 +1,74 @@
+# Static-serving config for the pacer-web service. railpack's staticfile
+# provider honors a repo-root Caddyfile (https://railpack.com/languages/staticfile),
+# so this REPLACES its generated default.
+#
+# It mirrors railpack's default SPA template verbatim, with ONE change: the
+# pitch deck is a SEPARATE BrowserRouter SPA (basename "/presentation/") built
+# into the web dist as a subfolder. railpack's single global fallback sends
+# every unmatched path to the app's root /index.html — so a cold load of any
+# deep deck link (e.g. /presentation/s/pacer-pitch/2) lands on the auth-gated
+# app and bounces to /signin. We fall unmatched /presentation/* back to the
+# DECK's own index.html instead, so its client router resolves the path.
+# Everything else keeps the app's SPA fallback.
+{
+	admin off
+	persist_config off
+	auto_https off
+
+	log {
+		format json
+	}
+
+	servers {
+		trusted_proxies static private_ranges
+	}
+}
+
+:{$PORT:80} {
+	log {
+		format json
+	}
+
+	respond /health 200
+
+	# Security headers (verbatim from railpack's default static template).
+	header {
+		X-XSS-Protection "1; mode=block"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Content-Security-Policy "default-src 'self'; img-src 'self' data: https: *; style-src 'self' 'unsafe-inline' https: *; script-src 'self' 'unsafe-inline' https: *; font-src 'self' data: https: *; connect-src 'self' https: *; media-src 'self' https: *; object-src 'none'; frame-src 'self' https: *;"
+		-Server
+	}
+
+	root * apps/web/dist
+
+	encode {
+		gzip
+		zstd
+	}
+
+	# Pitch deck SPA: unmatched /presentation/* falls back to the deck's own
+	# index.html, never the app root (which would redirect to /signin).
+	@deck path /presentation /presentation/*
+	handle @deck {
+		try_files {path} {path}.html {path}/index.html /presentation/index.html
+		file_server {
+			hide .git
+			hide .env*
+		}
+	}
+
+	# Main app SPA fallback.
+	handle {
+		try_files {path} {path}.html {path}/index.html /index.html
+		file_server {
+			hide .git
+			hide .env*
+		}
+	}
+
+	handle_errors {
+		rewrite * /{err.status_code}.html
+		file_server
+	}
+}
