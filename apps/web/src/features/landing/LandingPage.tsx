@@ -269,7 +269,7 @@ function StreakChart() {
         <div
           key={i}
           style={{ height: `${h}%` }}
-          className="flex-1 rounded-pill bg-streak/60 transition-all duration-300 group-hover:bg-streak"
+          className="flex-1 rounded-card bg-streak/60 transition-all duration-300 group-hover:bg-streak"
         />
       ))}
     </div>
