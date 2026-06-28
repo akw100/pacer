@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react';
 interface CircularProgressProps {
   value: number; // current progress, e.g. step + 1
   max: number; // total, e.g. number of steps
-  size?: number; // px, default 36
+  size?: number | string; // px number or any CSS length (e.g. clamp/vmin), default 36
   label?: React.ReactNode; // center content; defaults to `value/max`
   className?: string;
   trackColor?: string; // CSS color for the "still to do" ring; defaults to --color-border
@@ -38,7 +38,7 @@ export function CircularProgress({
   return (
     <div
       className={`relative shrink-0 ${className}`}
-      style={{ width: size, height: size }}
+      style={{ width: size, height: size, containerType: 'size' }}
       role="progressbar"
       aria-valuemin={0}
       aria-valuemax={max}
@@ -62,7 +62,7 @@ export function CircularProgress({
       </svg>
       <span
         className="absolute inset-0 grid place-items-center font-semibold leading-none tabular-nums"
-        style={{ fontSize: Math.round(size * 0.28) }}
+        style={{ fontSize: '28cqmin' }}
       >
         {label ?? `${value}/${max}`}
       </span>

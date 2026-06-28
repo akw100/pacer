@@ -150,7 +150,7 @@ export function RoutineCarousel({ id, onClose }: { id: string; onClose: () => vo
             <CircularProgress
               value={index + 1}
               max={sections.length}
-              size={128}
+              size="clamp(7rem, 24vmin, 17rem)"
               trackColor="rgba(255, 255, 255, 0.3)"
               className="rounded-full bg-ink/30 ring-1 ring-white/15 backdrop-blur-sm drop-shadow-lg"
             />
