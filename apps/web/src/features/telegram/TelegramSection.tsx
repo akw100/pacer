@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Send, Check, RefreshCw } from 'lucide-react';
+import { Send, Check, RefreshCw, Copy } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { apiFetch } from '../../lib/api';
@@ -28,6 +28,18 @@ export function TelegramSection() {
   const token = useAuth().session?.access_token ?? null;
   const qc = useQueryClient();
   const [code, setCode] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  function copyCode() {
+    if (!code) return;
+    navigator.clipboard.writeText(code).then(
+      () => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      },
+      () => toast.error('Couldn’t copy — select the code and copy it manually.'),
+    );
+  }
 
   const status = useQuery<TelegramStatus>({
     queryKey: statusKey,
@@ -109,7 +121,21 @@ export function TelegramSection() {
         <div className="rounded-card border border-accent/30 bg-accent/5 p-4 flex flex-col gap-3 items-center text-center">
           <div>
             <div className="text-xs uppercase tracking-wide text-ink-muted">Your link code</div>
-            <div className="font-display text-2xl font-bold text-ink tracking-[0.3em]">{code}</div>
+            <div className="flex items-center justify-center gap-2">
+              <span className="font-display text-2xl font-bold text-ink tracking-[0.3em]">{code}</span>
+              <button
+                type="button"
+                onClick={copyCode}
+                aria-label="Copy link code"
+                className="grid place-items-center w-8 h-8 rounded-pill text-ink-muted hover:text-ink hover:bg-ink/5"
+              >
+                {copied ? (
+                  <Check size={15} strokeWidth={2.2} className="text-accent" />
+                ) : (
+                  <Copy size={15} strokeWidth={1.9} />
+                )}
+              </button>
+            </div>
           </div>
           <p className="text-xs text-ink-muted">
             Tap below, then send <span className="text-ink font-medium">/start {code}</span> to the
