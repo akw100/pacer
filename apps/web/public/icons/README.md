@@ -1,25 +1,30 @@
-# Pacer PWA icons
+# Pacer PWA icons + share card
 
-`icon.svg` is the canonical source — vector, so it renders crisp at any
-install size. The manifest also lists three PNG fallbacks because:
+`icon.svg` is the canonical source — vector, so it renders crisp at any install
+size. `icon-square.svg` is the full-bleed variant (no rounded corners) used for
+the Android maskable icon and the iOS apple-touch-icon, where the platform
+applies its own mask. `og-image.svg` is the 1200×630 link-preview card.
 
-- Older Android Chrome versions still prefer raster icons for the home-screen
-  badge.
-- Maskable icons (Android adaptive-icon clipping) are spec'd as PNG only.
+## Regenerating the rasters
 
-## Placeholder PNGs (commit-time)
-
-`icon-192.png`, `icon-512.png`, and `icon-maskable-512.png` ship as 1×1
-transparent placeholders so the build succeeds and the manifest validator
-doesn't 404. Replace them with real renders of `icon.svg` before launch —
-any image tool works (Figma export, ImageMagick, sharp, etc.):
+The PNGs are committed (built artifacts) but fully reproducible from the SVGs
+with `./generate.sh` — macOS-only, no deps (uses `qlmanage` + `sips`). Run it
+after editing any source SVG:
 
 ```
-# Example, ImageMagick:
-magick icon.svg -resize 192x192 icon-192.png
-magick icon.svg -resize 512x512 icon-512.png
-# For the maskable one, add 12% safe-zone padding around the glyph.
+./generate.sh
 ```
 
-The Lighthouse "installable" audit will still pass with the SVG entry alone
-on modern Chrome / Edge / Safari Tech Preview.
+It produces:
+
+| File                         | Size    | Used by                                  |
+| ---------------------------- | ------- | ---------------------------------------- |
+| `icon-192.png`               | 192×192 | manifest (Android home-screen badge)     |
+| `icon-512.png`               | 512×512 | manifest (splash / high-DPI)             |
+| `icon-maskable-512.png`      | 512×512 | manifest (Android adaptive-icon, masked) |
+| `apple-touch-icon.png`       | 180×180 | iOS home screen (`<link rel=apple-…>`)   |
+| `favicon-32.png` / `-16.png` | 32 / 16 | browser tab                              |
+| `og-image.png`               | 1200×630| Open Graph / Twitter link previews       |
+
+`og-image.png` is excluded from the service-worker precache (see `globIgnores`
+in `src/pwa/manifest.config.ts`) — only link-preview crawlers fetch it.

@@ -3,7 +3,55 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>Pacer</title>
+    <title>Pacer — track runs, workouts & habits with your family</title>
+    <meta
+      name="description"
+      content="Track runs, workouts, and habits — and compete with your family."
+    />
+    <meta name="theme-color" content="#FF5A36" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#10151C" media="(prefers-color-scheme: dark)" />
+
+    <!-- Favicons + install icons (the manifest covers PWA install; these cover the browser tab + iOS home screen). -->
+    <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16.png" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="Pacer" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="mobile-web-app-capable" content="yes" />
+
+    <!-- Link-preview share card (Open Graph + Twitter).
+         ponytail: origin hardcoded to the one live domain; swap for a VITE_SITE_URL build var if a custom/prod domain lands. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Pacer" />
+    <meta property="og:title" content="Pacer" />
+    <meta
+      property="og:description"
+      content="Track runs, workouts, and habits — and compete with your family."
+    />
+    <meta property="og:url" content="https://pacer-web-staging-cc40.up.railway.app/" />
+    <meta
+      property="og:image"
+      content="https://pacer-web-staging-cc40.up.railway.app/icons/og-image.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Pacer — track runs, workouts, and habits, and compete with your family."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Pacer" />
+    <meta
+      name="twitter:description"
+      content="Track runs, workouts, and habits — and compete with your family."
+    />
+    <meta
+      name="twitter:image"
+      content="https://pacer-web-staging-cc40.up.railway.app/icons/og-image.png"
+    />
+
     <link rel="preconnect" href="https://api.fontshare.com" />
     <link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@700,500,400&display=swap" rel="stylesheet" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />

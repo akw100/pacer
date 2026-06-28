@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Full-bleed square variant of icon.svg. Used for the Android maskable icon
+     (logo sits inside the 80% safe zone) and the iOS apple-touch-icon (iOS
+     applies its own rounded mask, so the source must reach every edge). -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <rect width="512" height="512" fill="#FF5A36"/>
+  <g transform="translate(256 256) scale(0.8) translate(-256 -256)">
+    <path d="M170 350 L170 162 C170 144 184 130 202 130 L262 130 C310 130 348 168 348 216 C348 264 310 302 262 302 L222 302" stroke="#FAF8F5" stroke-width="42" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <circle cx="222" cy="382" r="22" fill="#FAF8F5"/>
+  </g>
+</svg>
