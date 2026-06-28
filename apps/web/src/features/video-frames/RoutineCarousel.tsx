@@ -107,6 +107,16 @@ export function RoutineCarousel({ id, onClose }: { id: string; onClose: () => vo
           {/* Top bar (overlaid) */}
           <div className="absolute inset-x-0 top-0 flex items-center justify-between gap-2 bg-gradient-to-b from-ink/70 to-transparent px-4 py-3">
             <div className="flex min-w-0 items-center gap-2.5">
+              <Tooltip label="Back" side="bottom">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  aria-label="Back"
+                  className="shrink-0 rounded-pill p-2 text-white/80 hover:bg-white/10 hover:text-white"
+                >
+                  <ChevronLeft size={24} />
+                </button>
+              </Tooltip>
               <span className="min-w-0 truncate font-display text-base font-semibold">
                 {data?.title ?? 'Routine'}
               </span>
