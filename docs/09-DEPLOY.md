@@ -58,7 +58,7 @@ with the variable **names**. Both environments point at the **same Supabase proj
 
 | Service | Variables (set in Railway, per environment) |
 | --- | --- |
-| `pacer-api` | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY`, `OPENAI_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `WEB_ORIGIN`, `FRAMES_SERVICE_URL`, `INTERNAL_TOKEN` |
+| `pacer-api` | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY`, `OPENAI_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `WEB_ORIGIN`, `FRAMES_SERVICE_URL`, `INTERNAL_TOKEN` |
 | `pacer-web` | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_API_URL` |
 | `pacer-frames` | `INTERNAL_TOKEN` (same value as api), `API_BASE_URL` (the env's `pacer-api` URL), `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `OPENAI_API_KEY`, optional `YTDLP_COOKIES`, `YTDLP_PROXY`, and tuning (`MAX_VIDEO_MINUTES`, …) |
 

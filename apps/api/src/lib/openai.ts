@@ -5,13 +5,13 @@ import OpenAI from 'openai';
 let _client: OpenAI | null = null;
 
 export function openaiEnabled(): boolean {
-  return Boolean(process.env['OPENAI_API_KEY']);
+  return Boolean(process.env['OPENAI_KEY']);
 }
 
 export function openai(): OpenAI {
   if (!_client) {
-    const apiKey = process.env['OPENAI_API_KEY'];
-    if (!apiKey) throw new Error('OPENAI_API_KEY is not set');
+    const apiKey = process.env['OPENAI_KEY'];
+    if (!apiKey) throw new Error('OPENAI_KEY is not set');
     _client = new OpenAI({ apiKey });
   }
   return _client;
