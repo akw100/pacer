@@ -420,14 +420,46 @@ function Footer() {
   return (
     <footer className="relative overflow-hidden border-t border-border bg-panel px-5 py-12 md:px-10">
       <StripedPattern className="text-ink/[0.05]" />
-      <div className="relative z-20 mx-auto flex max-w-5xl flex-col items-center gap-2 text-center">
-        <span className="font-display text-2xl font-bold text-ink">
-          Pacer<span className="text-accent">.</span>
-        </span>
-        <p className="text-sm text-ink-muted">Track workouts. Compete with your family.</p>
-        <Link to="/signin" className="mt-2 text-sm font-medium text-accent hover:underline">
-          Sign in →
-        </Link>
+      <div className="relative z-20 mx-auto flex max-w-5xl flex-col gap-10">
+        <div className="flex flex-col gap-8 md:flex-row md:items-start md:justify-between">
+          <div className="flex max-w-xs flex-col items-center gap-3 text-center md:items-start md:text-left">
+            <span className="font-display text-2xl font-bold text-ink">
+              Pacer<span className="text-accent">.</span>
+            </span>
+            <p className="text-sm text-ink-muted">
+              Log runs, workouts and habits, earn points, and climb a private
+              leaderboard with the people you actually move with.
+            </p>
+          </div>
+
+          <nav className="flex flex-col items-center gap-2 text-sm md:items-start">
+            <span className="font-semibold text-ink">Explore</span>
+            <a href="#features" className="text-ink-muted transition-colors hover:text-ink">
+              Features
+            </a>
+            <a href="#features" className="text-ink-muted transition-colors hover:text-ink">
+              How scoring works
+            </a>
+            <Link to="/signin" className="text-ink-muted transition-colors hover:text-ink">
+              Sign in
+            </Link>
+          </nav>
+
+          <div className="flex max-w-xs flex-col items-center gap-2 text-center text-sm md:items-start md:text-left">
+            <span className="font-semibold text-ink">Get started</span>
+            <p className="text-ink-muted">
+              Free for families and small crews. No ads, no strangers, no noise.
+            </p>
+            <Link to="/signin" className="font-medium text-accent hover:underline">
+              Create your league →
+            </Link>
+          </div>
+        </div>
+
+        <div className="flex flex-col items-center justify-between gap-2 border-t border-border/60 pt-6 text-xs text-ink-muted md:flex-row">
+          <span>© 2026 Pacer. Built for the people you move with.</span>
+          <span className="font-display tracking-wide">Run · Lift · Streak</span>
+        </div>
       </div>
     </footer>
   )
