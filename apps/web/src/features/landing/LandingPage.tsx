@@ -42,6 +42,7 @@ export default function LandingPage() {
       <Marquee />
       <Features />
       <Reveal />
+      <StatBand />
       <InviteCta onSignIn={goSignIn} />
       <FinalCta onSignIn={goSignIn} />
       <Footer />
@@ -114,21 +115,16 @@ function Hero({ onSignIn }: { onSignIn: () => void }) {
         </div>
       </div>
 
-      {/* orbiting activities around a tappable score (cool-mode confetti) */}
+      {/* orbiting activities around a sample weekly score */}
       <div className="relative flex h-[22rem] items-center justify-center md:h-[26rem]">
-        <CoolMode options={{ particle: '🔥', size: 26, particleCount: 16 }}>
-          <button
-            className="z-10 flex aspect-square w-36 flex-col items-center justify-center rounded-card border border-border bg-panel shadow-sm transition-transform active:scale-95"
-            aria-label="Tap to celebrate"
-          >
-            <span className="font-display text-5xl font-bold text-accent">
-              2,480
-            </span>
-            <span className="text-xs uppercase tracking-wide text-ink-muted">
-              points this week
-            </span>
-          </button>
-        </CoolMode>
+        <div className="z-10 flex aspect-square w-36 flex-col items-center justify-center rounded-card border border-border bg-panel shadow-sm">
+          <span className="font-display text-5xl font-bold text-accent">
+            2,480
+          </span>
+          <span className="text-xs uppercase tracking-wide text-ink-muted">
+            points this week
+          </span>
+        </div>
 
         <OrbitingCircles radius={150} iconSize={46} duration={26}>
           {ORBIT_OUTER.map((e) => (
@@ -348,6 +344,30 @@ function Reveal() {
         <span className="font-semibold text-accent">your people</span> cheering
         each other on.
       </p>
+    </section>
+  )
+}
+
+/* --------------------------------------------------------------- stat band */
+
+// Site-wide social-proof stat. Tap it for a burst of runners (cool-mode).
+// ponytail: number is hard-coded marketing chrome, not wired to real totals.
+function StatBand() {
+  return (
+    <section className="flex justify-center px-5 pb-4 md:px-10">
+      <CoolMode options={{ particle: '🏃', size: 24, particleCount: 14 }}>
+        <button
+          className="flex flex-col items-center gap-1 rounded-card px-8 py-6 transition-transform active:scale-95"
+          aria-label="Tap to celebrate the kilometers Pacers have logged"
+        >
+          <span className="font-display text-6xl font-bold text-accent md:text-7xl">
+            12,940
+          </span>
+          <span className="text-sm uppercase tracking-wide text-ink-muted">
+            kilometers logged by Pacers
+          </span>
+        </button>
+      </CoolMode>
     </section>
   )
 }
