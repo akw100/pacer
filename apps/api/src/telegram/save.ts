@@ -26,7 +26,13 @@ export async function logRunForUser(
     .insert({ ...body, user_id: userId })
     .select('*')
     .single();
-  if (error || !data) return { ok: false, error: error?.message ?? 'insert failed' };
+  if (error || !data) {
+    console.error(`[telegram] save FAILED user=${userId}: ${error?.message ?? 'no data returned'}`);
+    return { ok: false, error: error?.message ?? 'insert failed' };
+  }
+  // Observability for third-party ingestion: which Pacer account a Telegram
+  // run lands on (the #1 thing to check when "the bot saved but I don't see it").
+  console.log(`[telegram] run saved user=${userId} run=${data.id} date=${data.run_date}`);
 
   emit('run.logged', {
     userId,
