@@ -81,7 +81,7 @@ function Hero({ onSignIn }: { onSignIn: () => void }) {
       <Pointer />
 
       <div className="grid items-center gap-10 md:grid-cols-2">
-        <div className="flex flex-col items-start gap-6">
+        <div className="flex flex-col items-start gap-6 md:ml-12">
         <div className="inline-flex items-center gap-1.5 rounded-pill border border-border bg-panel px-3 py-1 text-sm font-medium">
           <span aria-hidden>🏅</span>
           <AnimatedGradientText colorFrom="#FF5A36" colorTo="#F5A623">
