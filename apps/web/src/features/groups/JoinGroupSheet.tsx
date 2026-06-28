@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Drawer } from 'vaul';
+import { Drawer } from '../../components/drawer';
 import { toast } from 'sonner';
 import { X } from 'lucide-react';
 import { JOIN_CODE_ALPHABET } from '@pacer/shared';

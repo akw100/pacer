@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Drawer } from 'vaul';
+import { Drawer } from '../../components/drawer';
 import { Footprints, HelpCircle, Trophy, Users, X } from 'lucide-react';
 
 // "?" button + the sheet behind it. Mounted at the app shell level. Opens a
