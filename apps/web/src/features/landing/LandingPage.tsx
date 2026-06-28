@@ -20,7 +20,6 @@ import {
 import { BentoCard, BentoGrid } from '@/components/magicui/bento-grid'
 import { AnimatedList } from '@/components/magicui/animated-list'
 import { AnimatedBeam } from '@/components/magicui/animated-beam'
-import { ShineBorder } from '@/components/magicui/shine-border'
 import { NeonGradientCard } from '@/components/magicui/neon-gradient-card'
 import { SparklesText } from '@/components/magicui/sparkles-text'
 import { DiaTextReveal } from '@/components/magicui/dia-text-reveal'
@@ -229,12 +228,7 @@ function Features() {
           description="Fair, transparent scoring. Watch the ranks reshuffle in real time."
           href="/signin"
           cta="See scoring"
-          background={
-            <>
-              <ShineBorder borderWidth={2} shineColor={['#FF5A36', '#F5A623', '#52A869']} />
-              <LeaderboardBackground />
-            </>
-          }
+          background={<LeaderboardBackground />}
         />
       </BentoGrid>
     </section>
