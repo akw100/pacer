@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Drawer } from 'vaul';
+import { Drawer } from '../../components/drawer';
 import { X } from 'lucide-react';
 import type { Run, Units } from '@pacer/shared';
 import { RunForm } from './RunForm';

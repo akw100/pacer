@@ -7,6 +7,7 @@ import { LeaderboardCard } from './LeaderboardCard';
 import { YouVsGroupCard } from './YouVsGroupCard';
 import { FeedCard } from './FeedCard';
 import { MembersCard } from './MembersCard';
+import { GoalsCard } from './GoalsCard';
 import { InviteSheet } from './InviteSheet';
 import { ManageGroupSheet } from './ManageGroupSheet';
 
@@ -115,7 +116,12 @@ export function GroupDetail({ groupId, youUserId, units, onBack }: GroupDetailPr
             units={units}
           />
           <MembersCard group={group} youUserId={youUserId} />
-          <ChallengePlaceholder groupName={group.name} />
+          <GoalsCard
+            groupId={group.id}
+            youUserId={youUserId}
+            isOwner={isOwner}
+            units={units}
+          />
         </div>
       </div>
 
@@ -149,23 +155,3 @@ function BackButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-// Visually marks "Challenge this group" as a future feature, NOT a disabled
-// button. Owned by Card 09 (Challenges) — not built in this PR.
-function ChallengePlaceholder({ groupName }: { groupName: string }) {
-  return (
-    <div className="rounded-card border border-dashed border-border bg-surface p-4 flex items-start gap-3">
-      <span
-        aria-hidden="true"
-        className="grid place-items-center w-9 h-9 rounded-pill bg-streak/10 text-streak shrink-0 font-display text-xs font-bold"
-      >
-        Soon
-      </span>
-      <div className="flex-1 min-w-0">
-        <div className="text-sm font-semibold text-ink">Challenge {groupName}</div>
-        <p className="text-xs text-ink-muted leading-snug mt-0.5">
-          A weekly goal, a YouTube workout, a streak — landing in a future release.
-        </p>
-      </div>
-    </div>
-  );
-}

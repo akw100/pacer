@@ -16,7 +16,7 @@ This is a ~1-day build — be ruthless about scope:
   working app: sign in → log runs/workouts → check habits → see your score. **That is the goal.**
 - **Only if time is left (stretch):** Stage 2 (cards 06–14), in value order — realistically you'll get
   at most Groups (07). **Cut from the bottom** when time's short: drop 14 (voice) first, then 13
-  (onboarding/PWA polish), 08, 12, 11 … keep 07 if you can.
+  (onboarding polish), 08, 12, 11 … keep 07 if you can.
 - Split the critical path across everyone (use the task list) so foundation + MVP land fast, then
   regroup on whatever stretch slice is worth it. Don't gold-plate anything.
 
@@ -72,7 +72,7 @@ Different owners, different speeds, merge whenever each is done.
 | [09 — Challenges](tasks/09-challenges.md) | Engagement | Reads groups via the API only. |
 | [11 — Telegram bot](tasks/11-telegram-bot.md) | Effortless logging | Needs card 10. First consumer of the tool layer. |
 | [12 — Assistant chat (in-app)](tasks/12-assistant-chat.md) | Delight | Needs card 10. Independent of Telegram. |
-| [13 — Onboarding, PWA & polish](tasks/13-onboarding-pwa-polish.md) | First-run + installability | Best once most features exist (it links to them). Each slice owns its own empty states; 13 owns onboarding/PWA only. |
+| [13 — Onboarding & polish](tasks/13-onboarding-pwa-polish.md) | First-run onboarding (it's just a website — no install) | Best once most features exist (it links to them). Each slice owns its own empty states; 13 owns onboarding only. |
 | [14 — Voice (post-v1)](tasks/14-voice-post-v1.md) | Wow | **Last.** Optional. Needs cards 10 + 12. Ships after v1 launch. |
 
 ### The only cross-slice dependencies (everything else is fully independent)

@@ -10,8 +10,15 @@ import { telegram } from './telegram';
 import { webhook } from './webhook';
 import { onboarding } from './onboarding';
 import { platformStats } from './platform-stats';
+import { publicStats } from './public-stats';
 import { groups } from './groups';
 import { reactions } from './reactions';
+import { friends } from './friends';
+import { groupGoals } from './group-goals';
+import { groupInvitesActions, groupInvitesUnderGroup } from './group-invites';
+import { videoRoutines } from './video-routines';
+import { videoRoutinesInternal } from './video-routines-internal';
+import { voice } from './voice';
 
 // ── Route registry (APPEND-ONLY) ───────────────────────────────────────────
 // The single place routes are mounted onto the app. Each slice adds ONE line
@@ -32,8 +39,16 @@ export function registerRoutes(app: Hono<AppEnv>): void {
   app.route('/workouts', workouts); // authed
   app.route('/telegram', telegram); // authed
   app.route('/stats/platform', platformStats); // authed
+  app.route('/public/stats', publicStats); // public (see PUBLIC_PATH_PREFIXES)
   app.route('/onboarding', onboarding); // authed
   app.route('/groups', groups); // authed
   app.route('/reactions', reactions); // authed
+  app.route('/friends', friends); // authed
+  app.route('/groups/:id/goals', groupGoals); // authed
+  app.route('/groups/:id/invites', groupInvitesUnderGroup); // authed
+  app.route('/group-invites', groupInvitesActions); // authed
+  app.route('/video-routines', videoRoutines); // authed
+  app.route('/internal/video-routines', videoRoutinesInternal); // public prefix, INTERNAL_TOKEN-gated
+  app.route('/voice', voice); // authed — mints Realtime ephemeral tokens
   // ↑ add your slice's route here, one line.
 }

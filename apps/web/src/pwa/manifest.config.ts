@@ -51,6 +51,9 @@ export const pwaConfig: Partial<VitePWAOptions> = {
   },
   workbox: {
     globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+    // The share card is only ever fetched by link-preview crawlers — keep it
+    // out of the offline precache so we don't ship ~700KB to every install.
+    globIgnores: ['**/og-image.png'],
     // Always serve the app shell offline; fall back to offline.html if even
     // the shell can't be reached (first visit while offline).
     navigateFallback: '/index.html',

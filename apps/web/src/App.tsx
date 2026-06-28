@@ -1,13 +1,17 @@
-import { createBrowserRouter, RouterProvider, Outlet } from 'react-router'
+import { createBrowserRouter, RouterProvider, Outlet, Navigate, useLocation } from 'react-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'sonner'
 import Nav from './components/Nav'
+import { Loader } from './components/Loader'
 import Home from './screens/Home'
 import Progress from './screens/Progress'
 import Group from './screens/Group'
 import Challenges from './screens/Challenges'
+import Frames from './screens/Frames'
 import Profile from './screens/Profile'
+import NotFound from './screens/NotFound'
 import SignInPage from './features/auth/SignInPage'
+import LandingPage from './features/landing/LandingPage'
 import ClaimHandlePage from './features/auth/ClaimHandlePage'
 import {
   RequireAuth,
@@ -20,10 +24,10 @@ import { OnboardingFlow } from './features/onboarding/OnboardingFlow'
 import { CoachmarkTour } from './features/onboarding/CoachmarkTour'
 import { ContextualHints } from './features/onboarding/ContextualHints'
 import { HowPacerWorksSheet } from './features/onboarding/HowPacerWorksSheet'
-import { InstallPrompt } from './pwa/InstallPrompt'
 import { OfflineShell } from './pwa/OfflineShell'
 import { useAuth } from './features/auth/AuthProvider'
 import { GroupProvider } from './features/groups/GroupContext'
+import { VoiceAgent } from './features/voice/VoiceAgent'
 
 function Shell() {
   return (
@@ -32,11 +36,38 @@ function Shell() {
       <main className="pb-16 md:pl-56">
         <Outlet />
       </main>
+      <VoiceAgent />
     </div>
   )
 }
 
+// Root route gate. Logged out → the marketing landing page IS the root `/`
+// (also reachable at the named `/welcome` route); deeper app routes still
+// bounce to sign-in. Logged in → claim-handle gate, then the app shell.
+function RootGate() {
+  const { session, loading } = useAuth()
+  const location = useLocation()
+  if (loading)
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-surface">
+        <Loader />
+      </div>
+    )
+  if (!session)
+    return location.pathname === '/' ? <LandingPage /> : <Navigate to="/signin" replace />
+  return (
+    <RequireHandle>
+      <Shell />
+    </RequireHandle>
+  )
+}
+
 const router = createBrowserRouter([
+  {
+    // Public marketing landing page — viewable logged-out, outside the auth gate.
+    path: '/welcome',
+    element: <LandingPage />,
+  },
   {
     path: '/signin',
     element: (
@@ -57,19 +88,15 @@ const router = createBrowserRouter([
   },
   {
     path: '/',
-    element: (
-      <RequireAuth>
-        <RequireHandle>
-          <Shell />
-        </RequireHandle>
-      </RequireAuth>
-    ),
+    element: <RootGate />,
     children: [
       { index: true, element: <Home /> },
       { path: 'progress', element: <Progress /> },
       { path: 'group', element: <Group /> },
       { path: 'challenges', element: <Challenges /> },
+      { path: 'flows', element: <Frames /> },
       { path: 'profile', element: <Profile /> },
+      { path: '*', element: <NotFound /> },
     ],
   },
 ])
@@ -102,7 +129,6 @@ export default function App() {
         <AuthedOverlays />
       </GroupProvider>
       <OfflineShell />
-      <InstallPrompt />
       <Toaster richColors position="top-center" />
     </QueryClientProvider>
   )
