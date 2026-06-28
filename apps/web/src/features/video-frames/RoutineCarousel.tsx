@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 import { ChevronLeft, ChevronRight, Maximize, Minimize, X } from 'lucide-react';
 import { formatDuration } from '@pacer/shared';
+import { CircularProgress } from '../../components/CircularProgress';
 import { Loader } from '../../components/Loader';
 import { Tooltip } from '../../components/Tooltip';
 import { useVideoRoutine } from './useVideoRoutines';
@@ -105,9 +106,17 @@ export function RoutineCarousel({ id, onClose }: { id: string; onClose: () => vo
 
           {/* Top bar (overlaid) */}
           <div className="absolute inset-x-0 top-0 flex items-center justify-between gap-2 bg-gradient-to-b from-ink/70 to-transparent px-4 py-3">
-            <span className="min-w-0 truncate font-display text-base font-semibold">
-              {data?.title ?? 'Routine'}
-            </span>
+            <div className="flex min-w-0 items-center gap-2.5">
+              <CircularProgress
+                value={index + 1}
+                max={sections.length}
+                size={34}
+                trackColor="rgba(255, 255, 255, 0.25)"
+              />
+              <span className="min-w-0 truncate font-display text-base font-semibold">
+                {data?.title ?? 'Routine'}
+              </span>
+            </div>
             <div className="flex shrink-0 items-center gap-1">
               <Tooltip label={isFull ? 'Exit fullscreen' : 'Fullscreen'} side="bottom">
                 <button
