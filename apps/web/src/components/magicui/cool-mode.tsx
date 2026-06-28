@@ -34,7 +34,7 @@ export interface CoolParticleOptions extends BaseParticleOptions {
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
-// Pacer brand palette — coral accent, amber streak, green success.
+// Pacer brand palette: coral accent, amber streak, green success.
 const DEFAULT_COLORS = ["#FF5A36", "#F5A623", "#52A869"];
 
 const getContainer = () => {

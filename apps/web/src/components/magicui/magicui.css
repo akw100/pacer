@@ -1,6 +1,6 @@
 /* @keyframes for the MagicUI components under this directory (plain CSS).
    The matching `--animate-*` theme vars that generate the `animate-*` utilities
-   live in theme/tokens.css's @theme block — Tailwind v4 only registers theme
+   live in theme/tokens.css's @theme block. Tailwind v4 only registers theme
    vars for utility generation from the entry stylesheet, not @imported files. */
 
 @keyframes orbit {

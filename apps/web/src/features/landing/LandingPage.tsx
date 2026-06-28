@@ -28,7 +28,7 @@ import { StripedPattern } from '@/components/magicui/striped-pattern'
 // Page W (public marketing landing). Lives outside the auth gate at /welcome.
 // Showcases the product to logged-out visitors; every CTA routes to /signin.
 // Built entirely from the MagicUI components under @/components/magicui, all
-// recolored to the warm Pacer palette (coral / amber / green — no purple,
+// recolored to the warm Pacer palette (coral / amber / green, no purple,
 // per docs/06-TECH-STACK.md "not AI-made").
 export default function LandingPage() {
   const navigate = useNavigate()
@@ -108,7 +108,7 @@ function Hero({ onSignIn }: { onSignIn: () => void }) {
 
         <div className="flex flex-wrap items-center gap-3">
           <InteractiveHoverButton onClick={onSignIn}>
-            Get started — free
+            Get started for free
           </InteractiveHoverButton>
           <ShinyButton onClick={onSignIn}>See how it works</ShinyButton>
         </div>
@@ -193,7 +193,7 @@ function Features() {
           name="Live family feed"
           className="md:col-span-2"
           Icon={Users}
-          description="See every run, lift and habit your crew logs — the moment it happens."
+          description="See every run, lift and habit your crew logs, the moment it happens."
           href="/signin"
           cta="Join your crew"
           background={<FeedBackground />}
@@ -215,7 +215,7 @@ function Features() {
           name="Everything in sync"
           className="md:col-span-1"
           Icon={Zap}
-          description="Log on your phone, watch or via Telegram — it shows up everywhere, instantly."
+          description="Log on your phone, watch or via Telegram, and it shows up everywhere instantly."
           href="/signin"
           cta="Learn more"
           background={<SyncBeam />}
@@ -388,7 +388,7 @@ function FinalCta({ onSignIn }: { onSignIn: () => void }) {
         Start your streak today
       </h2>
       <PulsatingButton onClick={onSignIn} className="px-7 py-3 text-base">
-        Get started — it's free
+        Get started, it's free
       </PulsatingButton>
     </section>
   )

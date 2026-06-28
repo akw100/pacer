@@ -22,10 +22,10 @@
 }
 
 /* MagicUI animation utilities (apps/web/src/components/magicui/*).
-   @theme INLINE — NOT plain @theme — is required here: several of these
+   @theme INLINE, NOT plain @theme, is required here: several of these
    reference var(--duration), which each component sets on its animated element.
    A plain @theme var is computed at :root (where --duration is undefined), so it
-   resolves to a guaranteed-invalid (empty) value that inherits down — making
+   resolves to a guaranteed-invalid (empty) value that inherits down, making
    `animation: var(--animate-orbit)` collapse to `animation: none`. @theme inline
    instead inlines the value into the generated `animate-*` utility, so
    var(--duration) resolves in the element's own context. @keyframes: magicui.css. */
@@ -42,9 +42,9 @@
 
 /* Dark mode: re-point the color tokens under `html.dark`. Every component
    references these via Tailwind utilities (bg-surface, text-ink, …), so the
-   whole app flips by overriding the variables here — no per-component dark:
+   whole app flips by overriding the variables here; no per-component dark:
    variants. The class is set by the no-flash script in index.html and toggled
-   by ThemeToggle. Accent/success/streak carry over — they read on both. */
+   by ThemeToggle. Accent/success/streak carry over; they read on both. */
 html.dark {
   color-scheme: dark;
   --color-surface: #10151C;

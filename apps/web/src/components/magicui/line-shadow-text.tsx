@@ -44,7 +44,7 @@ export function LineShadowText({
 }: LineShadowTextProps) {
   // `motionElements[Component]` is a union of all motion element components,
   // and TS can't prove one shared props object satisfies every member of the
-  // union. Narrow to a single representative type — the runtime element is
+  // union. Narrow to a single representative type; the runtime element is
   // still chosen correctly via the `as` prop.
   const MotionComponent = motionElements[
     Component
