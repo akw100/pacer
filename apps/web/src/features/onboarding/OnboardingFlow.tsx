@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 import { ChevronLeft, X } from 'lucide-react';
 import { motion } from 'motion/react';
-import { CircularProgress } from '../../components/CircularProgress';
 import { useProfile } from '../auth/useProfile';
 import { StepGroup } from './steps/StepGroup';
 import { StepTelegram } from './steps/StepTelegram';
@@ -95,7 +94,15 @@ export function OnboardingFlow() {
                 <ChevronLeft size={16} strokeWidth={2} />
               </button>
             )}
-            <CircularProgress value={step + 1} max={STEP_TITLES.length} />
+            {STEP_TITLES.map((_, i) => (
+              <span
+                key={i}
+                aria-label={`Step ${i + 1} of ${STEP_TITLES.length}: ${STEP_TITLES[i]}`}
+                className={`h-1.5 rounded-pill transition-all ${
+                  i === step ? 'w-6 bg-accent' : 'w-1.5 bg-border'
+                }`}
+              />
+            ))}
             <span id="onboarding-title" className="sr-only">
               Welcome to Pacer — set up your home base
             </span>

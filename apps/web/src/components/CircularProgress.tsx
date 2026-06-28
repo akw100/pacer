@@ -60,7 +60,10 @@ export function CircularProgress({
           style={{ transition: 'stroke-dashoffset 600ms cubic-bezier(0.4, 0, 0.2, 1)' }}
         />
       </svg>
-      <span className="absolute inset-0 grid place-items-center text-[0.625rem] font-semibold leading-none tabular-nums">
+      <span
+        className="absolute inset-0 grid place-items-center font-semibold leading-none tabular-nums"
+        style={{ fontSize: Math.round(size * 0.28) }}
+      >
         {label ?? `${value}/${max}`}
       </span>
     </div>
