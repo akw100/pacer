@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "open-slide dev --no-skills-check",
     "build": "open-slide build",
-    "build:web": "open-slide build --out-dir ../web/public/presentation",
+    "build:web": "open-slide build --out-dir ../web/public/presentation && node spa-fallback.mjs",
     "preview": "open-slide preview",
     "sync:skills": "open-slide sync:skills"
   },

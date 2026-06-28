@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { Sparkles } from 'lucide-react'
+import { Sparkles, Presentation } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '../components/Button'
 import { apiFetch } from '../lib/api'
@@ -103,6 +103,17 @@ export default function Profile() {
             <Sparkles size={16} strokeWidth={1.8} />
             Landing page
           </Link>
+          {/* The pitch deck is a static open-slide build served outside the SPA at
+              /presentation/, so it's a plain anchor (not a react-router Link). */}
+          <a
+            href="/presentation/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-2 rounded-pill border border-border bg-surface px-5 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-ink/5"
+          >
+            <Presentation size={16} strokeWidth={1.8} />
+            Presentation
+          </a>
         </div>
 
         <div className="mt-2">
