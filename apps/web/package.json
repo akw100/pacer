@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port 5173 --strictPort",
-    "build": "vite build",
+    "build": "pnpm --filter @pacer/presentation build:web && vite build",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
