@@ -238,14 +238,13 @@ const FEED = [
   { emoji: '🏃‍♀️', name: 'Mom', text: 'logged a 5K run', pts: '+50', ring: 'border-accent/30' },
   { emoji: '🔥', name: 'Dad', text: 'hit a 7-day streak', pts: '+30', ring: 'border-streak/30' },
   { emoji: '🏋️', name: 'You', text: 'crushed leg day', pts: '+40', ring: 'border-success/30' },
-  { emoji: '🚴', name: 'Sam', text: 'rode 20 km', pts: '+60', ring: 'border-accent/30' },
 ]
 
 function FeedBackground() {
   return (
     <AnimatedList
-      delay={1600}
-      className="absolute inset-x-0 top-0 h-[58%] justify-start gap-2 overflow-hidden p-3 [mask-image:linear-gradient(to_bottom,black_72%,transparent)]"
+      delay={1800}
+      className="absolute inset-x-0 top-0 h-[52%] justify-start gap-2 overflow-hidden p-3 [mask-image:linear-gradient(to_bottom,black_60%,transparent)]"
     >
       {FEED.map((f) => (
         <div
@@ -285,7 +284,7 @@ function SyncBeam() {
   return (
     <div
       ref={containerRef}
-      className="absolute inset-x-0 top-0 flex h-[58%] items-center justify-between px-10 pt-3"
+      className="absolute inset-x-0 top-0 flex h-[52%] items-center justify-between px-10 pt-3"
     >
       <div className="flex flex-col gap-4">
         {node(a, '📱')}
@@ -313,7 +312,7 @@ const RANKS = [
 
 function LeaderboardBackground() {
   return (
-    <div className="absolute inset-x-0 top-0 flex h-[62%] flex-col justify-start gap-2 p-5 [mask-image:linear-gradient(to_bottom,black_78%,transparent)]">
+    <div className="absolute inset-x-0 top-0 flex h-[56%] flex-col justify-start gap-2 p-5 [mask-image:linear-gradient(to_bottom,black_68%,transparent)]">
       {RANKS.map((r) => (
         <div
           key={r.pos}
