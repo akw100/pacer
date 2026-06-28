@@ -25,7 +25,9 @@ export async function startPolling(): Promise<void> {
     return;
   }
   const bot = getBot();
-  void bot.start(); // resolves only when the bot stops; fire-and-forget
+  // Fire-and-forget, but catch: a polling error (e.g. a 409 conflict when a
+  // rolling deploy briefly overlaps two instances) must not crash the whole API.
+  bot.start().catch((err) => console.error('[telegram] polling stopped:', err));
   console.log('[telegram] bot started (long-polling).');
 }
 
