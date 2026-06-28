@@ -116,8 +116,8 @@ function Hero({ onSignIn }: { onSignIn: () => void }) {
         </div>
       </div>
 
-      {/* orbiting activities */}
-      <div className="relative flex h-[22rem] items-center justify-center md:h-[26rem]">
+      {/* orbiting activities — scaled down on mobile (radius is a fixed px prop) */}
+      <div className="relative flex h-64 scale-[0.7] items-center justify-center md:h-[26rem] md:scale-100">
         <OrbitingCircles radius={150} iconSize={46} duration={26}>
           {ORBIT_OUTER.map((e) => (
             <span key={e} className="text-2xl">
