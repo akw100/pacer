@@ -3,6 +3,7 @@ import {
   metersToDisplayDistance,
   toDateKey,
   weekRange,
+  WEEK_START,
   type Run,
   type Units,
   type WeekStart,
@@ -175,7 +176,7 @@ export function useHomeData(): HomeData {
   const displayName = profileLoose?.displayName ?? profileLoose?.display_name ?? '';
   const handle = profileLoose?.handle ?? '';
   const units: Units = profileLoose?.units ?? 'km';
-  const weekStart: WeekStart = (profileLoose?.weekStart ?? profileLoose?.week_start ?? 1) as WeekStart;
+  const weekStart: WeekStart = WEEK_START;
 
   // Bug history: a previous version returned `{ snapshot: null }` until the
   // profile finished loading, AND used a single `isLoading = OR of every

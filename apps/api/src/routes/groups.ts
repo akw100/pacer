@@ -4,6 +4,7 @@ import {
   JoinGroupInputSchema,
   RenameGroupInputSchema,
   generateJoinCode,
+  WEEK_START,
 } from '@pacer/shared';
 import type { AppEnv } from '../lib/auth';
 import { broadcast } from '../lib/realtime';
@@ -237,8 +238,8 @@ export const groups = new Hono<AppEnv>()
   })
 
   // Group stats: leaderboard, totals, you-vs-average. Week is configurable
-  // via ?week_start in ISO; defaults to the current local week (Monday start
-  // to match the canonical week_start convention in profiles).
+  // via ?week_start in ISO; defaults to the current week using the app-wide
+  // WEEK_START (Sunday).
   .get('/:id/stats', async (c) => {
     const userId = c.get('userId');
     const id = c.req.param('id');
@@ -246,8 +247,8 @@ export const groups = new Hono<AppEnv>()
     if (!check.ok) return c.json({ error: check.reason === '404' ? 'Not found' : 'Forbidden' }, check.reason === '404' ? 404 : 403);
 
     const now = new Date();
-    const start = startOfWeek(now, { weekStartsOn: 1 });
-    const end = endOfWeek(now, { weekStartsOn: 1 });
+    const start = startOfWeek(now, { weekStartsOn: WEEK_START });
+    const end = endOfWeek(now, { weekStartsOn: WEEK_START });
     const stats = await computeGroupStats(serviceClient(), id, userId, toDateKey(start), toDateKey(end));
     return c.json(stats);
   });
