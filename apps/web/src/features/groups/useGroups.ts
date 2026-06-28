@@ -12,7 +12,6 @@ import { apiFetch } from '../../lib/api';
 import { useAuth } from '../auth/AuthProvider';
 import { supabase } from '../../lib/supabase';
 import { groupKeys, invalidateAllGroups, invalidateGroup } from './groups.queries';
-import { loggingKeys } from '../logging/logging.queries';
 
 export interface GroupListItem extends Group {
   member_count: number;
@@ -179,27 +178,13 @@ export function useReact(groupId: string | null) {
 }
 
 /**
- * Subscribe to the realtime channels for the user and a single group, and
- * invalidate the relevant TanStack Query keys when something changes upstream.
- * Compact events only — clients refetch through the normal API path.
+ * Subscribe to a single group's realtime channel and invalidate its feed/stats
+ * when something changes upstream. Compact events only — clients refetch through
+ * the normal API path. The caller's own `user:<id>` channel is subscribed once
+ * app-wide in the Shell (see `useUserRealtime`), so it isn't duplicated here.
  */
 export function useGroupRealtime(groupId: string | null) {
   const qc = useQueryClient();
-  const { session } = useAuth();
-  const userId = session?.user.id;
-
-  useEffect(() => {
-    if (!userId) return;
-    const userChannel = supabase.channel(`user:${userId}`);
-    userChannel.on('broadcast', { event: '*' }, () => {
-      qc.invalidateQueries({ queryKey: loggingKeys.runs });
-      qc.invalidateQueries({ queryKey: loggingKeys.workouts });
-    });
-    userChannel.subscribe();
-    return () => {
-      void supabase.removeChannel(userChannel);
-    };
-  }, [userId, qc]);
 
   useEffect(() => {
     if (!groupId) return;

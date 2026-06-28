@@ -28,8 +28,12 @@ import { OfflineShell } from './pwa/OfflineShell'
 import { useAuth } from './features/auth/AuthProvider'
 import { GroupProvider } from './features/groups/GroupContext'
 import { VoiceAgent } from './features/voice/VoiceAgent'
+import { useUserRealtime } from './features/logging/useUserRealtime'
 
 function Shell() {
+  // Keep the logged-in UI fresh on every screen when a run/workout is saved
+  // off-device (Telegram bot, voice agent) — see useUserRealtime.
+  useUserRealtime()
   return (
     <div className="min-h-screen bg-surface text-ink font-body">
       <Nav />
