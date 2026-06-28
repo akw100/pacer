@@ -7,7 +7,7 @@ Design principles:
 2. **Logging is the hero action.** A persistent prominent "+" — never more than one tap away. Most
    visits are "log something, glance at progress, leave".
 3. **Two form factors, both designed.** Bottom tab bar + sheets on phones; left sidebar +
-   multi-column layouts on desktop (see §Desktop layouts). The installable PWA is the "app".
+   multi-column layouts on desktop (see §Desktop layouts). It's a responsive **website** — the same site on phone and desktop (no install); the Telegram bot covers quick logging.
 4. **Empty states teach.** Every empty screen explains the feature and offers the first action
    ("No group yet — create one and share the code with your family").
 5. **Light, friendly, energetic — and not AI-looking.** Light theme default, one warm accent
@@ -154,8 +154,8 @@ bottom). Content max-width ~1100px. Per page:
 - **Challenges**: card grid (2–3 across); detail opens as a side panel, video embedded large.
 - **Profile**: settings as a two-column form layout.
 
-The PWA install prompt appears on both: phones get "Add to Home Screen", desktop gets the
-standalone-window install.
+There's no install step on either — Pacer is just a website you open in the browser on phone or
+desktop. Quick logging away from the browser goes through the Telegram bot.
 
 ## First-time guides (recurring pattern, not a one-off tour)
 

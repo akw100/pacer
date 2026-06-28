@@ -21,6 +21,7 @@ for UI — packages that produce a distinctive feel rather than a default-templa
 | Server state | **@tanstack/react-query** | caching + optimistic updates; realtime events just invalidate queries |
 | Styling | **Tailwind v4** (`@tailwindcss/vite`) | tokens in CSS, fast iteration |
 | Component base | **shadcn/ui** (selected primitives only) | accessible Radix primitives we re-skin heavily — take Dialog, Popover, Slider; skip anything that locks in the default look |
+| Class utilities | **clsx** + **tailwind-merge** | the `cn()` combiner (`apps/web/src/lib/utils.ts`) for the vendored MagicUI components under `apps/web/src/components/magicui/*` (public `/welcome` landing page), all recolored to our tokens — conditional + conflict-free Tailwind classes |
 | Bottom sheets | **vaul** | the native-feeling drawer; the Log sheet lives here |
 | Toasts | **sonner** | the "+15 pts" moments; stacked, swipeable |
 | Animation | **motion** (Framer Motion) | springy leaderboard reorders, card transitions |
@@ -31,7 +32,7 @@ for UI — packages that produce a distinctive feel rather than a default-templa
 | Confetti | **canvas-confetti** | PRs and challenge wins only — celebration must stay rare |
 | Forms | **react-hook-form** + `@hookform/resolvers` (zod) | shared schemas drive validation |
 | Onboarding carousel | **embla-carousel-react** | tiny, gesture-friendly |
-| PWA | **vite-plugin-pwa** | manifest + service worker; installable on phone and desktop |
+| Web delivery | **vite-plugin-pwa** | generates a manifest + service worker, but Pacer ships as a **plain responsive website** — there is no install / standalone flow. On-the-go logging goes through the **Telegram bot** instead. |
 | Supabase | **@supabase/supabase-js** | auth + realtime channels (anon key only) |
 | Dev DX (dev-only) | **react-grab** | hover an element + Cmd/Ctrl+C copies its file/component/source for pasting into a coding agent. `devDependency`, imported only under `import.meta.env.DEV` in `index.html` — dropped from prod builds. |
 
@@ -64,6 +65,16 @@ for UI — packages that produce a distinctive feel rather than a default-templa
 | Best-frame pick | **openai** (gpt-4o-mini vision) | picks the frame that best shows the move + a short label |
 | Storage upload | **supabase** (supabase-py) | service-role upload to the private `video-frames` bucket only |
 | Callback | **httpx** | POSTs results back to the api's `/internal/video-routines/:id/complete` |
+
+## Pitch deck (`apps/presentation`)
+
+> Authoring tool for the pitch deck only — **never imported by the app runtime.** Isolated to its
+> own workspace package (its `@types/react@18`/`react@18` don't touch `apps/web`'s React 19). The deck
+> builds into `apps/web/public/presentation` so it's served at `/presentation` under the site URL.
+
+| Concern | Package | Why |
+| --- | --- | --- |
+| Slides | **@open-slide/core** (+ `@open-slide/cli` to scaffold) | React-first slide framework — each slide is plain React on a 1920×1080 canvas, styled to match the Pacer tokens; animations are CSS keyframes + the built-in `SlideTransition`, no extra deps |
 
 ## Realtime (no refresh)
 
