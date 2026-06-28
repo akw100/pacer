@@ -432,7 +432,7 @@ function Footer() {
     <footer className="relative overflow-hidden border-t border-border bg-panel px-5 py-12 md:px-10">
       <StripedPattern className="text-ink/[0.05]" />
       <div className="relative z-20 mx-auto flex max-w-5xl flex-col gap-10">
-        <div className="flex flex-col gap-8 md:flex-row md:items-start md:justify-between">
+        <div className="flex flex-col items-center gap-8 md:flex-row md:items-start md:justify-between">
           <div className="flex max-w-xs flex-col items-center gap-3 text-center md:items-start md:text-left">
             <span className="font-display text-2xl font-bold text-ink">
               Pacer<span className="text-accent">.</span>
