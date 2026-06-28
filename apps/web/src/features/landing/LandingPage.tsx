@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router'
-import { Activity, Flame, Trophy, Users, Zap, Plus } from 'lucide-react'
+import { Activity, Flame, Trophy, Users, Zap } from 'lucide-react'
 
 import { ScrollProgress } from '@/components/magicui/scroll-progress'
 import { Pointer } from '@/components/magicui/pointer'
@@ -387,7 +387,6 @@ function InviteCta({ onSignIn }: { onSignIn: () => void }) {
             today.
           </p>
           <RippleButton onClick={onSignIn} className="mt-2" rippleColor="#FFFFFF">
-            <Plus size={16} strokeWidth={2.4} className="mr-1 inline" />
             Get started
           </RippleButton>
         </div>
