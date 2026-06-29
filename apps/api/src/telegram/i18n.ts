@@ -4,7 +4,13 @@ type Key =
   | 'unlinked' | 'photo_unreadable' | 'photo_limit' | 'text_limit'
   | 'no_run' | 'no_workout' | 'habit_done' | 'habit_fail' | 'habit_unclear'
   | 'save_failed' | 'discarded' | 'run_saved' | 'workout_saved' | 'something_wrong'
-  | 'code_invalid' | 'recent_none' | 'week_summary';
+  | 'code_invalid' | 'recent_none' | 'week_summary'
+  | 'saved_toast' | 'discarded_toast' | 'not_linked_toast'
+  | 'run_not_pending' | 'workout_not_pending' | 'save_failed_toast'
+  | 'run_save_error' | 'workout_save_error' | 'photo_fetch_error' | 'link_error';
+
+/** Keys whose values are templates taking the group name (see tShared). */
+type SharedKey = 'run_shared' | 'workout_shared';
 
 const STRINGS: Record<Key, { en: string; he: string }> = {
   link_first:      { en: 'Link your account first: Pacer → Settings → copy code → send /start <code>.', he: 'קשר/י קודם את החשבון: Pacer → הגדרות → העתק/י קוד → שלח/י start <code>/.' },
@@ -29,6 +35,22 @@ const STRINGS: Record<Key, { en: string; he: string }> = {
   code_invalid:    { en: 'That code is invalid or expired. Generate a fresh one in Pacer → Settings.', he: 'הקוד שגוי או שפג תוקפו. צור/צרי קוד חדש ב-Pacer → הגדרות.' },
   recent_none:     { en: 'No activity logged yet.', he: 'עדיין לא תועדה פעילות.' },
   week_summary:    { en: 'This week', he: 'השבוע' },
+  saved_toast:     { en: 'Saved!', he: 'נשמר!' },
+  discarded_toast: { en: 'Discarded.', he: 'בוטל.' },
+  not_linked_toast:{ en: 'Account not linked.', he: 'החשבון לא מקושר.' },
+  run_not_pending: { en: 'This run is no longer pending.', he: 'הריצה כבר לא ממתינה.' },
+  workout_not_pending:{ en: 'This workout is no longer pending.', he: 'האימון כבר לא ממתין.' },
+  save_failed_toast:{ en: 'Save failed.', he: 'השמירה נכשלה.' },
+  run_save_error:  { en: 'Could not save that run — please try again.', he: 'לא ניתן לשמור את הריצה — נסה/י שוב.' },
+  workout_save_error:{ en: 'Could not save that workout — please try again.', he: 'לא ניתן לשמור את האימון — נסה/י שוב.' },
+  photo_fetch_error:{ en: 'Couldn\'t fetch that photo — please try again.', he: 'לא ניתן להוריד את התמונה — נסה/י שוב.' },
+  link_error:      { en: 'Could not link your account, please try again.', he: 'לא ניתן לקשר את החשבון — נסה/י שוב.' },
+};
+
+/** Templates that interpolate the group name; kept separate from the plain table. */
+const SHARED_STRINGS: Record<SharedKey, { en: (name: string) => string; he: (name: string) => string }> = {
+  run_shared:     { en: (name) => `✅ Run saved and shared to ${name}.`, he: (name) => `✅ הריצה נשמרה ושותפה ל-${name}.` },
+  workout_shared: { en: (name) => `✅ Workout saved and shared to ${name}.`, he: (name) => `✅ האימון נשמר ושותף ל-${name}.` },
 };
 
 /** Pick a language from Telegram's language_code (defaults to English). */
@@ -38,4 +60,9 @@ export function langOf(code: string | undefined): Lang {
 
 export function t(code: string | undefined, key: Key): string {
   return STRINGS[key][langOf(code)];
+}
+
+/** Like t(), but for templates that take the group name (run/workout shared). */
+export function tShared(code: string | undefined, key: SharedKey, name: string): string {
+  return SHARED_STRINGS[key][langOf(code)](name);
 }

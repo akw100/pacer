@@ -60,7 +60,7 @@ export async function handleMessage(ctx: Context): Promise<void> {
         const file = await ctx.getFile();
         filePath = file.file_path ?? '';
       } catch {
-        await ctx.reply("Couldn't fetch that photo — please try again.");
+        await ctx.reply(t(code, 'photo_fetch_error'));
         return;
       }
       if (!tryConsumePhoto(userId, today())) {
