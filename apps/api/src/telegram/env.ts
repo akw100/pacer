@@ -23,3 +23,12 @@ export function webhookUrl(): string | undefined {
 export function botMode(): 'webhook' | 'polling' {
   return process.env['TELEGRAM_MODE'] === 'webhook' ? 'webhook' : 'polling';
 }
+
+/**
+ * Railway sets RAILWAY_ENVIRONMENT_NAME per environment. The bot connects from a
+ * single instance only — production. Staging/local never connect, so two pollers
+ * can't fight over one bot token (the 409 conflict).
+ */
+export function isProduction(): boolean {
+  return process.env['RAILWAY_ENVIRONMENT_NAME'] === 'production';
+}
