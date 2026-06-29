@@ -12,6 +12,11 @@ const LINK_CODE_TTL_MS = 10 * 60 * 1000;
 export const telegram = new Hono<AppEnv>()
   .post('/link-code', async (c) => {
     const userId = c.get('userId');
+    // Best-effort cleanup of stale codes; never block issuing a fresh one.
+    await serviceClient()
+      .from('telegram_link_codes')
+      .delete()
+      .lt('expires_at', new Date().toISOString());
     const code = generateLinkCode();
     const expires_at = new Date(Date.now() + LINK_CODE_TTL_MS).toISOString();
     const { error } = await serviceClient()
