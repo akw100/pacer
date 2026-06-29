@@ -48,6 +48,56 @@ async function offerWorkoutConfirm(ctx: Context, userId: string, draft: WorkoutD
   putWorkoutDraft(`${sent.chat.id}:${sent.message_id}:${userId}`, draft);
 }
 
+// Classify a free-text utterance and log/confirm a run, workout, or habit.
+// Shared by the text and voice branches; the caller is responsible for the
+// daily cap check (so callers can cap on their own terms).
+async function routeText(ctx: Context, userId: string, text: string): Promise<void> {
+  const code = ctx.from?.language_code;
+  const names = await habitNames(userId);
+  const { intent } = await parseIntent(text, names);
+  if (intent === 'workout') {
+    const w = await parseWorkout(text, today());
+    if (w.confidence < CONFIDENCE_FLOOR) {
+      await ctx.reply(t(code, 'no_workout'));
+      return;
+    }
+    if (w.confidence >= AUTO_SAVE_CONFIDENCE) {
+      const r = await logWorkoutForUser(userId, w, today(), null);
+      await ctx.reply(r.ok ? t(code, 'workout_saved') : t(code, 'workout_save_error'));
+      return;
+    }
+    await offerWorkoutConfirm(ctx, userId, w);
+    return;
+  }
+  if (intent === 'habit') {
+    const h = await parseHabit(text, names);
+    if (h.matched && h.habit_name && h.confidence >= CONFIDENCE_FLOOR) {
+      const r = await checkHabitForUser(userId, h.habit_name, today());
+      await ctx.reply(r.ok ? t(code, 'habit_done') : t(code, 'habit_fail'));
+    } else {
+      await ctx.reply(t(code, 'habit_unclear'));
+    }
+    return;
+  }
+  // default: treat as a run
+  const draft = await parseText(text, today());
+  if (draft.confidence < CONFIDENCE_FLOOR) {
+    await ctx.reply(t(code, 'no_run'));
+    return;
+  }
+  if (draft.confidence >= AUTO_SAVE_CONFIDENCE) {
+    const r = await logRunForUser(userId, draft, today(), null);
+    if (r.ok) {
+      const pr = r.isDistancePR ? `\n${t(code, 'new_distance_record')}` : '';
+      await ctx.reply(t(code, 'run_saved') + pr);
+    } else {
+      await ctx.reply(t(code, 'run_save_error'));
+    }
+    return;
+  }
+  await offerConfirm(ctx, userId, draft);
+}
+
 export async function handleMessage(ctx: Context): Promise<void> {
   const from = ctx.from;
   if (!from) return;
@@ -114,49 +164,7 @@ export async function handleMessage(ctx: Context): Promise<void> {
         await ctx.reply(t(code, 'text_limit'));
         return;
       }
-      const names = await habitNames(userId);
-      const { intent } = await parseIntent(text, names);
-      if (intent === 'workout') {
-        const w = await parseWorkout(text, today());
-        if (w.confidence < CONFIDENCE_FLOOR) {
-          await ctx.reply(t(code, 'no_workout'));
-          return;
-        }
-        if (w.confidence >= AUTO_SAVE_CONFIDENCE) {
-          const r = await logWorkoutForUser(userId, w, today(), null);
-          await ctx.reply(r.ok ? t(code, 'workout_saved') : t(code, 'workout_save_error'));
-          return;
-        }
-        await offerWorkoutConfirm(ctx, userId, w);
-        return;
-      }
-      if (intent === 'habit') {
-        const h = await parseHabit(text, names);
-        if (h.matched && h.habit_name && h.confidence >= CONFIDENCE_FLOOR) {
-          const r = await checkHabitForUser(userId, h.habit_name, today());
-          await ctx.reply(r.ok ? t(code, 'habit_done') : t(code, 'habit_fail'));
-        } else {
-          await ctx.reply(t(code, 'habit_unclear'));
-        }
-        return;
-      }
-      // default: treat as a run
-      const draft = await parseText(text, today());
-      if (draft.confidence < CONFIDENCE_FLOOR) {
-        await ctx.reply(t(code, 'no_run'));
-        return;
-      }
-      if (draft.confidence >= AUTO_SAVE_CONFIDENCE) {
-        const r = await logRunForUser(userId, draft, today(), null);
-        if (r.ok) {
-          const pr = r.isDistancePR ? `\n${t(code, 'new_distance_record')}` : '';
-          await ctx.reply(t(code, 'run_saved') + pr);
-        } else {
-          await ctx.reply(t(code, 'run_save_error'));
-        }
-        return;
-      }
-      await offerConfirm(ctx, userId, draft);
+      await routeText(ctx, userId, text);
     }
   } catch (err) {
     log.error('message_handler_failed', { err: String(err) });
