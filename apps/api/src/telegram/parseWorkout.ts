@@ -65,3 +65,23 @@ export async function parseWorkout(message: string, today: string): Promise<Work
   });
   return parseWorkoutDraftJson(res.choices[0]?.message.content ?? '');
 }
+
+/** Parse a workout-board/whiteboard photo into a WorkoutDraft via OpenAI vision. */
+export async function parseWorkoutPhoto(imageUrl: string, today: string): Promise<WorkoutDraft> {
+  const sys = `${SYSTEM} Today is ${today}.`;
+  const res = await openai().chat.completions.create({
+    model: MODEL,
+    response_format: { type: 'json_schema', json_schema: WORKOUT_JSON_SCHEMA },
+    messages: [
+      { role: 'system', content: sys },
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Extract the workout shown in this image.' },
+          { type: 'image_url', image_url: { url: imageUrl } },
+        ],
+      },
+    ],
+  });
+  return parseWorkoutDraftJson(res.choices[0]?.message.content ?? '');
+}

@@ -2,7 +2,7 @@ import type { Context } from 'grammy';
 import { InlineKeyboard } from 'grammy';
 import { parseText, parsePhoto } from '../parse';
 import { parseIntent } from '../parseIntent';
-import { parseWorkout } from '../parseWorkout';
+import { parseWorkout, parseWorkoutPhoto } from '../parseWorkout';
 import { parseHabit } from '../parseHabit';
 import { putDraft, type RunDraft } from '../draft';
 import { putWorkoutDraft, type WorkoutDraft } from '../workoutDraft';
@@ -76,7 +76,24 @@ export async function handleMessage(ctx: Context): Promise<void> {
       // the type from the file extension to stay correct for any image kind.
       const ext = filePath.split('.').pop()?.toLowerCase();
       const mime = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
-      const draft = await parsePhoto(`data:${mime};base64,${base64}`, today());
+      const dataUrl = `data:${mime};base64,${base64}`;
+      // A captioned photo can describe a workout ("leg day" + a gym photo);
+      // classify the caption and route to the workout parser when it says so.
+      // No caption (or any non-workout intent) → the existing run path.
+      const caption = ctx.message?.caption;
+      if (caption) {
+        const { intent } = await parseIntent(caption, await habitNames(userId));
+        if (intent === 'workout') {
+          const w = await parseWorkoutPhoto(dataUrl, today());
+          if (w.confidence < CONFIDENCE_FLOOR) {
+            await ctx.reply(t(code, 'photo_unreadable'));
+            return;
+          }
+          await offerWorkoutConfirm(ctx, userId, w);
+          return;
+        }
+      }
+      const draft = await parsePhoto(dataUrl, today());
       if (draft.confidence < CONFIDENCE_FLOOR) {
         await ctx.reply(t(code, 'photo_unreadable'));
         return;
