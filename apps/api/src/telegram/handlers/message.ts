@@ -1,6 +1,6 @@
 import type { Context } from 'grammy';
 import { InlineKeyboard } from 'grammy';
-import { metersToKm, formatDuration } from '@pacer/shared';
+import { metersToKm, formatDuration, formatPace, paceSecondsPerUnit, scoreFor } from '@pacer/shared';
 import { parseText, parsePhoto } from '../parse';
 import { putDraft, type RunDraft } from '../draft';
 import { tryConsumePhoto } from '../dailyCap';
@@ -12,6 +12,8 @@ const CONFIDENCE_FLOOR = 0.6;
 async function offerConfirm(ctx: Context, userId: string, draft: RunDraft): Promise<void> {
   const km = metersToKm(draft.distance_meters).toFixed(2);
   const dur = formatDuration(draft.duration_seconds);
+  const pace = formatPace(paceSecondsPerUnit(draft.distance_meters, draft.duration_seconds, 'km'));
+  const pts = scoreFor({ reason: 'run', distanceMeters: draft.distance_meters });
   // One "Save to <group>" button per group the user is in, plus a personal
   // save and discard. Callback data is `save:<groupId>` (group) or `save`
   // (personal); the confirm handler tags shared_group_id accordingly.
@@ -21,7 +23,7 @@ async function offerConfirm(ctx: Context, userId: string, draft: RunDraft): Prom
   kb.text(groups.length ? '✓ Save (just me)' : '✓ Save', 'save').row();
   kb.text('✗ Discard', 'discard');
   const sent = await ctx.reply(
-    `Got: ${km} km in ${dur}${draft.run_date ? ` on ${draft.run_date}` : ''}. Save it?`,
+    `Got: ${km} km in ${dur} · ${pace}/km · ≈ +${pts} pts${draft.run_date ? ` on ${draft.run_date}` : ''}. Save it?`,
     { reply_markup: kb },
   );
   putDraft(`${sent.chat.id}:${sent.message_id}:${userId}`, draft);
