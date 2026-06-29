@@ -8,7 +8,7 @@ import {
   WEEK_START,
 } from '@pacer/shared';
 import { serviceClient } from '../../lib/supabase';
-import { linkedUserId } from './shared';
+import { linkedUserId, today } from './shared';
 import { langOf, t } from '../i18n';
 
 /** /help — short summary of what the bot can do. */
@@ -33,6 +33,51 @@ export async function handleUnlink(ctx: Context): Promise<void> {
   if (!ctx.from) return;
   await serviceClient().from('telegram_links').delete().eq('telegram_user_id', ctx.from.id);
   await ctx.reply(t(ctx.from.language_code, 'unlinked'));
+}
+
+/**
+ * /habits — today's habit checklist. Lists each of the user's habits with a
+ * ✅/⬜ box for whether it's been checked today (habit_checks.check_date = today).
+ */
+export async function handleHabitsCmd(ctx: Context): Promise<void> {
+  if (!ctx.from) return;
+  const lang = ctx.from.language_code;
+  const userId = await linkedUserId(ctx.from.id);
+  if (!userId) {
+    await ctx.reply(t(lang, 'status_unlinked'));
+    return;
+  }
+
+  const db = serviceClient();
+  const todayKey = today();
+  const [habitsResult, checksResult] = await Promise.all([
+    db
+      .from('habits')
+      .select('id, name, emoji')
+      .eq('user_id', userId)
+      .order('sort', { ascending: true }),
+    db
+      .from('habit_checks')
+      .select('habit_id')
+      .eq('user_id', userId)
+      .eq('check_date', todayKey),
+  ]);
+
+  const habits = (habitsResult.data ?? []) as { id: string; name: string; emoji: string | null }[];
+  if (habits.length === 0) {
+    await ctx.reply(t(lang, 'habits_none'));
+    return;
+  }
+
+  const checkedToday = new Set(
+    ((checksResult.data ?? []) as { habit_id: string }[]).map((r) => r.habit_id),
+  );
+
+  const lines = habits.map((h) => {
+    const box = checkedToday.has(h.id) ? '✅' : '⬜';
+    return `${h.emoji ?? ''} ${h.name} ${box}`.trim();
+  });
+  await ctx.reply(lines.join('\n'));
 }
 
 /**
