@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { CheckCircle2, Circle, Plus, Sparkles, Trash2, X } from 'lucide-react'
 import { scoreFor } from '@pacer/shared'
 import { toast } from 'sonner'
+import { useStepTracking } from './useStepTracking'
 import {
   useCheckHabitToday,
   useCreateHabit,
@@ -31,6 +32,7 @@ export default function HabitsSection() {
   const [draftName, setDraftName] = useState('')
   const [draftEmoji, setDraftEmoji] = useState<string>(EMOJI_PALETTE[0]!)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const { count, message, state, start } = useStepTracking()
 
   const checkedIds = useMemo(
     () => new Set((todayChecks.data ?? []).map((c) => c.habit_id)),
@@ -127,6 +129,34 @@ export default function HabitsSection() {
           </span>
         )}
       </header>
+
+      <div className="rounded-card border border-border/80 bg-ink/5 p-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="text-sm font-semibold text-ink">Auto step tracking</div>
+            <p className="text-xs text-ink-muted mt-1">
+              {message ?? 'Try to count steps automatically on supported phones and browsers.'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void start()}
+            className="rounded-pill bg-accent px-3 py-1.5 text-sm font-semibold text-white"
+          >
+            {state === 'active' ? 'Tracking…' : state === 'requesting' ? 'Requesting…' : 'Start'}
+          </button>
+        </div>
+        <div className="mt-3 flex items-end justify-between gap-3 rounded-card border border-border/70 bg-surface px-3 py-2">
+          <div>
+            <div className="text-xs uppercase tracking-[0.2em] text-ink-muted">Current count</div>
+            <div className="text-2xl font-semibold text-ink">{count}</div>
+          </div>
+          <div className="text-right text-xs text-ink-muted">
+            <div>Status: {state}</div>
+            <div>Uses your phone motion sensor when available</div>
+          </div>
+        </div>
+      </div>
 
       {total === 0 && !adding && (
         <EmptyState onAdd={() => setAdding(true)} />
