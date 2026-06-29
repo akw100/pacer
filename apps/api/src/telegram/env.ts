@@ -32,3 +32,7 @@ export function botMode(): 'webhook' | 'polling' {
 export function isProduction(): boolean {
   return process.env['RAILWAY_ENVIRONMENT_NAME'] === 'production';
 }
+
+export function botUsername(): string | undefined {
+  return process.env['TELEGRAM_BOT_USERNAME'] || undefined;
+}
