@@ -95,7 +95,14 @@ export default function ChallengesPage() {
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-4 flex flex-col gap-5">
       <header className="flex items-center justify-between">
-        <h1 className="font-display text-2xl font-bold text-ink">Challenges</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="font-display text-2xl font-bold text-ink">Challenges</h1>
+          {grouped.invitations.length > 0 && (
+            <span className="rounded-pill bg-accent px-2 py-0.5 text-xs font-bold text-white">
+              {grouped.invitations.length} new
+            </span>
+          )}
+        </div>
         <button
           type="button"
           onClick={() => openCreate(null)}
@@ -197,7 +204,9 @@ function Section({
   if (items.length === 0) return null;
   return (
     <section className="flex flex-col gap-2">
-      <h2 className="text-xs uppercase tracking-wide text-ink-muted">{title}</h2>
+      <h2 className="text-xs uppercase tracking-wide text-ink-muted">
+        {title} <span className="text-ink-muted/60">· {items.length}</span>
+      </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {items.map((c) => (
           <ChallengeCard key={c.id} challenge={c} units={units} youUserId={youUserId} onOpen={onOpen} />
