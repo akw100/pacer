@@ -143,7 +143,14 @@ export function ChallengeDetail({ challenge, units, youUserId, onOpenChange, onR
             )}
 
             <section className="flex flex-col gap-2">
-              <h3 className="text-xs uppercase tracking-wide text-ink-muted">Leaderboard</h3>
+              <div className="flex items-baseline justify-between">
+                <h3 className="text-xs uppercase tracking-wide text-ink-muted">Leaderboard</h3>
+                <span className="text-xs text-ink-muted">
+                  {challenge.accepted_count} in
+                  {challenge.participant_count > challenge.accepted_count &&
+                    ` · ${challenge.participant_count - challenge.accepted_count} pending`}
+                </span>
+              </div>
               {challenge.leaderboard.length === 0 ? (
                 <p className="text-sm text-ink-muted">No participants yet.</p>
               ) : (
