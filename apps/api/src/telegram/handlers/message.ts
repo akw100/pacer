@@ -1,17 +1,22 @@
 import type { Context } from 'grammy';
 import { InlineKeyboard } from 'grammy';
-import { metersToKm, formatDuration } from '@pacer/shared';
 import { parseText, parsePhoto } from '../parse';
+import { parseIntent } from '../parseIntent';
+import { parseWorkout } from '../parseWorkout';
+import { parseHabit } from '../parseHabit';
 import { putDraft, type RunDraft } from '../draft';
-import { tryConsumePhoto } from '../dailyCap';
+import { putWorkoutDraft, type WorkoutDraft } from '../workoutDraft';
+import { checkHabitForUser } from '../saveHabit';
+import { tryConsumePhoto, tryConsumeText } from '../dailyCap';
 import { botToken } from '../env';
-import { today, linkedUserId, userGroups } from './shared';
+import { log } from '../log';
+import { t } from '../i18n';
+import { runSummary, workoutSummary } from '../summary';
+import { today, linkedUserId, userGroups, habitNames } from './shared';
 
 const CONFIDENCE_FLOOR = 0.6;
 
 async function offerConfirm(ctx: Context, userId: string, draft: RunDraft): Promise<void> {
-  const km = metersToKm(draft.distance_meters).toFixed(2);
-  const dur = formatDuration(draft.duration_seconds);
   // One "Save to <group>" button per group the user is in, plus a personal
   // save and discard. Callback data is `save:<groupId>` (group) or `save`
   // (personal); the confirm handler tags shared_group_id accordingly.
@@ -20,19 +25,24 @@ async function offerConfirm(ctx: Context, userId: string, draft: RunDraft): Prom
   for (const g of groups) kb.text(`✓ Save to ${g.name}`, `save:${g.id}`).row();
   kb.text(groups.length ? '✓ Save (just me)' : '✓ Save', 'save').row();
   kb.text('✗ Discard', 'discard');
-  const sent = await ctx.reply(
-    `Got: ${km} km in ${dur}${draft.run_date ? ` on ${draft.run_date}` : ''}. Save it?`,
-    { reply_markup: kb },
-  );
+  const sent = await ctx.reply(runSummary(draft), { reply_markup: kb });
   putDraft(`${sent.chat.id}:${sent.message_id}:${userId}`, draft);
+}
+
+async function offerWorkoutConfirm(ctx: Context, userId: string, draft: WorkoutDraft): Promise<void> {
+  const sent = await ctx.reply(workoutSummary(draft), {
+    reply_markup: new InlineKeyboard().text('✓ Save', 'wsave').text('✗ Discard', 'wdiscard'),
+  });
+  putWorkoutDraft(`${sent.chat.id}:${sent.message_id}:${userId}`, draft);
 }
 
 export async function handleMessage(ctx: Context): Promise<void> {
   const from = ctx.from;
   if (!from) return;
+  const code = ctx.from?.language_code;
   const userId = await linkedUserId(from.id);
   if (!userId) {
-    await ctx.reply('Link your account first: Pacer → Settings → copy code → send /start <code>.');
+    await ctx.reply(t(code, 'link_first'));
     return;
   }
 
@@ -48,7 +58,7 @@ export async function handleMessage(ctx: Context): Promise<void> {
         return;
       }
       if (!tryConsumePhoto(userId, today())) {
-        await ctx.reply("You've hit today's photo limit (10). Please type the run instead.");
+        await ctx.reply(t(code, 'photo_limit'));
         return;
       }
       const tgUrl = `https://api.telegram.org/file/bot${botToken()}/${filePath}`;
@@ -60,9 +70,9 @@ export async function handleMessage(ctx: Context): Promise<void> {
       // the type from the file extension to stay correct for any image kind.
       const ext = filePath.split('.').pop()?.toLowerCase();
       const mime = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
-      const draft = await parsePhoto(`data:${mime};base64,${base64}`);
+      const draft = await parsePhoto(`data:${mime};base64,${base64}`, today());
       if (draft.confidence < CONFIDENCE_FLOOR) {
-        await ctx.reply("I couldn't read that clearly — please type the run (e.g. \"5k in 28 min\").");
+        await ctx.reply(t(code, 'photo_unreadable'));
         return;
       }
       await offerConfirm(ctx, userId, draft);
@@ -71,15 +81,41 @@ export async function handleMessage(ctx: Context): Promise<void> {
 
     const text = ctx.message?.text;
     if (text) {
-      const draft = await parseText(text);
+      if (!tryConsumeText(userId, today())) {
+        await ctx.reply(t(code, 'text_limit'));
+        return;
+      }
+      const names = await habitNames(userId);
+      const { intent } = await parseIntent(text, names);
+      if (intent === 'workout') {
+        const w = await parseWorkout(text, today());
+        if (w.confidence < CONFIDENCE_FLOOR) {
+          await ctx.reply(t(code, 'no_workout'));
+          return;
+        }
+        await offerWorkoutConfirm(ctx, userId, w);
+        return;
+      }
+      if (intent === 'habit') {
+        const h = await parseHabit(text, names);
+        if (h.matched && h.habit_name && h.confidence >= CONFIDENCE_FLOOR) {
+          const r = await checkHabitForUser(userId, h.habit_name, today());
+          await ctx.reply(r.ok ? t(code, 'habit_done') : t(code, 'habit_fail'));
+        } else {
+          await ctx.reply(t(code, 'habit_unclear'));
+        }
+        return;
+      }
+      // default: treat as a run
+      const draft = await parseText(text, today());
       if (draft.confidence < CONFIDENCE_FLOOR) {
-        await ctx.reply("I didn't catch a run there. Try \"ran 5k in 28 minutes\".");
+        await ctx.reply(t(code, 'no_run'));
         return;
       }
       await offerConfirm(ctx, userId, draft);
     }
   } catch (err) {
-    console.error('[telegram] message handler failed:', err);
-    await ctx.reply('Something went wrong reading that — please try again.');
+    log.error('message_handler_failed', { err: String(err) });
+    await ctx.reply(t(code, 'something_wrong'));
   }
 }
