@@ -7,6 +7,7 @@ import { useProfile } from '../features/auth/useProfile'
 import { usePatchOnboarding } from '../features/onboarding/useOnboardingState'
 import { FriendsSection } from '../features/friends/FriendsSection'
 import { ThemeToggle } from '../components/ThemeToggle'
+import { useStepTracking } from '../features/habits/useStepTracking'
 
 export default function Profile() {
   const { session, signOut } = useAuth()
@@ -15,6 +16,7 @@ export default function Profile() {
   const token = session?.access_token
   const resetOnboarding = usePatchOnboarding()
   const [deleting, setDeleting] = useState(false)
+  const { count, message, state, start } = useStepTracking()
 
   // Reset onboarding: null the three completion timestamps so the welcome
   // carousel + coachmark tour re-arm. The overlay (rendered globally) reads the
@@ -70,13 +72,43 @@ export default function Profile() {
       <FriendsSection />
 
       <section className="flex flex-col gap-3">
-        <h2 className="font-display text-lg font-bold text-ink">Appearance</h2>
-        <div className="flex items-center justify-between gap-4 rounded-card border border-border bg-panel p-4">
-          <div>
-            <p className="text-sm font-medium text-ink">Dark mode</p>
-            <p className="text-xs text-ink-muted">Switch between light and dark.</p>
+        <h2 className="font-display text-lg font-bold text-ink">Preferences</h2>
+        <div className="flex flex-col gap-3 rounded-card border border-border bg-panel p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-ink">Dark mode</p>
+              <p className="text-xs text-ink-muted">Switch between light and dark.</p>
+            </div>
+            <ThemeToggle className="[--toggle-size:24px]" />
           </div>
-          <ThemeToggle className="[--toggle-size:24px]" />
+
+          <div className="rounded-card border border-border/70 bg-surface p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-ink">Automatic step tracking</p>
+                <p className="mt-1 text-xs text-ink-muted">
+                  {message ?? 'Try it on a supported phone or browser when you want live step counts.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => void start()}
+                className="rounded-pill bg-accent px-3 py-1.5 text-sm font-semibold text-white"
+              >
+                {state === 'active' ? 'Tracking…' : state === 'requesting' ? 'Requesting…' : 'Enable'}
+              </button>
+            </div>
+            <div className="mt-3 flex items-end justify-between gap-3 rounded-card border border-border/70 bg-panel px-3 py-2">
+              <div>
+                <div className="text-[11px] uppercase tracking-[0.2em] text-ink-muted">Current count</div>
+                <div className="text-2xl font-semibold text-ink">{count}</div>
+              </div>
+              <div className="text-right text-xs text-ink-muted">
+                <div>Status: {state}</div>
+                <div>Unavailable on some devices or browsers</div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
