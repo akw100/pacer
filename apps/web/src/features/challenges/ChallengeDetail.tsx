@@ -9,9 +9,10 @@ import {
 } from '@pacer/shared';
 import { ProgressBar } from './ProgressBar';
 import { AnimatedMetric } from './AnimatedMetric';
+import { DaysLeftRing } from './DaysLeftRing';
 import { YouTubeEmbed } from './YouTubeEmbed';
 import { useCheckIn, useJoinChallenge, useDeleteChallenge } from './useChallenges';
-import { formatMetricValue, progressFraction, daysLeft, todayKey } from './format';
+import { formatMetricValue, progressFraction, todayKey } from './format';
 
 // Challenge detail — opens as a bottom sheet (mobile) / centered panel
 // (desktop): description, embedded video, your progress, the full leaderboard,
@@ -31,7 +32,6 @@ export function ChallengeDetail({ challenge, units, youUserId, onOpenChange }: C
 
   if (!challenge) return null;
   const meta = CHALLENGE_METRICS[challenge.metric];
-  const left = daysLeft(challenge.end_date, todayKey());
   const winner = challenge.state === 'finished' ? challengeWinner(challenge.leaderboard) : null;
   const isCreator = !!youUserId && challenge.creator_id === youUserId;
   const isParticipant = challenge.my_status === 'accepted' || challenge.my_status === 'invited';
@@ -90,12 +90,15 @@ export function ChallengeDetail({ challenge, units, youUserId, onOpenChange }: C
               <p className="text-xs text-ink-muted">
                 by @{challenge.creator_handle} ·{' '}
                 {challenge.state === 'active'
-                  ? `${left} day${left === 1 ? '' : 's'} left`
+                  ? `ends ${challenge.end_date}`
                   : challenge.state === 'upcoming'
                     ? `starts ${challenge.start_date}`
                     : 'finished'}
               </p>
             </div>
+            {challenge.state === 'active' && (
+              <DaysLeftRing start={challenge.start_date} end={challenge.end_date} today={todayKey()} />
+            )}
             <button
               aria-label="Close"
               onClick={() => onOpenChange(false)}
