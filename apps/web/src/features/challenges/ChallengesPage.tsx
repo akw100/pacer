@@ -26,6 +26,7 @@ export default function ChallengesPage() {
 
   const [createOpen, setCreateOpen] = useState(false);
   const [preset, setPreset] = useState<ChallengePreset | null>(null);
+  const [editTarget, setEditTarget] = useState<ChallengeWithProgress | null>(null);
   const [selected, setSelected] = useState<ChallengeWithProgress | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
 
@@ -34,17 +35,27 @@ export default function ChallengesPage() {
     setCreateOpen(true);
   }
 
-  // "Rematch" a finished challenge: reopen the create flow with its settings.
-  function rematch(c: ChallengeWithProgress) {
-    setSelected(null);
-    openCreate({
+  function presetOf(c: ChallengeWithProgress): ChallengePreset {
+    return {
       audience: c.audience,
       groupId: c.group_id,
       metric: c.metric,
       targetCanonical: c.target,
       description: c.description ?? undefined,
       youtubeUrl: c.youtube_url,
-    });
+    };
+  }
+
+  // "Rematch" a finished challenge: reopen the create flow with its settings.
+  function rematch(c: ChallengeWithProgress) {
+    setSelected(null);
+    openCreate(presetOf(c));
+  }
+
+  // Edit an upcoming challenge: open the sheet in edit mode (audience locked).
+  function edit(c: ChallengeWithProgress) {
+    setSelected(null);
+    setEditTarget(c);
   }
 
   // Keep the open detail panel in sync with refetched list data.
@@ -115,12 +126,21 @@ export default function ChallengesPage() {
       )}
 
       <CreateChallengeSheet open={createOpen} onOpenChange={setCreateOpen} units={units} preset={preset} />
+      <CreateChallengeSheet
+        open={!!editTarget}
+        onOpenChange={(open) => !open && setEditTarget(null)}
+        units={units}
+        mode="edit"
+        editId={editTarget?.id ?? null}
+        preset={editTarget ? presetOf(editTarget) : null}
+      />
       <ChallengeDetail
         challenge={selectedLive}
         units={units}
         youUserId={youUserId}
         onOpenChange={(open) => !open && setSelected(null)}
         onRematch={rematch}
+        onEdit={edit}
       />
     </div>
   );

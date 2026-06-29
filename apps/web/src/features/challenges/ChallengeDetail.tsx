@@ -1,6 +1,6 @@
 import { toast } from 'sonner';
 import { Drawer } from '../../components/drawer';
-import { X, Trophy, CheckCircle2, Trash2, RotateCcw } from 'lucide-react';
+import { X, Trophy, CheckCircle2, Trash2, RotateCcw, Pencil } from 'lucide-react';
 import {
   CHALLENGE_METRICS,
   challengeWinner,
@@ -24,9 +24,10 @@ interface ChallengeDetailProps {
   youUserId: string | null;
   onOpenChange: (open: boolean) => void;
   onRematch?: (c: ChallengeWithProgress) => void;
+  onEdit?: (c: ChallengeWithProgress) => void;
 }
 
-export function ChallengeDetail({ challenge, units, youUserId, onOpenChange, onRematch }: ChallengeDetailProps) {
+export function ChallengeDetail({ challenge, units, youUserId, onOpenChange, onRematch, onEdit }: ChallengeDetailProps) {
   const checkIn = useCheckIn();
   const join = useJoinChallenge();
   const del = useDeleteChallenge();
@@ -215,6 +216,17 @@ export function ChallengeDetail({ challenge, units, youUserId, onOpenChange, onR
               >
                 <RotateCcw size={16} strokeWidth={2} />
                 Rematch
+              </button>
+            )}
+
+            {isCreator && challenge.state === 'upcoming' && onEdit && (
+              <button
+                type="button"
+                onClick={() => onEdit(challenge)}
+                className="inline-flex items-center justify-center gap-2 rounded-pill border border-border bg-surface py-2.5 text-sm font-medium text-ink hover:bg-ink/5 transition-colors"
+              >
+                <Pencil size={15} strokeWidth={1.8} />
+                Edit challenge
               </button>
             )}
 

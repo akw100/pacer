@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   ChallengeWithProgress,
   CreateChallengeInput,
+  UpdateChallengeInput,
   RespondChallengeInput,
   CheckInInput,
 } from '@pacer/shared';
@@ -68,6 +69,16 @@ export function useCheckIn() {
         method: 'POST',
         body: { date },
       }),
+    onSuccess: () => invalidateChallenges(qc),
+  });
+}
+
+export function useUpdateChallenge() {
+  const token = useToken();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...patch }: { id: string } & UpdateChallengeInput) =>
+      apiFetch<ChallengeWithProgress>(`/challenges/${id}`, { token: token!, method: 'PATCH', body: patch }),
     onSuccess: () => invalidateChallenges(qc),
   });
 }
