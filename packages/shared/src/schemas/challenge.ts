@@ -104,6 +104,25 @@ export const CreateChallengeInputSchema = z
   });
 export type CreateChallengeInput = z.infer<typeof CreateChallengeInputSchema>;
 
+// Edit a challenge before it starts. Audience + participants are fixed once
+// created; only the "rules" (metric/target/window) and content are editable.
+// All fields optional — a PATCH-style partial update.
+export const UpdateChallengeInputSchema = z
+  .object({
+    metric: ChallengeMetricSchema.optional(),
+    target: z.number().positive().max(10_000_000).optional(),
+    start_date: DateKeySchema.optional(),
+    end_date: DateKeySchema.optional(),
+    description: z.string().max(500).trim().nullable().optional(),
+    youtube_url: z.string().url().nullable().optional(),
+  })
+  .refine((v) => !v.start_date || !v.end_date || v.end_date >= v.start_date, {
+    message: 'end_date must be on or after start_date',
+    path: ['end_date'],
+  })
+  .refine((v) => Object.keys(v).length > 0, { message: 'Nothing to update' });
+export type UpdateChallengeInput = z.infer<typeof UpdateChallengeInputSchema>;
+
 export const RespondChallengeInputSchema = z.object({
   status: z.enum(['accepted', 'declined']),
 });
@@ -137,6 +156,9 @@ export const ChallengeWithProgressSchema = ChallengeSchema.extend({
   // The caller's own row: status + progress (null if not a participant yet).
   my_status: ParticipantStatusSchema.nullable(),
   my_progress: z.number(),
+  // Roster sizes: accepted players, and everyone still in (accepted + invited).
+  accepted_count: z.number(),
+  participant_count: z.number(),
   leaderboard: z.array(ChallengeLeaderRowSchema),
 });
 export type ChallengeWithProgress = z.infer<typeof ChallengeWithProgressSchema>;

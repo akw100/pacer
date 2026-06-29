@@ -43,6 +43,7 @@ export function ChallengeCard({ challenge, units, youUserId, onOpen }: Challenge
             by @{challenge.creator_handle}
             {challenge.audience === 'group' && ' · group'}
             {challenge.audience === 'everyone' && ' · open'}
+            {challenge.accepted_count > 0 && ` · ${challenge.accepted_count} in`}
           </p>
         </div>
         {challenge.state === 'upcoming' ? (

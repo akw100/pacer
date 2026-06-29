@@ -7,6 +7,7 @@ import {
   normalizeYouTubeUrl,
   youTubeEmbedUrl,
   CreateChallengeInputSchema,
+  UpdateChallengeInputSchema,
   type ChallengeLeaderRow,
 } from './challenge';
 
@@ -69,4 +70,15 @@ test('CreateChallengeInput: audience-conditional required fields', () => {
     CreateChallengeInputSchema.safeParse({ ...base, audience: 'everyone', end_date: '2026-06-30' }).success,
     false,
   );
+});
+
+test('UpdateChallengeInput: partial, rejects empty + bad window', () => {
+  assert.equal(UpdateChallengeInputSchema.safeParse({ target: 50 }).success, true);
+  assert.equal(UpdateChallengeInputSchema.safeParse({ description: null }).success, true); // clearable
+  assert.equal(UpdateChallengeInputSchema.safeParse({}).success, false); // nothing to update
+  assert.equal(
+    UpdateChallengeInputSchema.safeParse({ start_date: '2026-07-05', end_date: '2026-07-01' }).success,
+    false,
+  );
+  assert.equal(UpdateChallengeInputSchema.safeParse({ target: -1 }).success, false);
 });

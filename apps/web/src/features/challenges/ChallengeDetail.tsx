@@ -1,6 +1,6 @@
 import { toast } from 'sonner';
 import { Drawer } from '../../components/drawer';
-import { X, Trophy, CheckCircle2, Trash2, RotateCcw } from 'lucide-react';
+import { X, Trophy, CheckCircle2, Trash2, RotateCcw, Pencil } from 'lucide-react';
 import {
   CHALLENGE_METRICS,
   challengeWinner,
@@ -12,7 +12,7 @@ import { AnimatedMetric } from './AnimatedMetric';
 import { DaysLeftRing } from './DaysLeftRing';
 import { YouTubeEmbed } from './YouTubeEmbed';
 import { useCheckIn, useJoinChallenge, useDeleteChallenge } from './useChallenges';
-import { formatMetricValue, progressFraction, todayKey } from './format';
+import { formatMetricValue, progressFraction, todayKey, windowLabel } from './format';
 
 // Challenge detail — opens as a bottom sheet (mobile) / centered panel
 // (desktop): description, embedded video, your progress, the full leaderboard,
@@ -24,9 +24,10 @@ interface ChallengeDetailProps {
   youUserId: string | null;
   onOpenChange: (open: boolean) => void;
   onRematch?: (c: ChallengeWithProgress) => void;
+  onEdit?: (c: ChallengeWithProgress) => void;
 }
 
-export function ChallengeDetail({ challenge, units, youUserId, onOpenChange, onRematch }: ChallengeDetailProps) {
+export function ChallengeDetail({ challenge, units, youUserId, onOpenChange, onRematch, onEdit }: ChallengeDetailProps) {
   const checkIn = useCheckIn();
   const join = useJoinChallenge();
   const del = useDeleteChallenge();
@@ -90,11 +91,7 @@ export function ChallengeDetail({ challenge, units, youUserId, onOpenChange, onR
               </h2>
               <p className="text-xs text-ink-muted">
                 by @{challenge.creator_handle} ·{' '}
-                {challenge.state === 'active'
-                  ? `ends ${challenge.end_date}`
-                  : challenge.state === 'upcoming'
-                    ? `starts ${challenge.start_date}`
-                    : 'finished'}
+                {windowLabel(challenge.state, challenge.start_date, challenge.end_date, todayKey())}
               </p>
             </div>
             {challenge.state === 'active' && (
@@ -146,7 +143,14 @@ export function ChallengeDetail({ challenge, units, youUserId, onOpenChange, onR
             )}
 
             <section className="flex flex-col gap-2">
-              <h3 className="text-xs uppercase tracking-wide text-ink-muted">Leaderboard</h3>
+              <div className="flex items-baseline justify-between">
+                <h3 className="text-xs uppercase tracking-wide text-ink-muted">Leaderboard</h3>
+                <span className="text-xs text-ink-muted">
+                  {challenge.accepted_count} in
+                  {challenge.participant_count > challenge.accepted_count &&
+                    ` · ${challenge.participant_count - challenge.accepted_count} pending`}
+                </span>
+              </div>
               {challenge.leaderboard.length === 0 ? (
                 <p className="text-sm text-ink-muted">No participants yet.</p>
               ) : (
@@ -159,11 +163,12 @@ export function ChallengeDetail({ challenge, units, youUserId, onOpenChange, onR
                       }`}
                     >
                       <span
+                        aria-label={`Rank ${i + 1}`}
                         className={`grid place-items-center w-7 h-7 rounded-pill text-xs font-bold ${
-                          i === 0 ? 'bg-streak/15 text-streak' : 'bg-ink/5 text-ink-muted'
+                          i < 3 && row.progress > 0 ? 'bg-streak/15 text-streak' : 'bg-ink/5 text-ink-muted'
                         }`}
                       >
-                        {i + 1}
+                        {i < 3 && row.progress > 0 ? ['🥇', '🥈', '🥉'][i] : i + 1}
                       </span>
                       <span aria-hidden>{row.avatar_emoji ?? '🏃'}</span>
                       <div className="flex-1 min-w-0">
@@ -215,6 +220,17 @@ export function ChallengeDetail({ challenge, units, youUserId, onOpenChange, onR
               >
                 <RotateCcw size={16} strokeWidth={2} />
                 Rematch
+              </button>
+            )}
+
+            {isCreator && challenge.state === 'upcoming' && onEdit && (
+              <button
+                type="button"
+                onClick={() => onEdit(challenge)}
+                className="inline-flex items-center justify-center gap-2 rounded-pill border border-border bg-surface py-2.5 text-sm font-medium text-ink hover:bg-ink/5 transition-colors"
+              >
+                <Pencil size={15} strokeWidth={1.8} />
+                Edit challenge
               </button>
             )}
 

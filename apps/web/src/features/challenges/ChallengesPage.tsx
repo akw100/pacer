@@ -21,11 +21,12 @@ export default function ChallengesPage() {
   const units = profile?.units ?? 'km';
   const youUserId = session?.user.id ?? null;
 
-  const { data: challenges, isLoading } = useChallenges();
+  const { data: challenges, isLoading, isError, refetch } = useChallenges();
   useChallengesRealtime();
 
   const [createOpen, setCreateOpen] = useState(false);
   const [preset, setPreset] = useState<ChallengePreset | null>(null);
+  const [editTarget, setEditTarget] = useState<ChallengeWithProgress | null>(null);
   const [selected, setSelected] = useState<ChallengeWithProgress | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
 
@@ -34,17 +35,27 @@ export default function ChallengesPage() {
     setCreateOpen(true);
   }
 
-  // "Rematch" a finished challenge: reopen the create flow with its settings.
-  function rematch(c: ChallengeWithProgress) {
-    setSelected(null);
-    openCreate({
+  function presetOf(c: ChallengeWithProgress): ChallengePreset {
+    return {
       audience: c.audience,
       groupId: c.group_id,
       metric: c.metric,
       targetCanonical: c.target,
       description: c.description ?? undefined,
       youtubeUrl: c.youtube_url,
-    });
+    };
+  }
+
+  // "Rematch" a finished challenge: reopen the create flow with its settings.
+  function rematch(c: ChallengeWithProgress) {
+    setSelected(null);
+    openCreate(presetOf(c));
+  }
+
+  // Edit an upcoming challenge: open the sheet in edit mode (audience locked).
+  function edit(c: ChallengeWithProgress) {
+    setSelected(null);
+    setEditTarget(c);
   }
 
   // Keep the open detail panel in sync with refetched list data.
@@ -71,6 +82,11 @@ export default function ChallengesPage() {
       else if (c.state === 'upcoming') upcoming.push(c);
       else finished.push(c);
     }
+    // Most urgent first: active by soonest end, upcoming by soonest start,
+    // finished by most recently ended.
+    active.sort((a, b) => a.end_date.localeCompare(b.end_date));
+    upcoming.sort((a, b) => a.start_date.localeCompare(b.start_date));
+    finished.sort((a, b) => b.end_date.localeCompare(a.end_date));
     return { invitations, active, upcoming, finished };
   }, [visible]);
 
@@ -79,7 +95,14 @@ export default function ChallengesPage() {
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-4 flex flex-col gap-5">
       <header className="flex items-center justify-between">
-        <h1 className="font-display text-2xl font-bold text-ink">Challenges</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="font-display text-2xl font-bold text-ink">Challenges</h1>
+          {grouped.invitations.length > 0 && (
+            <span className="rounded-pill bg-accent px-2 py-0.5 text-xs font-bold text-white">
+              {grouped.invitations.length} new
+            </span>
+          )}
+        </div>
         <button
           type="button"
           onClick={() => openCreate(null)}
@@ -90,7 +113,20 @@ export default function ChallengesPage() {
         </button>
       </header>
 
-      {!isEmpty && !isLoading && <FilterTabs filter={filter} onChange={setFilter} />}
+      {isError && (
+        <div className="rounded-card border border-border bg-surface p-5 text-center flex flex-col items-center gap-3">
+          <p className="text-sm text-ink-muted">Couldn't load challenges.</p>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="rounded-pill border border-border bg-surface px-4 py-2 text-sm font-semibold text-ink hover:bg-ink/5"
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
+      {!isEmpty && !isLoading && !isError && <FilterTabs filter={filter} onChange={setFilter} />}
 
       {isLoading && <Skeleton />}
 
@@ -115,12 +151,21 @@ export default function ChallengesPage() {
       )}
 
       <CreateChallengeSheet open={createOpen} onOpenChange={setCreateOpen} units={units} preset={preset} />
+      <CreateChallengeSheet
+        open={!!editTarget}
+        onOpenChange={(open) => !open && setEditTarget(null)}
+        units={units}
+        mode="edit"
+        editId={editTarget?.id ?? null}
+        preset={editTarget ? presetOf(editTarget) : null}
+      />
       <ChallengeDetail
         challenge={selectedLive}
         units={units}
         youUserId={youUserId}
         onOpenChange={(open) => !open && setSelected(null)}
         onRematch={rematch}
+        onEdit={edit}
       />
     </div>
   );
@@ -172,7 +217,9 @@ function Section({
   if (items.length === 0) return null;
   return (
     <section className="flex flex-col gap-2">
-      <h2 className="text-xs uppercase tracking-wide text-ink-muted">{title}</h2>
+      <h2 className="text-xs uppercase tracking-wide text-ink-muted">
+        {title} <span className="text-ink-muted/60">· {items.length}</span>
+      </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {items.map((c) => (
           <ChallengeCard key={c.id} challenge={c} units={units} youUserId={youUserId} onOpen={onOpen} />

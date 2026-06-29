@@ -1,4 +1,5 @@
-import { CHALLENGE_METRICS, metersToDisplayDistance, type ChallengeMetric, type Units } from '@pacer/shared';
+import { format } from 'date-fns';
+import { CHALLENGE_METRICS, metersToDisplayDistance, type ChallengeMetric, type ChallengeState, type Units } from '@pacer/shared';
 
 // Display formatting for challenge metric values. Distance is the only metric
 // stored in canonical units (meters) — we convert to the user's km/mi here at
@@ -55,6 +56,25 @@ export function daysLeft(endDate: string, todayKey: string): number {
   const today = new Date(`${todayKey}T00:00:00`);
   const ms = end.getTime() - today.getTime();
   return Math.max(0, Math.round(ms / 86_400_000));
+}
+
+function daysUntil(dateKey: string, today: string): number {
+  const a = new Date(`${dateKey}T00:00:00`).getTime();
+  const b = new Date(`${today}T00:00:00`).getTime();
+  return Math.round((a - b) / 86_400_000);
+}
+
+function relDay(n: number, verb: string): string {
+  if (n <= 0) return `${verb} today`;
+  if (n === 1) return `${verb} tomorrow`;
+  return `${verb} in ${n} days`;
+}
+
+/** Human window label: "starts in 2 days" / "ends tomorrow" / "ended Jul 7". */
+export function windowLabel(state: ChallengeState, start: string, end: string, today: string): string {
+  if (state === 'upcoming') return relDay(daysUntil(start, today), 'starts');
+  if (state === 'active') return relDay(daysUntil(end, today), 'ends');
+  return `ended ${format(new Date(`${end}T00:00:00`), 'MMM d')}`;
 }
 
 export function todayKey(): string {

@@ -1,4 +1,5 @@
 import NumberFlow from '@number-flow/react';
+import { useReducedMotion } from 'motion/react';
 import type { ChallengeMetric, Units } from '@pacer/shared';
 import { metricParts } from './format';
 
@@ -15,10 +16,12 @@ interface AnimatedMetricProps {
 
 export function AnimatedMetric({ value, metric, units, className }: AnimatedMetricProps) {
   const { value: v, decimals, suffix } = metricParts(value, metric, units);
+  const reduced = useReducedMotion();
   return (
     <span className={className}>
       <NumberFlow
         value={v}
+        animated={!reduced}
         format={{ minimumFractionDigits: decimals, maximumFractionDigits: decimals }}
       />
       <span className="ml-1 text-ink-muted font-medium">{suffix}</span>

@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   ChallengeWithProgress,
   CreateChallengeInput,
+  UpdateChallengeInput,
   RespondChallengeInput,
   CheckInInput,
 } from '@pacer/shared';
@@ -34,6 +35,28 @@ export function useCreateChallenge() {
   });
 }
 
+// Optimistically patch one challenge in the cached list; returns the snapshot
+// so onError can roll back. Shared by respond/join so the UI reacts instantly.
+async function optimisticPatch(
+  qc: ReturnType<typeof useQueryClient>,
+  id: string,
+  patch: (c: ChallengeWithProgress) => ChallengeWithProgress,
+): Promise<{ previous?: ChallengeWithProgress[] }> {
+  await qc.cancelQueries({ queryKey: challengeKeys.list });
+  const previous = qc.getQueryData<ChallengeWithProgress[]>(challengeKeys.list);
+  if (previous) {
+    qc.setQueryData<ChallengeWithProgress[]>(
+      challengeKeys.list,
+      previous.map((c) => (c.id === id ? patch(c) : c)),
+    );
+  }
+  return { previous };
+}
+
+function rollback(qc: ReturnType<typeof useQueryClient>, ctx?: { previous?: ChallengeWithProgress[] }) {
+  if (ctx?.previous) qc.setQueryData(challengeKeys.list, ctx.previous);
+}
+
 export function useRespondChallenge() {
   const token = useToken();
   const qc = useQueryClient();
@@ -44,7 +67,9 @@ export function useRespondChallenge() {
         method: 'POST',
         body: { status },
       }),
-    onSuccess: () => invalidateChallenges(qc),
+    onMutate: ({ id, status }) => optimisticPatch(qc, id, (c) => ({ ...c, my_status: status })),
+    onError: (_e, _v, ctx) => rollback(qc, ctx),
+    onSettled: () => invalidateChallenges(qc),
   });
 }
 
@@ -54,13 +79,22 @@ export function useJoinChallenge() {
   return useMutation({
     mutationFn: (id: string) =>
       apiFetch<ChallengeWithProgress>(`/challenges/${id}/join`, { token: token!, method: 'POST' }),
-    onSuccess: () => invalidateChallenges(qc),
+    onMutate: (id) =>
+      optimisticPatch(qc, id, (c) => ({
+        ...c,
+        my_status: 'accepted',
+        accepted_count: c.accepted_count + 1,
+        participant_count: c.participant_count + 1,
+      })),
+    onError: (_e, _v, ctx) => rollback(qc, ctx),
+    onSettled: () => invalidateChallenges(qc),
   });
 }
 
 export function useCheckIn() {
   const token = useToken();
   const qc = useQueryClient();
+  const userId = useAuth().session?.user.id ?? null;
   return useMutation({
     mutationFn: ({ id, date }: { id: string } & CheckInInput) =>
       apiFetch<ChallengeWithProgress>(`/challenges/${id}/check-in`, {
@@ -68,6 +102,42 @@ export function useCheckIn() {
         method: 'POST',
         body: { date },
       }),
+    // Optimistic: a check-in adds exactly 1 to my progress — bump it instantly
+    // so the bar + odometer move before the round-trip, then reconcile on settle.
+    onMutate: async ({ id }) => {
+      await qc.cancelQueries({ queryKey: challengeKeys.list });
+      const previous = qc.getQueryData<ChallengeWithProgress[]>(challengeKeys.list);
+      if (previous && userId) {
+        qc.setQueryData<ChallengeWithProgress[]>(
+          challengeKeys.list,
+          previous.map((c) =>
+            c.id === id
+              ? {
+                  ...c,
+                  my_progress: c.my_progress + 1,
+                  leaderboard: c.leaderboard.map((r) =>
+                    r.user_id === userId ? { ...r, progress: r.progress + 1 } : r,
+                  ),
+                }
+              : c,
+          ),
+        );
+      }
+      return { previous };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.previous) qc.setQueryData(challengeKeys.list, ctx.previous);
+    },
+    onSettled: () => invalidateChallenges(qc),
+  });
+}
+
+export function useUpdateChallenge() {
+  const token = useToken();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...patch }: { id: string } & UpdateChallengeInput) =>
+      apiFetch<ChallengeWithProgress>(`/challenges/${id}`, { token: token!, method: 'PATCH', body: patch }),
     onSuccess: () => invalidateChallenges(qc),
   });
 }
@@ -78,7 +148,18 @@ export function useDeleteChallenge() {
   return useMutation({
     mutationFn: (id: string) =>
       apiFetch<void>(`/challenges/${id}`, { token: token!, method: 'DELETE' }),
-    onSuccess: () => invalidateChallenges(qc),
+    // Remove the cancelled challenge from the list immediately so it vanishes
+    // from the hub the instant you confirm; restore it if the request fails.
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: challengeKeys.list });
+      const previous = qc.getQueryData<ChallengeWithProgress[]>(challengeKeys.list);
+      if (previous) {
+        qc.setQueryData<ChallengeWithProgress[]>(challengeKeys.list, previous.filter((c) => c.id !== id));
+      }
+      return { previous };
+    },
+    onError: (_e, _v, ctx) => rollback(qc, ctx),
+    onSettled: () => invalidateChallenges(qc),
   });
 }
 
