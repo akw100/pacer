@@ -30,7 +30,7 @@ export async function handleStart(ctx: Context): Promise<void> {
     linked_at: new Date().toISOString(),
   });
   if (error) {
-    await ctx.reply('Could not link your account, please try again.');
+    await ctx.reply(t(lang, 'link_error'));
     return;
   }
   await db.from('telegram_link_codes').delete().eq('code', code);

@@ -33,6 +33,16 @@ export async function linkedUserId(telegramUserId: number): Promise<string | nul
   return (data?.user_id as string) ?? null;
 }
 
+/** The user's distance-unit preference (km|mi); defaults to 'km' if unset. */
+export async function userUnits(userId: string): Promise<'km' | 'mi'> {
+  const { data } = await serviceClient()
+    .from('profiles')
+    .select('units')
+    .eq('id', userId)
+    .maybeSingle();
+  return (data?.units as 'km' | 'mi' | null) ?? 'km';
+}
+
 /** Names of the user's habits (for intent classification + matching). */
 export async function habitNames(userId: string): Promise<string[]> {
   const { data } = await serviceClient().from('habits').select('name').eq('user_id', userId);

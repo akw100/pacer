@@ -18,12 +18,13 @@ export async function logWorkoutForUser(
   userId: string,
   draft: WorkoutDraft,
   today: string,
+  sharedGroupId: string | null = null,
 ): Promise<SaveResult> {
   const { sets, ...rest } = draftToWorkoutCreate(draft, today);
   const db = serviceClient();
   const { data: workout, error } = await db
     .from('workouts')
-    .insert({ ...rest, user_id: userId })
+    .insert({ ...rest, user_id: userId, shared_group_id: sharedGroupId })
     .select('*')
     .single();
   if (error || !workout) return { ok: false, error: error?.message ?? 'insert failed' };

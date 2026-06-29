@@ -5,7 +5,7 @@ import { serviceClient } from '../lib/supabase';
 import { draftToRunCreate, type RunDraft } from './draft';
 
 export type SaveResult =
-  | { ok: true; runId: string }
+  | { ok: true; runId: string; isDistancePR: boolean }
   | { ok: false; error: string };
 
 /**
@@ -22,6 +22,14 @@ export async function logRunForUser(
   sharedGroupId: string | null = null,
 ): Promise<SaveResult> {
   const body = draftToRunCreate(draft, today);
+  // The user's current longest run, so we can detect a new distance PR below.
+  const { data: prevMax } = await serviceClient()
+    .from('runs')
+    .select('distance_meters')
+    .eq('user_id', userId)
+    .order('distance_meters', { ascending: false })
+    .limit(1)
+    .maybeSingle();
   const { data, error } = await serviceClient()
     .from('runs')
     .insert({ ...body, user_id: userId, shared_group_id: sharedGroupId })
@@ -31,6 +39,7 @@ export async function logRunForUser(
     console.error(`[telegram] save FAILED user=${userId}: ${error?.message ?? 'no data returned'}`);
     return { ok: false, error: error?.message ?? 'insert failed' };
   }
+  const isDistancePR = !prevMax || draft.distance_meters > Number(prevMax.distance_meters);
   // Observability for third-party ingestion: which Pacer account a Telegram
   // run lands on (the #1 thing to check when "the bot saved but I don't see it").
   console.log(`[telegram] run saved user=${userId} run=${data.id} date=${data.run_date}`);
@@ -42,7 +51,7 @@ export async function logRunForUser(
     distanceMeters: Number(data.distance_meters),
   });
   await fanOut(userId, { type: 'run.logged', ids: { runId: data.id as string } });
-  return { ok: true, runId: data.id as string };
+  return { ok: true, runId: data.id as string, isDistancePR };
 }
 
 // Same best-effort fan-out as routes/runs.ts: user channel + each group.
