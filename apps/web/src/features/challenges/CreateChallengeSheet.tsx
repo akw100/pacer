@@ -18,7 +18,7 @@ import {
 } from '@pacer/shared';
 import { apiFetch } from '../../lib/api';
 import { useAuth } from '../auth/AuthProvider';
-import { useCreateChallenge } from './useChallenges';
+import { useCreateChallenge, useUpdateChallenge } from './useChallenges';
 import { metricUnitSuffix, todayKey } from './format';
 
 // 3-step challenge creation (spec §5 / §02-PAGES): Who → What → Preview. The
@@ -43,6 +43,9 @@ interface CreateChallengeSheetProps {
   units: Units;
   /** Prefill the form (e.g. "Challenge this group" or a rematch of a finished one). */
   preset?: ChallengePreset | null;
+  /** 'edit' locks the audience and PATCHes an existing challenge instead of creating. */
+  mode?: 'create' | 'edit';
+  editId?: string | null;
 }
 
 type Step = 0 | 1 | 2;
@@ -64,11 +67,14 @@ function addDays(key: string, days: number): string {
   return `${y}-${m}-${day}`;
 }
 
-export function CreateChallengeSheet({ open, onOpenChange, units, preset }: CreateChallengeSheetProps) {
+export function CreateChallengeSheet({ open, onOpenChange, units, preset, mode = 'create', editId }: CreateChallengeSheetProps) {
   const token = useAuth().session?.access_token ?? null;
   const create = useCreateChallenge();
+  const update = useUpdateChallenge();
+  const isEdit = mode === 'edit';
+  const firstStep: Step = isEdit ? 1 : 0; // edit skips the "Who" step (audience is fixed)
 
-  const [step, setStep] = useState<Step>(0);
+  const [step, setStep] = useState<Step>(firstStep);
   const [audience, setAudience] = useState<ChallengeAudience>('everyone');
   const [targetHandle, setTargetHandle] = useState('');
   const [groupId, setGroupId] = useState<string | null>(null);
@@ -88,7 +94,7 @@ export function CreateChallengeSheet({ open, onOpenChange, units, preset }: Crea
   const meta = CHALLENGE_METRICS[metric];
 
   function reset() {
-    setStep(0);
+    setStep(firstStep);
     setAudience(preset?.audience ?? (preset?.groupId ? 'group' : 'everyone'));
     setTargetHandle('');
     setGroupId(preset?.groupId ?? null);
@@ -159,6 +165,25 @@ export function CreateChallengeSheet({ open, onOpenChange, units, preset }: Crea
   }
 
   async function submit() {
+    if (isEdit && editId) {
+      if (targetCanonical === null) return toast.error('Some details are missing or invalid');
+      try {
+        await update.mutateAsync({
+          id: editId,
+          metric,
+          target: targetCanonical,
+          start_date: start,
+          end_date: end,
+          description: description.trim() ? description.trim() : null,
+          youtube_url: youtube.trim() ? normalizeYouTubeUrl(youtube.trim()) : null,
+        });
+        toast.success('Challenge updated');
+        onOpenChange(false);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Could not update challenge');
+      }
+      return;
+    }
     const input = buildInput();
     if (!input) return toast.error('Some details are missing or invalid');
     try {
@@ -170,6 +195,8 @@ export function CreateChallengeSheet({ open, onOpenChange, units, preset }: Crea
       toast.error(err instanceof Error ? err.message : 'Could not create challenge');
     }
   }
+
+  const submitting = isEdit ? update.isPending : create.isPending;
 
   return (
     <Drawer.Root
@@ -185,11 +212,11 @@ export function CreateChallengeSheet({ open, onOpenChange, units, preset }: Crea
           aria-describedby={undefined}
           className="fixed inset-x-0 bottom-0 z-50 flex max-h-[92vh] flex-col rounded-t-card border border-border bg-surface md:left-1/2 md:right-auto md:bottom-auto md:top-1/2 md:w-[26rem] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-card"
         >
-          <Drawer.Title className="sr-only">Create a challenge</Drawer.Title>
+          <Drawer.Title className="sr-only">{isEdit ? 'Edit challenge' : 'Create a challenge'}</Drawer.Title>
           <div className="mx-auto my-2 h-1.5 w-10 rounded-pill bg-border md:hidden" />
           <header className="flex items-center justify-between px-5 pt-2 pb-3">
             <div className="flex items-center gap-2">
-              {step > 0 && (
+              {step > firstStep && (
                 <button
                   aria-label="Back"
                   onClick={() => setStep((s) => (s - 1) as Step)}
@@ -199,7 +226,7 @@ export function CreateChallengeSheet({ open, onOpenChange, units, preset }: Crea
                 </button>
               )}
               <h2 className="font-display text-lg font-semibold text-ink">
-                {step === 0 ? 'Who' : step === 1 ? 'What' : 'Confirm'}
+                {isEdit ? (step === 1 ? 'Edit' : 'Confirm') : step === 0 ? 'Who' : step === 1 ? 'What' : 'Confirm'}
               </h2>
             </div>
             <button
@@ -212,7 +239,7 @@ export function CreateChallengeSheet({ open, onOpenChange, units, preset }: Crea
           </header>
 
           <div className="px-5 pb-5 flex flex-col gap-4 overflow-y-auto">
-            <StepDots step={step} />
+            {!isEdit && <StepDots step={step} />}
 
             {step === 0 && (
               <WhoStep
@@ -273,11 +300,11 @@ export function CreateChallengeSheet({ open, onOpenChange, units, preset }: Crea
             ) : (
               <button
                 type="button"
-                disabled={create.isPending}
+                disabled={submitting}
                 onClick={submit}
                 className="rounded-pill bg-accent text-white py-3 text-sm font-semibold active:scale-[0.98] disabled:opacity-50 transition-transform"
               >
-                {create.isPending ? 'Sending…' : 'Send challenge'}
+                {submitting ? 'Saving…' : isEdit ? 'Save changes' : 'Send challenge'}
               </button>
             )}
           </div>
