@@ -1,7 +1,7 @@
 import type { Context } from 'grammy';
 import { takeWorkoutDraft } from '../workoutDraft';
 import { logWorkoutForUser } from '../saveWorkout';
-import { today, linkedUserId } from './shared';
+import { today, linkedUserId, userGroups } from './shared';
 import { t } from '../i18n';
 
 export async function handleWorkoutConfirm(ctx: Context): Promise<void> {
@@ -29,10 +29,17 @@ export async function handleWorkoutConfirm(ctx: Context): Promise<void> {
     await ctx.editMessageText(t(lang, 'discarded'));
     return;
   }
-  const result = await logWorkoutForUser(userId, draft, today());
+  // `wsave` (personal) or `wsave:<groupId>` (tag the workout to that group).
+  const sharedGroupId = action?.startsWith('wsave:') ? action.slice('wsave:'.length) : null;
+  const result = await logWorkoutForUser(userId, draft, today(), sharedGroupId);
   if (result.ok) {
     await ctx.answerCallbackQuery('Saved!');
-    await ctx.editMessageText(t(lang, 'workout_saved'));
+    if (sharedGroupId) {
+      const name = (await userGroups(userId)).find((g) => g.id === sharedGroupId)?.name;
+      await ctx.editMessageText(`✅ Workout saved and shared to ${name ?? 'your group'}.`);
+    } else {
+      await ctx.editMessageText(t(lang, 'workout_saved'));
+    }
   } else {
     await ctx.answerCallbackQuery(t(lang, 'save_failed'));
     await ctx.editMessageText('Could not save that workout — please try again.');

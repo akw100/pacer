@@ -30,9 +30,15 @@ async function offerConfirm(ctx: Context, userId: string, draft: RunDraft): Prom
 }
 
 async function offerWorkoutConfirm(ctx: Context, userId: string, draft: WorkoutDraft): Promise<void> {
-  const sent = await ctx.reply(workoutSummary(draft), {
-    reply_markup: new InlineKeyboard().text('✓ Save', 'wsave').text('✗ Discard', 'wdiscard'),
-  });
+  // Mirror offerConfirm: one "Save to <group>" button per group the user is in,
+  // plus a personal save and discard. Callback data is `wsave:<groupId>` (group)
+  // or `wsave` (personal); the workout confirm handler tags shared_group_id.
+  const groups = await userGroups(userId);
+  const kb = new InlineKeyboard();
+  for (const g of groups) kb.text(`✓ Save to ${g.name}`, `wsave:${g.id}`).row();
+  kb.text(groups.length ? '✓ Save (just me)' : '✓ Save', 'wsave').row();
+  kb.text('✗ Discard', 'wdiscard');
+  const sent = await ctx.reply(workoutSummary(draft), { reply_markup: kb });
   putWorkoutDraft(`${sent.chat.id}:${sent.message_id}:${userId}`, draft);
 }
 

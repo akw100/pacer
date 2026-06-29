@@ -19,7 +19,7 @@ export function getBot(): Bot {
     bot.command('unlink', handleUnlink);
     // Workout-specific callbacks first so they're caught before the generic
     // run confirm handler (which handles save/save:<id>/discard).
-    bot.callbackQuery(['wsave', 'wdiscard'], handleWorkoutConfirm);
+    bot.callbackQuery(/^(wsave|wdiscard)/, handleWorkoutConfirm);
     bot.on('callback_query:data', handleConfirm);
     bot.on('message', handleMessage); // text + photo
     _bot = bot;
