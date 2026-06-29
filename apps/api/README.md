@@ -47,5 +47,6 @@ routes, event-bus subscribers, and DB migrations all hang off the foundations he
 Migrations live in `supabase/migrations/` and run in timestamp/order-prefixed order.
 
 - New migration: `supabase migration new <name>` → edit the generated SQL.
-- Apply to a project: `supabase db push`.
-- **Staging and production are separate Supabase projects** — push to each explicitly; never share keys.
+- Apply to the project: `supabase db push`.
+- **Staging and production share one Supabase project** — push migrations **once**; the change is live
+  for both environments. (See `docs/09-DEPLOY.md`.)

@@ -176,8 +176,8 @@ An assistant that lives *inside* the platform (the Telegram bot's sibling), ship
 
 - **Two first-class form factors, always**: every screen ships with both a phone layout (bottom
   tabs, sheets) and a designed desktop layout (sidebar, multi-column) — desktop is never a
-  stretched mobile view. The "app" is the installable PWA (home-screen icon, standalone window,
-  offline shell).
+  stretched mobile view. Pacer is a responsive **website** (no install) — the same site on phone and
+  desktop; the Telegram bot covers quick logging on the go.
 - **Light theme by default** with optional dark mode (not an all-dark UI).
 - The UI must **not look AI-generated**: characterful type for numbers, warm palette, custom
   illustrations, springy motion — see `06-TECH-STACK.md` §Design direction.
@@ -192,4 +192,4 @@ An assistant that lives *inside* the platform (the Telegram bot's sibling), ship
 - Chat/comments inside groups (reactions only).
 - Public profiles or discovery — groups are private, join-code-only.
 - GPS tracking / live run recording — this is a *log*, not a tracker; watch photos cover the data entry.
-- Native mobile apps — PWA first.
+- Native mobile apps or an installable PWA — Pacer ships as a plain responsive website; the Telegram bot covers quick on-the-go logging.

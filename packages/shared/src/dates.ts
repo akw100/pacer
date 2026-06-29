@@ -4,6 +4,11 @@ import type { WeekStart } from './types';
 // Week-start is configurable per profile (0 = Sunday, 1 = Monday). All helpers
 // are pure — the caller fetches the data (e.g. the active-date list for streaks).
 
+// App-wide week start. Single source of truth for every "this week" boundary
+// (Home, Trends, Records, score, group/friends/community stats). The app's
+// audience starts the week on Sunday, so use it everywhere instead of a literal.
+export const WEEK_START: WeekStart = 0;
+
 export function weekRange(date: Date, weekStart: WeekStart): { start: Date; end: Date } {
   return {
     start: startOfWeek(date, { weekStartsOn: weekStart }),

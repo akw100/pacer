@@ -17,6 +17,8 @@ export const WorkoutCreateSchema = z.object({
   duration_seconds: z.number().int().positive().nullish(),
   sets:             z.array(WorkoutSetInputSchema).optional(),
   source:           z.enum(['web', 'telegram']).default('web'),
+  // Optional group share — see runs.ts for the rationale.
+  shared_group_id:  z.string().uuid().nullish(),
 });
 export type WorkoutCreate = z.infer<typeof WorkoutCreateSchema>;
 

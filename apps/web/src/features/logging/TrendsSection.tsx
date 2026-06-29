@@ -15,6 +15,7 @@ import {
   metersToDisplayDistance,
   paceSecondsPerUnit,
   toDateKey,
+  WEEK_START,
   type Run,
   type Units,
 } from '@pacer/shared';
@@ -27,7 +28,7 @@ interface TrendsSectionProps {
   weekStart?: 0 | 1;
 }
 
-export function TrendsSection({ units = 'km', weekStart = 1 }: TrendsSectionProps) {
+export function TrendsSection({ units = 'km', weekStart = WEEK_START }: TrendsSectionProps) {
   const runs = useRuns();
   const workouts = useWorkouts();
 
@@ -195,7 +196,7 @@ function summarize(runs: Run[], workouts: { id: string }[], units: Units) {
   const now = new Date();
   const monthAgo = subMonths(now, 1);
   const fourWeeksAgo = subDays(now, 28);
-  const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+  const weekStart = startOfWeek(now, { weekStartsOn: WEEK_START });
 
   let thisWeek = 0;
   let thisMonth = 0;

@@ -8,7 +8,10 @@ import './subscribers'; // import for registration side-effects (wires bus handl
 
 // Path prefixes that skip auth. Everything else requires a valid bearer JWT.
 // /webhook is reserved for the Telegram card's public webhook route.
-const PUBLIC_PATH_PREFIXES = ['/health', '/webhook'] as const;
+// /internal is for service-to-service callbacks (e.g. the frames worker) — these
+// carry no user JWT and are gated by a shared INTERNAL_TOKEN inside the handler.
+// /public is anonymous, numbers-only community stats for the marketing landing.
+const PUBLIC_PATH_PREFIXES = ['/health', '/webhook', '/internal', '/public'] as const;
 
 function isPublicPath(path: string): boolean {
   return PUBLIC_PATH_PREFIXES.some(

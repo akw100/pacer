@@ -1,0 +1,3 @@
+/* onboarding.css — currently no rules. The feature uses Tailwind tokens
+ * directly inline; this file exists so future overrides (e.g. embla snap
+ * adjustments) can land in one token-only place per card 13. */

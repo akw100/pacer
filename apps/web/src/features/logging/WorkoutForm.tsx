@@ -32,10 +32,12 @@ const FormSchema = z.object({
 type FormValues = z.infer<typeof FormSchema>;
 
 interface WorkoutFormProps {
+  /** Optional group to count this workout in (null = personal only). */
+  sharedGroupId?: string | null;
   onDone: () => void;
 }
 
-export function WorkoutForm({ onDone }: WorkoutFormProps) {
+export function WorkoutForm({ sharedGroupId, onDone }: WorkoutFormProps) {
   const create = useCreateWorkout();
   const { data: history = [] } = useWorkouts();
   const [nameOpen, setNameOpen] = useState(false);
@@ -113,6 +115,7 @@ export function WorkoutForm({ onDone }: WorkoutFormProps) {
       duration_seconds: durationSeconds,
       sets,
       source: 'web',
+      shared_group_id: sharedGroupId ?? null,
     };
 
     try {

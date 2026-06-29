@@ -1,0 +1,515 @@
+import { useCallback, useRef, useState } from 'react'
+import { useNavigate } from 'react-router'
+import { useAuth } from '../auth/AuthProvider'
+
+const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8787'
+
+// The routes the agent can jump to (mirrors App.tsx). Kept here so the model
+// only ever navigates somewhere real.
+const ROUTES: Record<string, string> = {
+  home: '/',
+  progress: '/progress',
+  group: '/group',
+  challenges: '/challenges',
+  flows: '/flows',
+  profile: '/profile',
+}
+
+// ── DOM helpers: the agent acts on the live page the user is looking at ──────
+
+function isVisible(el: Element): boolean {
+  const h = el as HTMLElement
+  return !!(h.offsetParent || h.getClientRects().length) && getComputedStyle(h).visibility !== 'hidden'
+}
+
+function labelOf(el: Element): string {
+  const h = el as HTMLElement
+  const aria = h.getAttribute('aria-label')
+  if (aria) return aria
+  const text = (h.innerText || h.textContent || '').trim()
+  if (text) return text
+  return (
+    h.getAttribute('title') ||
+    h.getAttribute('placeholder') ||
+    (h as HTMLInputElement).value ||
+    h.getAttribute('name') ||
+    ''
+  )
+}
+
+// Score how well a candidate's label matches the spoken target. Higher = better;
+// 0 = no match. Forgiving on purpose — speech is fuzzy.
+function score(label: string, target: string): number {
+  const a = label.toLowerCase().trim()
+  const b = target.toLowerCase().trim()
+  if (!a || !b) return 0
+  if (a === b) return 100
+  if (a.startsWith(b) || b.startsWith(a)) return 80
+  if (a.includes(b) || b.includes(a)) return 60
+  const at = new Set(a.split(/\W+/).filter(Boolean))
+  const bt = b.split(/\W+/).filter(Boolean)
+  const overlap = bt.filter((t) => at.has(t)).length
+  return overlap ? 20 + overlap : 0
+}
+
+// Every string a user might refer to this element by: its wrapping <label>,
+// visible text, aria-label, placeholder, name, title. Matching against the best
+// of these is the fix for labeled inputs — labelOf alone returns the placeholder
+// and never the wrapping label or name, so fields were unmatchable by their name.
+function names(el: Element): string[] {
+  const out: string[] = []
+  const labels = (el as HTMLInputElement).labels
+  if (labels) for (const l of Array.from(labels)) out.push(l.innerText)
+  out.push((el as HTMLElement).innerText || '')
+  for (const attr of ['aria-label', 'placeholder', 'name', 'title']) {
+    const v = el.getAttribute(attr)
+    if (v) out.push(v)
+  }
+  return out.map((s) => s.trim()).filter(Boolean)
+}
+
+function rank(el: Element, target: string): number {
+  let best = 0
+  for (const n of names(el)) best = Math.max(best, score(n, target))
+  return best
+}
+
+// ponytail: matches by accessible label/text/name only — an icon-only control
+// with none of those is invisible to it. Add a coordinate/vision tool if needed.
+function bestMatch(els: Element[], target: string, preferEmpty = false): Element | null {
+  let bestScore = 0
+  let tied: Element[] = []
+  for (const el of els) {
+    if (!isVisible(el)) continue
+    const s = rank(el, target)
+    if (s > bestScore) {
+      bestScore = s
+      tied = [el]
+    } else if (s === bestScore && s > 0) {
+      tied.push(el)
+    }
+  }
+  if (bestScore < 20) return null
+  // Repeated fields (exercise rows, mm:ss) tie on their shared label — fill the
+  // first still-empty one so successive fills walk down the rows.
+  if (preferEmpty) {
+    const empty = tied.find((el) =>
+      'value' in el ? !(el as HTMLInputElement).value : !(el.textContent || '').trim(),
+    )
+    if (empty) return empty
+  }
+  return tied[0] ?? null
+}
+
+const CLICKABLE =
+  'button, a[href], [role="button"], [role="link"], [role="tab"], [role="menuitem"], [role="option"], [role="switch"], [role="checkbox"], [role="radio"], input[type="submit"], input[type="button"], input[type="checkbox"], input[type="radio"], summary, label[for]'
+
+const FIELD = 'input:not([type="hidden"]):not([type="submit"]):not([type="button"]), textarea, select, [contenteditable=""], [contenteditable="true"]'
+
+// Field label: prefer the associated <label>, then aria/placeholder/name.
+function fieldLabel(el: Element): string {
+  const labels = (el as HTMLInputElement).labels
+  if (labels?.[0]) return labels[0].innerText.trim()
+  const h = el as HTMLElement
+  return (
+    h.getAttribute('aria-label') ||
+    h.getAttribute('placeholder') ||
+    h.getAttribute('name') ||
+    h.getAttribute('id') ||
+    ''
+  )
+}
+
+// React tracks input state via the native value setter; calling it directly +
+// dispatching input/change is what makes controlled inputs actually update.
+// We also reset React's internal _valueTracker first — otherwise a fill whose
+// new value equals the field's current value (e.g. re-stating a number, or the
+// '00' seconds default) is seen as unchanged and onChange never fires.
+function setNativeValue(el: HTMLInputElement | HTMLTextAreaElement, value: string) {
+  const proto = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype
+  const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set
+  ;(el as unknown as { _valueTracker?: { setValue(v: string): void } })._valueTracker?.setValue('')
+  setter?.call(el, value)
+  el.dispatchEvent(new Event('input', { bubbles: true }))
+  el.dispatchEvent(new Event('change', { bubbles: true }))
+}
+
+// Clicking a Save/submit button only STARTS an async write — the form shows a
+// success toast and closes (unmounts the button) on success, or an error toast
+// on failure. Wait for that real outcome so the agent never claims a log that
+// didn't actually happen. Watches only toasts that appear after the click.
+function waitForSubmitOutcome(
+  el: Element,
+  timeout = 8000,
+): Promise<{ saved: boolean; error?: string }> {
+  const before = new Set(document.querySelectorAll('[data-sonner-toast]'))
+  const start = performance.now()
+  return new Promise((resolve) => {
+    const tick = () => {
+      const fresh = Array.from(document.querySelectorAll('[data-sonner-toast]')).filter(
+        (t) => !before.has(t),
+      )
+      const err = fresh.find((t) => t.getAttribute('data-type') === 'error')
+      if (err) return resolve({ saved: false, error: (err as HTMLElement).innerText.trim().slice(0, 120) })
+      const ok = fresh.find((t) => t.getAttribute('data-type') === 'success')
+      if (ok || !el.isConnected) return resolve({ saved: true })
+      if (performance.now() - start > timeout)
+        return resolve({ saved: false, error: 'save not confirmed — the form is still open; a required field may be missing or invalid' })
+      setTimeout(tick, 150)
+    }
+    tick()
+  })
+}
+
+// A compact snapshot of the screen so the model knows what it can act on.
+function readPage() {
+  const grab = (sel: string, max: number) =>
+    Array.from(document.querySelectorAll(sel))
+      .filter(isVisible)
+      .map((el) => labelOf(el).slice(0, 80))
+      .filter(Boolean)
+      .slice(0, max)
+
+  const fields = Array.from(document.querySelectorAll(FIELD))
+    .filter(isVisible)
+    .map((el) => {
+      const label = fieldLabel(el).slice(0, 60)
+      const value = (el as HTMLInputElement).value ?? (el as HTMLElement).innerText ?? ''
+      return { label, value: String(value).slice(0, 60) }
+    })
+    .filter((f) => f.label)
+    .slice(0, 30)
+
+  return {
+    url: location.pathname,
+    title: document.title,
+    headings: grab('h1, h2, h3', 20),
+    buttons: grab(CLICKABLE, 40),
+    fields,
+  }
+}
+
+const INSTRUCTIONS = `You are Pacer's hands-free voice assistant. Pacer is a fitness-tracking app.
+ALWAYS speak and respond in English only — every single turn, including your greeting. Even if you hear another language, background noise, or audio you're unsure about, you must still reply in English. Never switch languages.
+You can SEE and OPERATE the page the user is on, on their behalf, using the provided tools.
+
+Routes you can navigate to: home, progress, group, challenges, flows, profile.
+There is a "+" button to log an activity (a run or workout) on most screens.
+
+How to work:
+- When unsure what's on screen, call read_page first — it returns the current URL, headings, buttons, and form fields.
+- To move around the app, use navigate. To press something, use click with its visible label. To type into a field, use fill with the field's label and the text.
+- For number fields pass just the number (e.g. "5", not "5 km"). fill returns the value that actually landed — if it comes back empty the field rejected it, and if it returns a "requested" that differs from "value" your text was adjusted, so confirm or retry.
+- Field tips: set a run's duration minutes and seconds separately (say "minutes" / "seconds"); dates need yyyy-mm-dd; flip a toggle/switch with click, or fill it "true"/"false". If fill can't find a field, call read_page and use the exact field labels it lists.
+- Chain tools as needed: e.g. open the log sheet, then fill the distance, then save.
+- After acting, briefly say what you did. Keep spoken replies to one short sentence.
+- Confirm out loud before anything destructive (deleting, leaving a group). Never invent data — ask the user for values you don't have.
+
+Logging a run or workout — open the log sheet with click "Log activity", then click the "run" or "workout" tab:
+- A RUN requires distance and duration. Date defaults to today. Optional extras: effort, warm-up, stretched, ate after, sleep, notes.
+- A WORKOUT requires a name and at least one exercise, and each exercise needs its name plus sets and reps. Weight is optional. Optional extras: kind (strength/mobility/swim/bike/other), total duration, date.
+- Use common sense — don't be pedantic. If a run's time is given as just minutes, set seconds to 0; fill obvious implied values yourself. Only ask about genuinely missing REQUIRED info, one short question at a time, and never make up a value the user must provide (like distance).
+- Fill the required fields first. Then, BEFORE saving, ask whether they'd like to add any optional extras for that activity (e.g. for a run: "Want to add your effort level or any notes?") — add whatever they say, or move on if they decline.
+- Save with "Log run" / "Log workout". This click WAITS for the real result: only when it returns saved:true is the activity actually logged — then give a short cheer like "Nice work!" and ask if there's anything else. If it returns saved:false, the activity was NOT logged — tell the user it didn't save and why (use the error), and never claim it was logged.
+Speak naturally and concisely. You are talking while doing.`
+
+// Spoken the moment a session connects, so the user knows the agent is listening
+// and what it can do. Phrased as a prompt (not a fixed string) so it sounds natural.
+const GREETING = `Open the conversation now, speaking in ENGLISH ONLY: in one warm, short English sentence, greet the user as Pacer's voice assistant and mention you can move around the app, log runs and workouts, and fill things in for them. Then stop and listen. Do not use any language other than English.`
+
+// Realtime uses the FLAT function-tool shape (name/description/parameters at top level).
+const TOOLS = [
+  {
+    type: 'function',
+    name: 'read_page',
+    description: 'Read the current screen: URL, headings, clickable labels, and form fields with their values. Use to orient before acting.',
+    parameters: { type: 'object', properties: {}, additionalProperties: false },
+  },
+  {
+    type: 'function',
+    name: 'navigate',
+    description: 'Go to a top-level screen of the app.',
+    parameters: {
+      type: 'object',
+      properties: { page: { type: 'string', enum: Object.keys(ROUTES) } },
+      required: ['page'],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: 'function',
+    name: 'click',
+    description: 'Click a button, link, tab, or toggle by its visible text or label.',
+    parameters: {
+      type: 'object',
+      properties: { target: { type: 'string', description: 'Visible text/label of the element to click.' } },
+      required: ['target'],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: 'function',
+    name: 'fill',
+    description: 'Type a value into a form field identified by its label, placeholder, or name. Use for pasting/entering data.',
+    parameters: {
+      type: 'object',
+      properties: {
+        field: { type: 'string', description: 'Label/placeholder/name of the field.' },
+        value: { type: 'string', description: 'Text to enter.' },
+      },
+      required: ['field', 'value'],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: 'function',
+    name: 'scroll',
+    description: 'Scroll the page.',
+    parameters: {
+      type: 'object',
+      properties: { to: { type: 'string', enum: ['top', 'bottom', 'up', 'down'] } },
+      required: ['to'],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: 'function',
+    name: 'go_back',
+    description: 'Go back to the previous screen.',
+    parameters: { type: 'object', properties: {}, additionalProperties: false },
+  },
+] as const
+
+export type VoiceStatus = 'idle' | 'connecting' | 'live' | 'error'
+
+export function useVoiceAgent() {
+  const [status, setStatus] = useState<VoiceStatus>('idle')
+  const [error, setError] = useState<string | null>(null)
+
+  const navigate = useNavigate()
+  const navRef = useRef(navigate)
+  navRef.current = navigate
+  const { session } = useAuth()
+  const tokenRef = useRef(session?.access_token)
+  tokenRef.current = session?.access_token
+
+  const pcRef = useRef<RTCPeerConnection | null>(null)
+  const dcRef = useRef<RTCDataChannel | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+
+  const send = (obj: unknown) => {
+    const dc = dcRef.current
+    if (dc?.readyState === 'open') dc.send(JSON.stringify(obj))
+  }
+
+  // Execute one tool against the live DOM and return a serializable result.
+  const runTool = useCallback(async (name: string, args: Record<string, unknown>) => {
+    switch (name) {
+      case 'read_page':
+        return readPage()
+      case 'navigate': {
+        const path = ROUTES[String(args.page)]
+        if (!path) return { ok: false, error: `unknown page "${args.page}"` }
+        navRef.current(path)
+        return { ok: true, url: path }
+      }
+      case 'click': {
+        const el = bestMatch(Array.from(document.querySelectorAll(CLICKABLE)), String(args.target))
+        if (!el) return { ok: false, error: `no clickable element matching "${args.target}"` }
+        const clicked = labelOf(el)
+        ;(el as HTMLElement).scrollIntoView({ block: 'center', behavior: 'smooth' })
+        ;(el as HTMLElement).click()
+        // Submit buttons (Log run / Log workout) kick off an async save — wait for
+        // the actual result so the agent only confirms a real log.
+        if (el instanceof HTMLButtonElement && el.type === 'submit') {
+          const outcome = await waitForSubmitOutcome(el)
+          return { ok: outcome.saved, clicked, ...outcome }
+        }
+        return { ok: true, clicked }
+      }
+      case 'fill': {
+        const el = bestMatch(Array.from(document.querySelectorAll(FIELD)), String(args.field), true)
+        if (!el) return { ok: false, error: `no field matching "${args.field}"` }
+        ;(el as HTMLElement).scrollIntoView({ block: 'center', behavior: 'smooth' })
+        ;(el as HTMLElement).focus()
+        const requested = String(args.value)
+
+        // Checkboxes/radios are toggled, not typed — click to flip if the wanted
+        // boolean differs from the current state (fires React's change handlers).
+        if (el instanceof HTMLInputElement && (el.type === 'checkbox' || el.type === 'radio')) {
+          const want = !/^\s*(0|false|no|off|unchecked|uncheck|disable|disabled)\s*$/i.test(requested)
+          if (el.checked !== want) el.click()
+          return { ok: true, field: fieldLabel(el), checked: el.checked }
+        }
+
+        let value = requested
+        if (el instanceof HTMLInputElement && el.type === 'number') {
+          // Number inputs reject non-numeric strings ("5 km" -> ""). Drop digit-
+          // group separators ("1,500"/"1 500" -> "1500"), then keep the first
+          // number-like token so spoken phrasing still lands.
+          value = value.replace(/(?<=\d)[,\s](?=\d)/g, '').match(/-?\d*\.?\d+/)?.[0] ?? value
+        } else if (el instanceof HTMLInputElement && el.type === 'date') {
+          // <input type=date> only accepts yyyy-mm-dd; best-effort parse the rest.
+          const d = new Date(value)
+          if (!Number.isNaN(d.getTime())) value = d.toISOString().slice(0, 10)
+        }
+
+        if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+          setNativeValue(el, value)
+        } else if (el instanceof HTMLSelectElement) {
+          setNativeValue(el as unknown as HTMLInputElement, value)
+        } else {
+          ;(el as HTMLElement).innerText = value
+          el.dispatchEvent(new Event('input', { bubbles: true }))
+        }
+        // Blur so any autocomplete dropdown the field opened (e.g. workout-name
+        // suggestions) closes and stops overlaying the next target.
+        ;(el as HTMLElement).blur()
+        // Report what actually landed so the model self-corrects; flag when we
+        // had to alter the requested text (empty = rejected, mismatch = adjusted).
+        const landed = (el as HTMLInputElement).value ?? (el as HTMLElement).innerText ?? ''
+        return landed === requested
+          ? { ok: true, field: fieldLabel(el), value: landed }
+          : { ok: true, field: fieldLabel(el), value: landed, requested }
+      }
+      case 'scroll': {
+        const to = String(args.to)
+        if (to === 'top') scrollTo({ top: 0, behavior: 'smooth' })
+        else if (to === 'bottom') scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
+        else scrollBy({ top: to === 'up' ? -innerHeight * 0.8 : innerHeight * 0.8, behavior: 'smooth' })
+        return { ok: true }
+      }
+      case 'go_back':
+        history.back()
+        return { ok: true }
+      default:
+        return { ok: false, error: `unknown tool "${name}"` }
+    }
+  }, [])
+
+  const disconnect = useCallback(() => {
+    dcRef.current?.close()
+    streamRef.current?.getTracks().forEach((t) => t.stop())
+    pcRef.current?.close()
+    if (audioRef.current) audioRef.current.srcObject = null
+    dcRef.current = null
+    streamRef.current = null
+    pcRef.current = null
+    setStatus('idle')
+  }, [])
+
+  const connect = useCallback(async () => {
+    if (status === 'connecting' || status === 'live') return
+    setError(null)
+    setStatus('connecting')
+    try {
+      const token = tokenRef.current
+      if (!token) throw new Error('You need to be signed in.')
+
+      const r = await fetch(`${API_URL}/voice/session`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!r.ok) throw new Error('Could not start a voice session.')
+      const { token: ephemeral } = (await r.json()) as { token: string }
+
+      const pc = new RTCPeerConnection()
+      pcRef.current = pc
+
+      const audio = new Audio()
+      audio.autoplay = true
+      audioRef.current = audio
+      pc.ontrack = (e) => {
+        if (e.streams[0]) audio.srcObject = e.streams[0]
+      }
+      pc.onconnectionstatechange = () => {
+        if (['failed', 'disconnected', 'closed'].includes(pc.connectionState)) disconnect()
+      }
+
+      const mic = await navigator.mediaDevices.getUserMedia({ audio: true })
+      streamRef.current = mic
+      mic.getTracks().forEach((t) => pc.addTrack(t, mic))
+
+      const dc = pc.createDataChannel('oai-events')
+      dcRef.current = dc
+      dc.onopen = () => {
+        send({
+          type: 'session.update',
+          session: { type: 'realtime', instructions: INSTRUCTIONS, tools: TOOLS, tool_choice: 'auto' },
+        })
+        // Greet first so the user hears the agent come alive.
+        send({ type: 'response.create', response: { instructions: GREETING } })
+        setStatus('live')
+      }
+      dc.onmessage = (ev) => {
+        let msg: {
+          type?: string
+          error?: unknown
+          response?: { output?: Array<{ type?: string; name?: string; call_id?: string; arguments?: string }> }
+        }
+        try {
+          msg = JSON.parse(ev.data)
+        } catch {
+          return
+        }
+        if (msg.type === 'error') {
+          console.warn('[voice] realtime error', msg.error)
+          return
+        }
+        // A response may contain SEVERAL function calls (e.g. fill + fill + click
+        // to log a run). They arrive complete in response.done. Run them all,
+        // submit every output, THEN ask for one continuation — firing
+        // response.create per call races the active response and stalls the loop.
+        if (msg.type === 'response.done') {
+          const calls = (msg.response?.output ?? []).filter(
+            (o): o is { type: string; name: string; call_id: string; arguments?: string } =>
+              o.type === 'function_call' && !!o.name && !!o.call_id,
+          )
+          if (calls.length === 0) return
+          Promise.all(
+            calls.map(async (call) => {
+              let parsed: Record<string, unknown> = {}
+              try {
+                parsed = JSON.parse(call.arguments || '{}')
+              } catch {
+                /* keep empty args */
+              }
+              const result = await runTool(call.name, parsed).catch((e) => ({
+                ok: false,
+                error: String(e?.message ?? e),
+              }))
+              send({
+                type: 'conversation.item.create',
+                item: { type: 'function_call_output', call_id: call.call_id, output: JSON.stringify(result) },
+              })
+            }),
+          ).then(() => send({ type: 'response.create' }))
+        }
+      }
+
+      const offer = await pc.createOffer()
+      await pc.setLocalDescription(offer)
+      const sdpRes = await fetch('https://api.openai.com/v1/realtime/calls', {
+        method: 'POST',
+        body: offer.sdp,
+        headers: { Authorization: `Bearer ${ephemeral}`, 'Content-Type': 'application/sdp' },
+      })
+      if (!sdpRes.ok) throw new Error('Voice connection failed.')
+      await pc.setRemoteDescription({ type: 'answer', sdp: await sdpRes.text() })
+    } catch (e) {
+      const err = e as Error
+      setError(err.name === 'NotAllowedError' ? 'Microphone access denied.' : err.message)
+      setStatus('error')
+      disconnect()
+      setStatus('error')
+    }
+  }, [status, disconnect, runTool])
+
+  const toggle = useCallback(() => {
+    if (status === 'live' || status === 'connecting') disconnect()
+    else connect()
+  }, [status, connect, disconnect])
+
+  return { status, error, toggle, connect, disconnect }
+}

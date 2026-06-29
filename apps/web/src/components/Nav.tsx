@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router'
-import { Home, BarChart2, Users, Trophy, User, Plus } from 'lucide-react'
+import { Home, BarChart2, Users, Trophy, User, Plus, Clapperboard, Sparkles } from 'lucide-react'
 import { openLogSheet } from '../features/logging/LogSheet'
 
 const tabs = [
@@ -7,6 +7,7 @@ const tabs = [
   { to: '/progress', label: 'Progress', Icon: BarChart2 },
   { to: '/group', label: 'Group', Icon: Users },
   { to: '/challenges', label: 'Challenges', Icon: Trophy },
+  { to: '/flows', label: 'Flows', Icon: Clapperboard },
   { to: '/profile', label: 'Profile', Icon: User },
 ] as const
 
@@ -17,7 +18,7 @@ export default function Nav() {
   return (
     <>
       {/* Mobile bottom bar — 2 | FAB | 3 split */}
-      <nav className="fixed bottom-0 inset-x-0 h-16 bg-surface border-t border-border flex items-center md:hidden z-10">
+      <nav className="fixed bottom-0 inset-x-0 h-16 bg-panel border-t border-border flex items-center md:hidden z-10">
         <div className="flex-1 flex items-center justify-around">
           {tabs.slice(0, 2).map(({ to, label, Icon }) => (
             <NavLink key={to} to={to} end={to === '/'} className={tabLink}>
@@ -44,7 +45,7 @@ export default function Nav() {
       </nav>
 
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex fixed left-0 inset-y-0 w-56 flex-col bg-surface border-r border-border z-10 p-4 gap-1">
+      <aside className="hidden md:flex fixed left-0 inset-y-0 w-56 flex-col bg-panel border-r border-border z-10 p-4 gap-1">
         <span className="font-display font-bold text-xl text-ink px-3 py-2 mb-4">Pacer</span>
         {tabs.map(({ to, label, Icon }) => (
           <NavLink
@@ -63,6 +64,15 @@ export default function Nav() {
             {label}
           </NavLink>
         ))}
+
+        {/* Link to the public marketing landing page (also the logged-out root). */}
+        <NavLink
+          to="/welcome"
+          className="mt-auto flex items-center gap-3 px-3 py-2.5 rounded-card text-sm text-ink-muted transition-colors hover:bg-ink/5 hover:text-ink"
+        >
+          <Sparkles size={18} strokeWidth={1.8} />
+          Landing page
+        </NavLink>
       </aside>
     </>
   )
