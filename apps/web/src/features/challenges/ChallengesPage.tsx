@@ -21,7 +21,7 @@ export default function ChallengesPage() {
   const units = profile?.units ?? 'km';
   const youUserId = session?.user.id ?? null;
 
-  const { data: challenges, isLoading } = useChallenges();
+  const { data: challenges, isLoading, isError, refetch } = useChallenges();
   useChallengesRealtime();
 
   const [createOpen, setCreateOpen] = useState(false);
@@ -113,7 +113,20 @@ export default function ChallengesPage() {
         </button>
       </header>
 
-      {!isEmpty && !isLoading && <FilterTabs filter={filter} onChange={setFilter} />}
+      {isError && (
+        <div className="rounded-card border border-border bg-surface p-5 text-center flex flex-col items-center gap-3">
+          <p className="text-sm text-ink-muted">Couldn't load challenges.</p>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="rounded-pill border border-border bg-surface px-4 py-2 text-sm font-semibold text-ink hover:bg-ink/5"
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
+      {!isEmpty && !isLoading && !isError && <FilterTabs filter={filter} onChange={setFilter} />}
 
       {isLoading && <Skeleton />}
 
