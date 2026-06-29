@@ -72,6 +72,16 @@ export function useCheckIn() {
   });
 }
 
+export function useDeleteChallenge() {
+  const token = useToken();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiFetch<void>(`/challenges/${id}`, { token: token!, method: 'DELETE' }),
+    onSuccess: () => invalidateChallenges(qc),
+  });
+}
+
 /**
  * Keep the challenge list live: a `challenge.updated` broadcast on the caller's
  * user channel (someone responded, joined, checked in, or the actor logged

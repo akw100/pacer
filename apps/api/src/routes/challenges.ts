@@ -365,4 +365,25 @@ export const challenges = new Hono<AppEnv>()
     const creators = await loadCreators([visible.challenge.creator_id]);
     notify(participants.map((p) => p.user_id), id);
     return c.json(await buildView(visible.challenge, participants, creators.get(visible.challenge.creator_id)!, userId));
+  })
+
+  // Cancel a challenge (creator only). Cascades delete participants + check-ins
+  // via the migration's ON DELETE CASCADE; we notify everyone who was in it.
+  .delete('/:id', async (c) => {
+    const userId = c.get('userId');
+    const id = c.req.param('id');
+    const svc = serviceClient();
+    const { data: challenge } = await svc
+      .from('challenges')
+      .select('id, creator_id')
+      .eq('id', id)
+      .maybeSingle();
+    if (!challenge) return c.json({ error: 'Not found' }, 404);
+    if (challenge.creator_id !== userId) return c.json({ error: 'Only the creator can cancel a challenge' }, 403);
+
+    const participants = await loadParticipants(id);
+    const { error } = await svc.from('challenges').delete().eq('id', id);
+    if (error) return c.json({ error: error.message }, 400);
+    notify(participants.map((p) => p.user_id), id);
+    return c.body(null, 204);
   });

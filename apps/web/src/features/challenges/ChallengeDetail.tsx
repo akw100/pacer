@@ -1,6 +1,6 @@
 import { toast } from 'sonner';
 import { Drawer } from '../../components/drawer';
-import { X, Trophy, CheckCircle2 } from 'lucide-react';
+import { X, Trophy, CheckCircle2, Trash2 } from 'lucide-react';
 import {
   CHALLENGE_METRICS,
   challengeWinner,
@@ -9,7 +9,7 @@ import {
 } from '@pacer/shared';
 import { ProgressBar } from './ProgressBar';
 import { YouTubeEmbed } from './YouTubeEmbed';
-import { useCheckIn, useJoinChallenge } from './useChallenges';
+import { useCheckIn, useJoinChallenge, useDeleteChallenge } from './useChallenges';
 import { formatMetricValue, progressFraction, daysLeft, todayKey } from './format';
 
 // Challenge detail — opens as a bottom sheet (mobile) / centered panel
@@ -26,11 +26,13 @@ interface ChallengeDetailProps {
 export function ChallengeDetail({ challenge, units, youUserId, onOpenChange }: ChallengeDetailProps) {
   const checkIn = useCheckIn();
   const join = useJoinChallenge();
+  const del = useDeleteChallenge();
 
   if (!challenge) return null;
   const meta = CHALLENGE_METRICS[challenge.metric];
   const left = daysLeft(challenge.end_date, todayKey());
   const winner = challenge.state === 'finished' ? challengeWinner(challenge.leaderboard) : null;
+  const isCreator = !!youUserId && challenge.creator_id === youUserId;
   const isParticipant = challenge.my_status === 'accepted' || challenge.my_status === 'invited';
   const canJoin =
     !isParticipant && challenge.audience !== 'user' && challenge.state !== 'finished';
@@ -54,6 +56,18 @@ export function ChallengeDetail({ challenge, units, youUserId, onOpenChange }: C
       toast.success("You're in! 🔥");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Could not join');
+    }
+  }
+
+  async function doDelete() {
+    if (!challenge) return;
+    if (!confirm('Cancel this challenge for everyone? This cannot be undone.')) return;
+    try {
+      await del.mutateAsync(challenge.id);
+      toast.success('Challenge cancelled');
+      onOpenChange(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not cancel');
     }
   }
 
@@ -185,6 +199,18 @@ export function ChallengeDetail({ challenge, units, youUserId, onOpenChange }: C
               >
                 <CheckCircle2 size={16} strokeWidth={2} />
                 {checkIn.isPending ? 'Saving…' : "Check in for today"}
+              </button>
+            )}
+
+            {isCreator && (
+              <button
+                type="button"
+                disabled={del.isPending}
+                onClick={doDelete}
+                className="inline-flex items-center justify-center gap-2 rounded-pill border border-border bg-surface py-2.5 text-sm font-medium text-ink-muted hover:text-accent hover:border-accent/40 disabled:opacity-50 transition-colors"
+              >
+                <Trash2 size={15} strokeWidth={1.8} />
+                {del.isPending ? 'Cancelling…' : 'Cancel challenge'}
               </button>
             )}
           </div>
