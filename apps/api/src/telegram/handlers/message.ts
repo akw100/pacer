@@ -2,10 +2,15 @@ import type { Context } from 'grammy';
 import { InlineKeyboard } from 'grammy';
 import { metersToKm, formatDuration, formatPace, paceSecondsPerUnit, scoreFor } from '@pacer/shared';
 import { parseText, parsePhoto } from '../parse';
+import { parseIntent } from '../parseIntent';
+import { parseWorkout } from '../parseWorkout';
+import { parseHabit } from '../parseHabit';
 import { putDraft, type RunDraft } from '../draft';
-import { tryConsumePhoto } from '../dailyCap';
+import { putWorkoutDraft, type WorkoutDraft } from '../workoutDraft';
+import { checkHabitForUser } from '../saveHabit';
+import { tryConsumePhoto, tryConsumeText } from '../dailyCap';
 import { botToken } from '../env';
-import { today, linkedUserId, userGroups } from './shared';
+import { today, linkedUserId, userGroups, habitNames } from './shared';
 
 const CONFIDENCE_FLOOR = 0.6;
 
@@ -27,6 +32,17 @@ async function offerConfirm(ctx: Context, userId: string, draft: RunDraft): Prom
     { reply_markup: kb },
   );
   putDraft(`${sent.chat.id}:${sent.message_id}:${userId}`, draft);
+}
+
+async function offerWorkoutConfirm(ctx: Context, userId: string, draft: WorkoutDraft): Promise<void> {
+  const setSummary = draft.sets
+    .map((s) => `${s.sets}x${s.reps} ${s.exercise_name}${s.weight ? ` @${s.weight}kg` : ''}`)
+    .join(', ');
+  const sent = await ctx.reply(
+    `Workout: ${draft.name} (${draft.kind})${setSummary ? ` — ${setSummary}` : ''}. Save it?`,
+    { reply_markup: new InlineKeyboard().text('✓ Save', 'wsave').text('✗ Discard', 'wdiscard') },
+  );
+  putWorkoutDraft(`${sent.chat.id}:${sent.message_id}:${userId}`, draft);
 }
 
 export async function handleMessage(ctx: Context): Promise<void> {
@@ -73,6 +89,34 @@ export async function handleMessage(ctx: Context): Promise<void> {
 
     const text = ctx.message?.text;
     if (text) {
+      if (!tryConsumeText(userId, today())) {
+        await ctx.reply("You've hit today's text limit. Try again tomorrow.");
+        return;
+      }
+      const names = await habitNames(userId);
+      const { intent } = await parseIntent(text, names);
+      if (intent === 'workout') {
+        const w = await parseWorkout(text, today());
+        if (w.confidence < CONFIDENCE_FLOOR) {
+          await ctx.reply("I couldn't read that workout — try e.g. \"3x10 squats 60kg\".");
+          return;
+        }
+        await offerWorkoutConfirm(ctx, userId, w);
+        return;
+      }
+      if (intent === 'habit') {
+        const h = await parseHabit(text, names);
+        if (h.matched && h.habit_name && h.confidence >= CONFIDENCE_FLOOR) {
+          const r = await checkHabitForUser(userId, h.habit_name, today());
+          await ctx.reply(
+            r.ok ? `✅ Marked "${r.habitName}" done today.` : "Couldn't mark that habit — is it set up in Pacer?",
+          );
+        } else {
+          await ctx.reply("I didn't catch which habit. Try the habit's exact name, e.g. \"stretched today\".");
+        }
+        return;
+      }
+      // default: treat as a run
       const draft = await parseText(text, today());
       if (draft.confidence < CONFIDENCE_FLOOR) {
         await ctx.reply("I didn't catch a run there. Try \"ran 5k in 28 minutes\".");

@@ -20,6 +20,18 @@ export const WorkoutDraftSchema = z.object({
 });
 export type WorkoutDraft = z.infer<typeof WorkoutDraftSchema>;
 
+// In-memory pending workout drafts, keyed like the run drafts in draft.ts
+// (`${chat_id}:${message_id}:${userId}`). Taken exactly once on ✓ / ✗.
+const workoutDrafts = new Map<string, WorkoutDraft>();
+export function putWorkoutDraft(key: string, d: WorkoutDraft): void {
+  workoutDrafts.set(key, d);
+}
+export function takeWorkoutDraft(key: string): WorkoutDraft | undefined {
+  const d = workoutDrafts.get(key);
+  workoutDrafts.delete(key);
+  return d;
+}
+
 /** Map a confirmed workout draft to the shared WorkoutCreate shape. `today` is yyyy-mm-dd. */
 export function draftToWorkoutCreate(draft: WorkoutDraft, today: string): WorkoutCreate {
   return {

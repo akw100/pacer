@@ -33,6 +33,12 @@ export async function linkedUserId(telegramUserId: number): Promise<string | nul
   return (data?.user_id as string) ?? null;
 }
 
+/** Names of the user's habits (for intent classification + matching). */
+export async function habitNames(userId: string): Promise<string[]> {
+  const { data } = await serviceClient().from('habits').select('name').eq('user_id', userId);
+  return ((data ?? []) as { name: string }[]).map((h) => h.name);
+}
+
 /** Groups the user belongs to (id + name) — drives the share-to-group buttons. */
 export async function userGroups(userId: string): Promise<{ id: string; name: string }[]> {
   const { data } = await serviceClient()
