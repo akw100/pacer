@@ -9,6 +9,7 @@ import { putWorkoutDraft, type WorkoutDraft } from '../workoutDraft';
 import { checkHabitForUser } from '../saveHabit';
 import { tryConsumePhoto, tryConsumeText } from '../dailyCap';
 import { botToken } from '../env';
+import { transcribe } from '../transcribe';
 import { log } from '../log';
 import { t } from '../i18n';
 import { runSummary, workoutSummary } from '../summary';
@@ -155,6 +156,28 @@ export async function handleMessage(ctx: Context): Promise<void> {
         return;
       }
       await offerConfirm(ctx, userId, draft);
+      return;
+    }
+
+    // Voice notes (and plain audio) are transcribed via Whisper, then routed
+    // through the same text classifier so a spoken run/workout/habit logs the
+    // same way a typed one does. Caps on the text ceiling (a transcribe + a
+    // parse), mirroring the text branch.
+    const voice = ctx.message?.voice ?? ctx.message?.audio;
+    if (voice) {
+      if (!tryConsumeText(userId, today())) {
+        await ctx.reply(t(code, 'text_limit'));
+        return;
+      }
+      const file = await ctx.getFile();
+      const url = `https://api.telegram.org/file/bot${botToken()}/${file.file_path ?? ''}`;
+      const audio = await (await fetch(url)).arrayBuffer();
+      const transcript = await transcribe(audio);
+      if (!transcript) {
+        await ctx.reply(t(code, 'voice_unclear'));
+        return;
+      }
+      await routeText(ctx, userId, transcript);
       return;
     }
 

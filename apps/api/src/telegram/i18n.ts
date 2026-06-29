@@ -8,7 +8,7 @@ type Key =
   | 'saved_toast' | 'discarded_toast' | 'not_linked_toast'
   | 'run_not_pending' | 'workout_not_pending' | 'save_failed_toast'
   | 'run_save_error' | 'workout_save_error' | 'photo_fetch_error' | 'link_error'
-  | 'new_distance_record';
+  | 'new_distance_record' | 'voice_unclear';
 
 /** Keys whose values are templates taking the group name (see tShared). */
 type SharedKey = 'run_shared' | 'workout_shared';
@@ -47,6 +47,7 @@ const STRINGS: Record<Key, { en: string; he: string }> = {
   photo_fetch_error:{ en: 'Couldn\'t fetch that photo — please try again.', he: 'לא ניתן להוריד את התמונה — נסה/י שוב.' },
   link_error:      { en: 'Could not link your account, please try again.', he: 'לא ניתן לקשר את החשבון — נסה/י שוב.' },
   new_distance_record:{ en: '🎉 New distance record!', he: '🎉 שיא מרחק חדש!' },
+  voice_unclear:   { en: 'Sorry, I couldn\'t understand that voice note — try again or type it.', he: 'מצטער, לא הצלחתי להבין את ההודעה הקולית — נסה/י שוב או כתוב/כתבי.' },
 };
 
 /** Templates that interpolate the group name; kept separate from the plain table. */
