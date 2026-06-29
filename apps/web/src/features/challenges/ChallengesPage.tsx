@@ -82,6 +82,11 @@ export default function ChallengesPage() {
       else if (c.state === 'upcoming') upcoming.push(c);
       else finished.push(c);
     }
+    // Most urgent first: active by soonest end, upcoming by soonest start,
+    // finished by most recently ended.
+    active.sort((a, b) => a.end_date.localeCompare(b.end_date));
+    upcoming.sort((a, b) => a.start_date.localeCompare(b.start_date));
+    finished.sort((a, b) => b.end_date.localeCompare(a.end_date));
     return { invitations, active, upcoming, finished };
   }, [visible]);
 
