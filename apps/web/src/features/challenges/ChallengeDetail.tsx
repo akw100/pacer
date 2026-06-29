@@ -160,11 +160,12 @@ export function ChallengeDetail({ challenge, units, youUserId, onOpenChange, onR
                       }`}
                     >
                       <span
+                        aria-label={`Rank ${i + 1}`}
                         className={`grid place-items-center w-7 h-7 rounded-pill text-xs font-bold ${
-                          i === 0 ? 'bg-streak/15 text-streak' : 'bg-ink/5 text-ink-muted'
+                          i < 3 && row.progress > 0 ? 'bg-streak/15 text-streak' : 'bg-ink/5 text-ink-muted'
                         }`}
                       >
-                        {i + 1}
+                        {i < 3 && row.progress > 0 ? ['🥇', '🥈', '🥉'][i] : i + 1}
                       </span>
                       <span aria-hidden>{row.avatar_emoji ?? '🏃'}</span>
                       <div className="flex-1 min-w-0">
