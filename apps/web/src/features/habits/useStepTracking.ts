@@ -3,10 +3,18 @@ import { StepCounter } from '@pacer/shared';
 
 export type StepTrackingState = 'idle' | 'requesting' | 'active' | 'unsupported' | 'denied' | 'error';
 
+const SHARE_WITH_FRIENDS_STORAGE_KEY = 'pacer.step-tracking.share-with-friends';
+
+function readSharePreference(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.localStorage.getItem(SHARE_WITH_FRIENDS_STORAGE_KEY) === '1';
+}
+
 export function useStepTracking() {
   const [state, setState] = useState<StepTrackingState>('idle');
   const [count, setCount] = useState(0);
   const [message, setMessage] = useState<string | null>(null);
+  const [shareWithFriends, setShareWithFriends] = useState(readSharePreference);
   const cleanupRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
@@ -21,6 +29,11 @@ export function useStepTracking() {
       cleanupRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(SHARE_WITH_FRIENDS_STORAGE_KEY, shareWithFriends ? '1' : '0');
+  }, [shareWithFriends]);
 
   const start = useCallback(async () => {
     if (typeof window === 'undefined' || !('DeviceMotionEvent' in window)) {
@@ -77,5 +90,9 @@ export function useStepTracking() {
     }
   }, []);
 
-  return { count, message, state, start };
+  const toggleShare = useCallback(() => {
+    setShareWithFriends((current) => !current);
+  }, []);
+
+  return { count, message, state, start, shareWithFriends, toggleShare };
 }

@@ -7,6 +7,7 @@ import { useProfile } from '../features/auth/useProfile'
 import { usePatchOnboarding } from '../features/onboarding/useOnboardingState'
 import { FriendsSection } from '../features/friends/FriendsSection'
 import { ThemeToggle } from '../components/ThemeToggle'
+import { Toggle } from '../components/Toggle'
 import { useStepTracking } from '../features/habits/useStepTracking'
 
 export default function Profile() {
@@ -16,7 +17,7 @@ export default function Profile() {
   const token = session?.access_token
   const resetOnboarding = usePatchOnboarding()
   const [deleting, setDeleting] = useState(false)
-  const { count, message, state, start } = useStepTracking()
+  const { count, message, state, start, shareWithFriends, toggleShare } = useStepTracking()
 
   // Reset onboarding: null the three completion timestamps so the welcome
   // carousel + coachmark tour re-arm. The overlay (rendered globally) reads the
@@ -108,6 +109,23 @@ export default function Profile() {
                 <div>Unavailable on some devices or browsers</div>
               </div>
             </div>
+          </div>
+
+          <div className="flex items-start justify-between gap-3 rounded-card border border-border/70 bg-surface p-3">
+            <div>
+              <p className="text-sm font-medium text-ink">Share step counts with friends</p>
+              <p className="mt-1 text-xs text-ink-muted">
+                {state === 'active'
+                  ? 'Your latest step count can be shared with friends when this is on.'
+                  : 'Enable tracking first if you want to share updates with friends.'}
+              </p>
+            </div>
+            <Toggle
+              id="share-step-counts-with-friends"
+              checked={shareWithFriends}
+              onChange={() => toggleShare()}
+              disabled={state === 'unsupported' || state === 'denied' || state === 'error'}
+            />
           </div>
         </div>
       </section>
