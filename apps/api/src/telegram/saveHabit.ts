@@ -32,3 +32,48 @@ export async function checkHabitForUser(userId: string, habitName: string, today
   void broadcast(`user:${userId}`, { type: 'habit.checked', ids: { habitId: habit.id as string } } as RealtimeEvent);
   return { ok: true, habitName: habit.name as string };
 }
+
+/** SEAM — check off every habit the user has for `today`, skipping any already checked. */
+export async function checkAllHabitsForUser(
+  userId: string,
+  today: string,
+): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
+  const db = serviceClient();
+  const { data: habits, error: habitsError } = await db
+    .from('habits')
+    .select('id')
+    .eq('user_id', userId);
+  if (habitsError) return { ok: false, error: habitsError.message };
+  const habitIds = ((habits ?? []) as { id: string }[]).map((h) => h.id);
+  if (habitIds.length === 0) return { ok: true, count: 0 };
+
+  // Skip habits already checked today to avoid duplicate rows.
+  const { data: existing } = await db
+    .from('habit_checks')
+    .select('habit_id')
+    .eq('user_id', userId)
+    .eq('check_date', today);
+  const alreadyChecked = new Set(((existing ?? []) as { habit_id: string }[]).map((r) => r.habit_id));
+  const toInsert = habitIds.filter((id) => !alreadyChecked.has(id));
+  if (toInsert.length === 0) return { ok: true, count: 0 };
+
+  const { data: inserted, error } = await db
+    .from('habit_checks')
+    .insert(toInsert.map((habit_id) => ({ habit_id, user_id: userId, check_date: today })))
+    .select('id, habit_id');
+  if (error) return { ok: false, error: error.message };
+
+  for (const row of (inserted ?? []) as { id: string; habit_id: string }[]) {
+    emit('habit.checked', {
+      userId,
+      habitId: row.habit_id,
+      habitCheckId: row.id,
+      checkDate: today,
+    });
+    void broadcast(`user:${userId}`, {
+      type: 'habit.checked',
+      ids: { habitId: row.habit_id },
+    } as RealtimeEvent);
+  }
+  return { ok: true, count: (inserted ?? []).length };
+}

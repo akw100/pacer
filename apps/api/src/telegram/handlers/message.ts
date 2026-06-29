@@ -6,7 +6,7 @@ import { parseWorkout, parseWorkoutPhoto } from '../parseWorkout';
 import { parseHabit } from '../parseHabit';
 import { putDraft, type RunDraft } from '../draft';
 import { putWorkoutDraft, type WorkoutDraft } from '../workoutDraft';
-import { checkHabitForUser } from '../saveHabit';
+import { checkHabitForUser, checkAllHabitsForUser } from '../saveHabit';
 import { tryConsumePhoto, tryConsumeText } from '../dailyCap';
 import { botToken } from '../env';
 import { transcribe } from '../transcribe';
@@ -69,6 +69,11 @@ async function routeText(ctx: Context, userId: string, text: string): Promise<vo
   }
   if (intent === 'habit') {
     const h = await parseHabit(text, names);
+    if (h.all) {
+      const r = await checkAllHabitsForUser(userId, today());
+      await ctx.reply(r.ok ? t(code, 'all_habits_done') : t(code, 'habit_fail'));
+      return;
+    }
     if (h.matched && h.habit_name && h.confidence >= CONFIDENCE_FLOOR) {
       const r = await checkHabitForUser(userId, h.habit_name, today());
       await ctx.reply(r.ok ? t(code, 'habit_done') : t(code, 'habit_fail'));
