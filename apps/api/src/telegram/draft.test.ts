@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { RunDraftSchema, draftToRunCreate, putDraft, takeDraft } from './draft';
+import { RunDraftSchema, draftToRunCreate, putDraft, takeDraft, peekDraft, updateDraft } from './draft';
 
 test('RunDraftSchema accepts a valid draft', () => {
   const d = RunDraftSchema.parse({ distance_meters: 5000, duration_seconds: 1680, confidence: 0.9 });
@@ -34,4 +34,13 @@ test('draft store put/take is one-shot', () => {
   putDraft('chat:1', { distance_meters: 5000, duration_seconds: 1680, confidence: 0.9 });
   assert.ok(takeDraft('chat:1'));
   assert.equal(takeDraft('chat:1'), undefined);
+});
+
+test('peekDraft returns without consuming; updateDraft replaces in place', () => {
+  putDraft('k', { distance_meters: 5000, duration_seconds: 1680, confidence: 1 });
+  assert.equal(peekDraft('k')?.distance_meters, 5000);
+  updateDraft('k', { distance_meters: 6000, duration_seconds: 1680, confidence: 1 });
+  assert.equal(peekDraft('k')?.distance_meters, 6000);
+  assert.equal(takeDraft('k')?.distance_meters, 6000);
+  assert.equal(peekDraft('k'), undefined);
 });
