@@ -1,28 +1,22 @@
 import type { Context } from 'grammy';
 import { serviceClient } from '../../lib/supabase';
 import { linkedUserId } from './shared';
+import { t } from '../i18n';
 
 /** /help — short summary of what the bot can do. */
 export async function handleHelp(ctx: Context): Promise<void> {
-  await ctx.reply(
-    [
-      'Pacer bot — what I can do:',
-      '• Link your account: send /start <code> (get the code in Pacer → Settings).',
-      '• Log a run: just type it ("ran 5k in 28 min") or send a photo of your watch.',
-      '• /status — check whether you are linked.',
-      '• /unlink — disconnect this Telegram account from Pacer.',
-    ].join('\n'),
-  );
+  await ctx.reply(t(ctx.from?.language_code, 'help'));
 }
 
 /** /status — tell the user whether this Telegram account is linked. */
 export async function handleStatusCmd(ctx: Context): Promise<void> {
   if (!ctx.from) return;
+  const lang = ctx.from.language_code;
   const userId = await linkedUserId(ctx.from.id);
   if (userId) {
-    await ctx.reply('✅ Linked to Pacer.');
+    await ctx.reply(t(lang, 'status_linked'));
   } else {
-    await ctx.reply('Not linked — send /start <code> (get the code in Pacer → Settings).');
+    await ctx.reply(t(lang, 'status_unlinked'));
   }
 }
 
@@ -30,5 +24,5 @@ export async function handleStatusCmd(ctx: Context): Promise<void> {
 export async function handleUnlink(ctx: Context): Promise<void> {
   if (!ctx.from) return;
   await serviceClient().from('telegram_links').delete().eq('telegram_user_id', ctx.from.id);
-  await ctx.reply('Unlinked. Send /start <code> to link again.');
+  await ctx.reply(t(ctx.from.language_code, 'unlinked'));
 }

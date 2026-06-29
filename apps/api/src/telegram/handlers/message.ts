@@ -11,6 +11,7 @@ import { checkHabitForUser } from '../saveHabit';
 import { tryConsumePhoto, tryConsumeText } from '../dailyCap';
 import { botToken } from '../env';
 import { log } from '../log';
+import { t } from '../i18n';
 import { today, linkedUserId, userGroups, habitNames } from './shared';
 
 const CONFIDENCE_FLOOR = 0.6;
@@ -49,9 +50,10 @@ async function offerWorkoutConfirm(ctx: Context, userId: string, draft: WorkoutD
 export async function handleMessage(ctx: Context): Promise<void> {
   const from = ctx.from;
   if (!from) return;
+  const code = ctx.from?.language_code;
   const userId = await linkedUserId(from.id);
   if (!userId) {
-    await ctx.reply('Link your account first: Pacer → Settings → copy code → send /start <code>.');
+    await ctx.reply(t(code, 'link_first'));
     return;
   }
 
@@ -67,7 +69,7 @@ export async function handleMessage(ctx: Context): Promise<void> {
         return;
       }
       if (!tryConsumePhoto(userId, today())) {
-        await ctx.reply("You've hit today's photo limit (10). Please type the run instead.");
+        await ctx.reply(t(code, 'photo_limit'));
         return;
       }
       const tgUrl = `https://api.telegram.org/file/bot${botToken()}/${filePath}`;
@@ -81,7 +83,7 @@ export async function handleMessage(ctx: Context): Promise<void> {
       const mime = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
       const draft = await parsePhoto(`data:${mime};base64,${base64}`, today());
       if (draft.confidence < CONFIDENCE_FLOOR) {
-        await ctx.reply("I couldn't read that clearly — please type the run (e.g. \"5k in 28 min\").");
+        await ctx.reply(t(code, 'photo_unreadable'));
         return;
       }
       await offerConfirm(ctx, userId, draft);
@@ -91,7 +93,7 @@ export async function handleMessage(ctx: Context): Promise<void> {
     const text = ctx.message?.text;
     if (text) {
       if (!tryConsumeText(userId, today())) {
-        await ctx.reply("You've hit today's text limit. Try again tomorrow.");
+        await ctx.reply(t(code, 'text_limit'));
         return;
       }
       const names = await habitNames(userId);
@@ -99,7 +101,7 @@ export async function handleMessage(ctx: Context): Promise<void> {
       if (intent === 'workout') {
         const w = await parseWorkout(text, today());
         if (w.confidence < CONFIDENCE_FLOOR) {
-          await ctx.reply("I couldn't read that workout — try e.g. \"3x10 squats 60kg\".");
+          await ctx.reply(t(code, 'no_workout'));
           return;
         }
         await offerWorkoutConfirm(ctx, userId, w);
@@ -109,24 +111,22 @@ export async function handleMessage(ctx: Context): Promise<void> {
         const h = await parseHabit(text, names);
         if (h.matched && h.habit_name && h.confidence >= CONFIDENCE_FLOOR) {
           const r = await checkHabitForUser(userId, h.habit_name, today());
-          await ctx.reply(
-            r.ok ? `✅ Marked "${r.habitName}" done today.` : "Couldn't mark that habit — is it set up in Pacer?",
-          );
+          await ctx.reply(r.ok ? t(code, 'habit_done') : t(code, 'habit_fail'));
         } else {
-          await ctx.reply("I didn't catch which habit. Try the habit's exact name, e.g. \"stretched today\".");
+          await ctx.reply(t(code, 'habit_unclear'));
         }
         return;
       }
       // default: treat as a run
       const draft = await parseText(text, today());
       if (draft.confidence < CONFIDENCE_FLOOR) {
-        await ctx.reply("I didn't catch a run there. Try \"ran 5k in 28 minutes\".");
+        await ctx.reply(t(code, 'no_run'));
         return;
       }
       await offerConfirm(ctx, userId, draft);
     }
   } catch (err) {
     log.error('message_handler_failed', { err: String(err) });
-    await ctx.reply('Something went wrong reading that — please try again.');
+    await ctx.reply(t(code, 'something_wrong'));
   }
 }
