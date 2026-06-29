@@ -19,6 +19,15 @@ export async function handleHelp(ctx: Context): Promise<void> {
   await ctx.reply(t(ctx.from?.language_code, 'help'));
 }
 
+/**
+ * Fallback for any slash-command we don't have a handler for. Registered after
+ * all known bot.command(...) handlers (which short-circuit), so only UNknown
+ * commands reach here. Points the user at /help.
+ */
+export async function handleUnknownCommand(ctx: Context): Promise<void> {
+  await ctx.reply(t(ctx.from?.language_code, 'unknown_command'));
+}
+
 /** /status — tell the user whether this Telegram account is linked. */
 export async function handleStatusCmd(ctx: Context): Promise<void> {
   if (!ctx.from) return;

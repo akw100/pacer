@@ -14,6 +14,7 @@ import {
   handleHabitsCmd,
   handleRecords,
   handleMe,
+  handleUnknownCommand,
 } from './handlers/commands';
 import { log } from './log';
 
@@ -37,6 +38,9 @@ export function getBot(): Bot {
     bot.callbackQuery(/^(wsave|wdiscard)/, handleWorkoutConfirm);
     bot.callbackQuery(/^redit:/, handleRunEdit);
     bot.on('callback_query:data', handleConfirm);
+    // Any slash-command we didn't register above is unknown — known commands
+    // are registered first and short-circuit, so only UNknown ones reach here.
+    bot.on('message:entities:bot_command', handleUnknownCommand);
     bot.on('message', handleMessage); // text + photo
     _bot = bot;
   }

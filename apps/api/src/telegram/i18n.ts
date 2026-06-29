@@ -9,7 +9,7 @@ type Key =
   | 'run_not_pending' | 'workout_not_pending' | 'save_failed_toast'
   | 'run_save_error' | 'workout_save_error' | 'photo_fetch_error' | 'link_error'
   | 'new_distance_record' | 'voice_unclear' | 'habits_none' | 'all_habits_done'
-  | 'records_none';
+  | 'records_none' | 'unknown_command' | 'not_understood';
 
 /** Keys whose values are templates taking the group name (see tShared). */
 type SharedKey = 'run_shared' | 'workout_shared';
@@ -89,6 +89,8 @@ const STRINGS: Record<Key, { en: string; he: string }> = {
   habits_none:     { en: 'No habits set up yet — add them in Pacer.', he: 'עדיין לא הוגדרו הרגלים — הוסף/הוסיפי אותם ב-Pacer.' },
   all_habits_done: { en: '✅ Marked all your habits done today.', he: '✅ כל ההרגלים סומנו כבוצעו היום.' },
   records_none:    { en: 'No records yet — log some activity!', he: 'עדיין אין שיאים — תעד/י קצת פעילות!' },
+  unknown_command: { en: 'Unknown command. Send /help to see what I can do.', he: 'פקודה לא מוכרת. שלח/י help/ כדי לראות מה אני יכול לעשות.' },
+  not_understood:  { en: 'I didn\'t catch that. Try a run ("ran 5k in 28 min"), a workout ("3x10 squats 60kg"), a habit ("stretched today"), or send a watch photo or voice note.', he: 'לא הבנתי. נסה/י ריצה ("רצתי 5 ק"מ ב-28 דקות"), אימון ("3x10 סקוואט 60 ק"ג"), הרגל ("מתחתי היום"), או שלח/י תמונת שעון או הודעה קולית.' },
 };
 
 /** Templates that interpolate the group name; kept separate from the plain table. */
