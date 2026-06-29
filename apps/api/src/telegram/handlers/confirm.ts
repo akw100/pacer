@@ -34,11 +34,14 @@ export async function handleConfirm(ctx: Context): Promise<void> {
   const result = await logRunForUser(userId, draft, today(), sharedGroupId);
   if (result.ok) {
     await ctx.answerCallbackQuery(t(lang, 'saved_toast'));
+    // A run can be both shared and a distance PR — append the celebration to
+    // whichever success line we show.
+    const pr = result.isDistancePR ? `\n${t(lang, 'new_distance_record')}` : '';
     if (sharedGroupId) {
       const name = (await userGroups(userId)).find((g) => g.id === sharedGroupId)?.name;
-      await ctx.editMessageText(tShared(lang, 'run_shared', name ?? (langOf(lang) === 'he' ? 'הקבוצה שלך' : 'your group')));
+      await ctx.editMessageText(tShared(lang, 'run_shared', name ?? (langOf(lang) === 'he' ? 'הקבוצה שלך' : 'your group')) + pr);
     } else {
-      await ctx.editMessageText(t(lang, 'run_saved'));
+      await ctx.editMessageText(t(lang, 'run_saved') + pr);
     }
   } else {
     await ctx.answerCallbackQuery(t(lang, 'save_failed_toast'));
