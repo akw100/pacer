@@ -44,12 +44,13 @@ export function parseRunDraftJson(raw: string): RunDraft {
 }
 
 /** Parse free text into a RunDraft via OpenAI structured output. */
-export async function parseText(message: string): Promise<RunDraft> {
+export async function parseText(message: string, today: string): Promise<RunDraft> {
+  const sys = `${SYSTEM} Today is ${today}.`;
   const res = await openai().chat.completions.create({
     model: MODEL,
     response_format: { type: 'json_schema', json_schema: RUN_JSON_SCHEMA },
     messages: [
-      { role: 'system', content: SYSTEM },
+      { role: 'system', content: sys },
       { role: 'user', content: message },
     ],
   });
@@ -57,12 +58,13 @@ export async function parseText(message: string): Promise<RunDraft> {
 }
 
 /** Parse a watch/treadmill photo into a RunDraft via OpenAI vision. */
-export async function parsePhoto(imageUrl: string): Promise<RunDraft> {
+export async function parsePhoto(imageUrl: string, today: string): Promise<RunDraft> {
+  const sys = `${SYSTEM} Today is ${today}.`;
   const res = await openai().chat.completions.create({
     model: MODEL,
     response_format: { type: 'json_schema', json_schema: RUN_JSON_SCHEMA },
     messages: [
-      { role: 'system', content: SYSTEM },
+      { role: 'system', content: sys },
       {
         role: 'user',
         content: [

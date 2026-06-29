@@ -60,7 +60,7 @@ export async function handleMessage(ctx: Context): Promise<void> {
       // the type from the file extension to stay correct for any image kind.
       const ext = filePath.split('.').pop()?.toLowerCase();
       const mime = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
-      const draft = await parsePhoto(`data:${mime};base64,${base64}`);
+      const draft = await parsePhoto(`data:${mime};base64,${base64}`, today());
       if (draft.confidence < CONFIDENCE_FLOOR) {
         await ctx.reply("I couldn't read that clearly — please type the run (e.g. \"5k in 28 min\").");
         return;
@@ -71,7 +71,7 @@ export async function handleMessage(ctx: Context): Promise<void> {
 
     const text = ctx.message?.text;
     if (text) {
-      const draft = await parseText(text);
+      const draft = await parseText(text, today());
       if (draft.confidence < CONFIDENCE_FLOOR) {
         await ctx.reply("I didn't catch a run there. Try \"ran 5k in 28 minutes\".");
         return;
