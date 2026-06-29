@@ -10,6 +10,7 @@ import { putWorkoutDraft, type WorkoutDraft } from '../workoutDraft';
 import { checkHabitForUser } from '../saveHabit';
 import { tryConsumePhoto, tryConsumeText } from '../dailyCap';
 import { botToken } from '../env';
+import { log } from '../log';
 import { today, linkedUserId, userGroups, habitNames } from './shared';
 
 const CONFIDENCE_FLOOR = 0.6;
@@ -125,7 +126,7 @@ export async function handleMessage(ctx: Context): Promise<void> {
       await offerConfirm(ctx, userId, draft);
     }
   } catch (err) {
-    console.error('[telegram] message handler failed:', err);
+    log.error('message_handler_failed', { err: String(err) });
     await ctx.reply('Something went wrong reading that — please try again.');
   }
 }

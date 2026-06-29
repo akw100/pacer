@@ -5,6 +5,7 @@ import { handleMessage } from './handlers/message';
 import { handleConfirm } from './handlers/confirm';
 import { handleWorkoutConfirm } from './handlers/confirmWorkout';
 import { handleHelp, handleStatusCmd, handleUnlink } from './handlers/commands';
+import { log } from './log';
 
 // Lazily built so importing this module never throws when the token is absent.
 let _bot: Bot | null = null;
@@ -35,8 +36,8 @@ export async function startPolling(): Promise<void> {
   const bot = getBot();
   // Fire-and-forget, but catch: a polling error (e.g. a 409 conflict when a
   // rolling deploy briefly overlaps two instances) must not crash the whole API.
-  bot.start().catch((err) => console.error('[telegram] polling stopped:', err));
-  console.log('[telegram] bot started (long-polling).');
+  bot.start().catch((err) => log.error('polling_stopped', { err: String(err) }));
+  log.info('bot_polling_started');
 }
 
 /** Register the webhook with Telegram (production). Requires secret + url. */
