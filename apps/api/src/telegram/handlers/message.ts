@@ -1,6 +1,5 @@
 import type { Context } from 'grammy';
 import { InlineKeyboard } from 'grammy';
-import { metersToKm, formatDuration, formatPace, paceSecondsPerUnit, scoreFor } from '@pacer/shared';
 import { parseText, parsePhoto } from '../parse';
 import { parseIntent } from '../parseIntent';
 import { parseWorkout } from '../parseWorkout';
@@ -12,15 +11,12 @@ import { tryConsumePhoto, tryConsumeText } from '../dailyCap';
 import { botToken } from '../env';
 import { log } from '../log';
 import { t } from '../i18n';
+import { runSummary, workoutSummary } from '../summary';
 import { today, linkedUserId, userGroups, habitNames } from './shared';
 
 const CONFIDENCE_FLOOR = 0.6;
 
 async function offerConfirm(ctx: Context, userId: string, draft: RunDraft): Promise<void> {
-  const km = metersToKm(draft.distance_meters).toFixed(2);
-  const dur = formatDuration(draft.duration_seconds);
-  const pace = formatPace(paceSecondsPerUnit(draft.distance_meters, draft.duration_seconds, 'km'));
-  const pts = scoreFor({ reason: 'run', distanceMeters: draft.distance_meters });
   // One "Save to <group>" button per group the user is in, plus a personal
   // save and discard. Callback data is `save:<groupId>` (group) or `save`
   // (personal); the confirm handler tags shared_group_id accordingly.
@@ -29,21 +25,14 @@ async function offerConfirm(ctx: Context, userId: string, draft: RunDraft): Prom
   for (const g of groups) kb.text(`✓ Save to ${g.name}`, `save:${g.id}`).row();
   kb.text(groups.length ? '✓ Save (just me)' : '✓ Save', 'save').row();
   kb.text('✗ Discard', 'discard');
-  const sent = await ctx.reply(
-    `Got: ${km} km in ${dur} · ${pace}/km · ≈ +${pts} pts${draft.run_date ? ` on ${draft.run_date}` : ''}. Save it?`,
-    { reply_markup: kb },
-  );
+  const sent = await ctx.reply(runSummary(draft), { reply_markup: kb });
   putDraft(`${sent.chat.id}:${sent.message_id}:${userId}`, draft);
 }
 
 async function offerWorkoutConfirm(ctx: Context, userId: string, draft: WorkoutDraft): Promise<void> {
-  const setSummary = draft.sets
-    .map((s) => `${s.sets}x${s.reps} ${s.exercise_name}${s.weight ? ` @${s.weight}kg` : ''}`)
-    .join(', ');
-  const sent = await ctx.reply(
-    `Workout: ${draft.name} (${draft.kind})${setSummary ? ` — ${setSummary}` : ''}. Save it?`,
-    { reply_markup: new InlineKeyboard().text('✓ Save', 'wsave').text('✗ Discard', 'wdiscard') },
-  );
+  const sent = await ctx.reply(workoutSummary(draft), {
+    reply_markup: new InlineKeyboard().text('✓ Save', 'wsave').text('✗ Discard', 'wdiscard'),
+  });
   putWorkoutDraft(`${sent.chat.id}:${sent.message_id}:${userId}`, draft);
 }
 
