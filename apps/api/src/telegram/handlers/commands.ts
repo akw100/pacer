@@ -1,6 +1,9 @@
 import type { Context } from 'grammy';
 import {
   metersToKm,
+  metersToDisplayDistance,
+  paceSecondsPerUnit,
+  formatPace,
   formatDuration,
   scoreFor,
   weekRange,
@@ -8,7 +11,7 @@ import {
   WEEK_START,
 } from '@pacer/shared';
 import { serviceClient } from '../../lib/supabase';
-import { linkedUserId, today } from './shared';
+import { linkedUserId, today, userUnits } from './shared';
 import { langOf, t } from '../i18n';
 
 /** /help — short summary of what the bot can do. */
@@ -213,4 +216,88 @@ export async function handleWeek(ctx: Context): Promise<void> {
     `${t(lang, 'week_summary')}: ${runCount} ${runLabel} · ` +
     `${workoutCount} ${workoutLabel} · ${habitCount} ${habitLabel} · ≈ ${points} ${ptsLabel}`;
   await ctx.reply(reply);
+}
+
+/**
+ * /records — the user's personal bests, derived from the canonical tables.
+ * Longest run & fastest pace come from `runs` (meters & seconds stored); the
+ * top set comes from `workout_sets` (which has no user_id — access is via the
+ * parent workout, so we resolve the user's workout ids first). Distance/pace are
+ * rendered in the user's unit preference via @pacer/shared helpers.
+ */
+export async function handleRecords(ctx: Context): Promise<void> {
+  if (!ctx.from) return;
+  const lang = ctx.from.language_code;
+  const userId = await linkedUserId(ctx.from.id);
+  if (!userId) {
+    await ctx.reply(t(lang, 'status_unlinked'));
+    return;
+  }
+
+  const db = serviceClient();
+  const units = await userUnits(userId);
+
+  // All of the user's runs (distance & duration); used for both longest run and
+  // fastest pace, so one query covers both.
+  const [runsResult, workoutsResult] = await Promise.all([
+    db
+      .from('runs')
+      .select('distance_meters, duration_seconds')
+      .eq('user_id', userId),
+    db.from('workouts').select('id').eq('user_id', userId),
+  ]);
+
+  const runs = (runsResult.data ?? []) as {
+    distance_meters: number;
+    duration_seconds: number;
+  }[];
+
+  const lines: string[] = [];
+
+  // Longest run — max distance_meters.
+  if (runs.length > 0) {
+    const longest = runs.reduce(
+      (max, r) => Math.max(max, Number(r.distance_meters)),
+      0,
+    );
+    const { value, unit } = metersToDisplayDistance(longest, units);
+    lines.push(`🏃 Longest run: ${value.toFixed(2)} ${unit}`);
+  }
+
+  // Fastest pace — min seconds-per-meter over runs with positive distance.
+  const paced = runs
+    .filter((r) => Number(r.distance_meters) > 0)
+    .map((r) => ({
+      meters: Number(r.distance_meters),
+      secs: Number(r.duration_seconds),
+      spm: Number(r.duration_seconds) / Number(r.distance_meters),
+    }));
+  if (paced.length > 0) {
+    const fastest = paced.reduce((best, r) => (r.spm < best.spm ? r : best));
+    const pace = formatPace(paceSecondsPerUnit(fastest.meters, fastest.secs, units));
+    lines.push(`⚡ Fastest pace: ${pace} /${units}`);
+  }
+
+  // Top set — most reps in any workout_set. workout_sets has no user_id; access
+  // is via the parent workout, so filter by the user's workout ids.
+  const workoutIds = ((workoutsResult.data ?? []) as { id: string }[]).map((w) => w.id);
+  if (workoutIds.length > 0) {
+    const { data: setRows } = await db
+      .from('workout_sets')
+      .select('reps')
+      .in('workout_id', workoutIds)
+      .order('reps', { ascending: false })
+      .limit(1);
+    const topReps = ((setRows ?? []) as { reps: number }[])[0]?.reps;
+    if (topReps != null) {
+      lines.push(`🏋 Top set: ${topReps} reps`);
+    }
+  }
+
+  if (lines.length === 0) {
+    await ctx.reply(t(lang, 'records_none'));
+    return;
+  }
+
+  await ctx.reply(['🏅 Records', ...lines].join('\n'));
 }

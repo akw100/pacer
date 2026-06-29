@@ -12,6 +12,7 @@ import {
   handleRecent,
   handleWeek,
   handleHabitsCmd,
+  handleRecords,
 } from './handlers/commands';
 import { log } from './log';
 
@@ -28,6 +29,7 @@ export function getBot(): Bot {
     bot.command('recent', handleRecent);
     bot.command('week', handleWeek);
     bot.command('habits', handleHabitsCmd);
+    bot.command('records', handleRecords);
     // Workout-specific callbacks first so they're caught before the generic
     // run confirm handler (which handles save/save:<id>/discard).
     bot.callbackQuery(/^(wsave|wdiscard)/, handleWorkoutConfirm);
