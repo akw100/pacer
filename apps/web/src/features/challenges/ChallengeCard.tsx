@@ -4,7 +4,7 @@ import {
   type ChallengeWithProgress,
   type Units,
 } from '@pacer/shared';
-import { Trophy, Calendar, Youtube } from 'lucide-react';
+import { Trophy, Calendar, Video } from 'lucide-react';
 import { ProgressBar } from './ProgressBar';
 import { formatMetricValue, progressFraction, daysLeft, todayKey } from './format';
 
@@ -61,7 +61,7 @@ export function ChallengeCard({ challenge, units, youUserId, onOpen }: Challenge
 
       {challenge.youtube_url && (
         <span className="inline-flex items-center gap-1 text-xs text-ink-muted">
-          <Youtube size={13} strokeWidth={1.8} /> video included
+          <Video size={13} strokeWidth={1.8} /> video included
         </span>
       )}
 
