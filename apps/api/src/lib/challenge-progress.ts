@@ -59,6 +59,39 @@ export async function computeChallengeProgress(
   return rows;
 }
 
+// ── Pure aggregation helpers (unit-tested independently of the DB) ────────────
+
+/** Sum `valueOf(row)` per user_id. */
+export function sumByUser<T extends { user_id: string }>(
+  rows: T[],
+  valueOf: (r: T) => number,
+): Map<string, number> {
+  const m = new Map<string, number>();
+  for (const r of rows) m.set(r.user_id, (m.get(r.user_id) ?? 0) + valueOf(r));
+  return m;
+}
+
+/** Count rows per user_id. */
+export function countByUser<T extends { user_id: string }>(rows: T[]): Map<string, number> {
+  return sumByUser(rows, () => 1);
+}
+
+/** Count DISTINCT `keyOf(row)` values per user_id (e.g. distinct habit days). */
+export function distinctCountByUser<T extends { user_id: string }>(
+  rows: T[],
+  keyOf: (r: T) => string,
+): Map<string, number> {
+  const sets = new Map<string, Set<string>>();
+  for (const r of rows) {
+    let s = sets.get(r.user_id);
+    if (!s) sets.set(r.user_id, (s = new Set()));
+    s.add(keyOf(r));
+  }
+  const m = new Map<string, number>();
+  for (const [u, s] of sets) m.set(u, s.size);
+  return m;
+}
+
 async function accumulate(
   db: SupabaseClient,
   challenge: ChallengeForProgress,
@@ -66,7 +99,9 @@ async function accumulate(
   progress: Map<string, number>,
 ): Promise<void> {
   const { metric, start_date, end_date } = challenge;
-  const add = (userId: string, n: number) => progress.set(userId, (progress.get(userId) ?? 0) + n);
+  const merge = (m: Map<string, number>) => {
+    for (const [userId, n] of m) progress.set(userId, (progress.get(userId) ?? 0) + n);
+  };
 
   switch (metric) {
     case 'distance': {
@@ -76,9 +111,7 @@ async function accumulate(
         .in('user_id', ids)
         .gte('run_date', start_date)
         .lte('run_date', end_date);
-      for (const r of (data ?? []) as { user_id: string; distance_meters: number | string }[]) {
-        add(r.user_id, Number(r.distance_meters));
-      }
+      merge(sumByUser((data ?? []) as { user_id: string; distance_meters: number | string }[], (r) => Number(r.distance_meters)));
       return;
     }
     case 'run_count': {
@@ -88,7 +121,7 @@ async function accumulate(
         .in('user_id', ids)
         .gte('run_date', start_date)
         .lte('run_date', end_date);
-      for (const r of (data ?? []) as { user_id: string }[]) add(r.user_id, 1);
+      merge(countByUser((data ?? []) as { user_id: string }[]));
       return;
     }
     case 'workout_count': {
@@ -98,7 +131,7 @@ async function accumulate(
         .in('user_id', ids)
         .gte('workout_date', start_date)
         .lte('workout_date', end_date);
-      for (const w of (data ?? []) as { user_id: string }[]) add(w.user_id, 1);
+      merge(countByUser((data ?? []) as { user_id: string }[]));
       return;
     }
     case 'reps': {
@@ -118,10 +151,11 @@ async function accumulate(
         .from('workout_sets')
         .select('workout_id, sets, reps')
         .in('workout_id', workoutIds);
-      for (const s of (sets ?? []) as { workout_id: string; sets: number; reps: number }[]) {
-        const owner = ownerByWorkout.get(s.workout_id);
-        if (owner) add(owner, s.sets * s.reps);
-      }
+      // Re-key sets onto their owner, then reuse the shared per-user sum.
+      const owned = ((sets ?? []) as { workout_id: string; sets: number; reps: number }[])
+        .map((s) => ({ user_id: ownerByWorkout.get(s.workout_id) ?? '', sets: s.sets, reps: s.reps }))
+        .filter((s) => s.user_id);
+      merge(sumByUser(owned, (s) => s.sets * s.reps));
       return;
     }
     case 'habit_days': {
@@ -131,14 +165,7 @@ async function accumulate(
         .in('user_id', ids)
         .gte('check_date', start_date)
         .lte('check_date', end_date);
-      // Distinct days per user.
-      const days = new Map<string, Set<string>>();
-      for (const h of (data ?? []) as { user_id: string; check_date: string }[]) {
-        let set = days.get(h.user_id);
-        if (!set) days.set(h.user_id, (set = new Set()));
-        set.add(h.check_date);
-      }
-      for (const [userId, set] of days) progress.set(userId, set.size);
+      merge(distinctCountByUser((data ?? []) as { user_id: string; check_date: string }[], (h) => h.check_date));
       return;
     }
     case 'score': {
@@ -148,7 +175,7 @@ async function accumulate(
         .in('user_id', ids)
         .gte('event_date', start_date)
         .lte('event_date', end_date);
-      for (const e of (data ?? []) as { user_id: string; points: number }[]) add(e.user_id, e.points);
+      merge(sumByUser((data ?? []) as { user_id: string; points: number }[], (e) => e.points));
       return;
     }
     case 'check_in': {
@@ -156,7 +183,7 @@ async function accumulate(
         .from('challenge_check_ins')
         .select('user_id')
         .eq('challenge_id', challenge.id);
-      for (const c of (data ?? []) as { user_id: string }[]) add(c.user_id, 1);
+      merge(countByUser((data ?? []) as { user_id: string }[]));
       return;
     }
   }
