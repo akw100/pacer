@@ -4,7 +4,7 @@ import { handleStart } from './handlers/start';
 import { handleMessage } from './handlers/message';
 import { handleConfirm } from './handlers/confirm';
 import { handleWorkoutConfirm } from './handlers/confirmWorkout';
-import { handleHelp, handleStatusCmd, handleUnlink } from './handlers/commands';
+import { handleHelp, handleStatusCmd, handleUnlink, handleRecent } from './handlers/commands';
 import { log } from './log';
 
 // Lazily built so importing this module never throws when the token is absent.
@@ -17,6 +17,7 @@ export function getBot(): Bot {
     bot.command('help', handleHelp);
     bot.command('status', handleStatusCmd);
     bot.command('unlink', handleUnlink);
+    bot.command('recent', handleRecent);
     // Workout-specific callbacks first so they're caught before the generic
     // run confirm handler (which handles save/save:<id>/discard).
     bot.callbackQuery(/^(wsave|wdiscard)/, handleWorkoutConfirm);
