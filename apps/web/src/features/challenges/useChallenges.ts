@@ -148,7 +148,18 @@ export function useDeleteChallenge() {
   return useMutation({
     mutationFn: (id: string) =>
       apiFetch<void>(`/challenges/${id}`, { token: token!, method: 'DELETE' }),
-    onSuccess: () => invalidateChallenges(qc),
+    // Remove the cancelled challenge from the list immediately so it vanishes
+    // from the hub the instant you confirm; restore it if the request fails.
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: challengeKeys.list });
+      const previous = qc.getQueryData<ChallengeWithProgress[]>(challengeKeys.list);
+      if (previous) {
+        qc.setQueryData<ChallengeWithProgress[]>(challengeKeys.list, previous.filter((c) => c.id !== id));
+      }
+      return { previous };
+    },
+    onError: (_e, _v, ctx) => rollback(qc, ctx),
+    onSettled: () => invalidateChallenges(qc),
   });
 }
 
