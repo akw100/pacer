@@ -76,7 +76,12 @@ async function routeText(ctx: Context, userId: string, text: string): Promise<vo
     }
     if (h.matched && h.habit_name && h.confidence >= CONFIDENCE_FLOOR) {
       const r = await checkHabitForUser(userId, h.habit_name, today());
-      await ctx.reply(r.ok ? t(code, 'habit_done') : t(code, 'habit_fail'));
+      if (r.ok) {
+        const streak = r.streak >= 2 ? ` 🔥 ${r.streak}` : '';
+        await ctx.reply(t(code, 'habit_done') + streak);
+      } else {
+        await ctx.reply(t(code, 'habit_fail'));
+      }
     } else {
       await ctx.reply(t(code, 'habit_unclear'));
     }

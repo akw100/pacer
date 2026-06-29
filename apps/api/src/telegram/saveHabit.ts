@@ -2,8 +2,11 @@ import type { RealtimeEvent } from '@pacer/shared';
 import { emit } from '../lib/events';
 import { broadcast } from '../lib/realtime';
 import { serviceClient } from '../lib/supabase';
+import { streakLength } from './streak';
 
-export type HabitResult = { ok: true; habitName: string } | { ok: false; error: string };
+export type HabitResult =
+  | { ok: true; habitName: string; streak: number }
+  | { ok: false; error: string };
 
 /** SEAM — check off a habit for the user by habit name, for `today` (yyyy-mm-dd). */
 export async function checkHabitForUser(userId: string, habitName: string, today: string): Promise<HabitResult> {
@@ -30,7 +33,17 @@ export async function checkHabitForUser(userId: string, habitName: string, today
     checkDate: today,
   });
   void broadcast(`user:${userId}`, { type: 'habit.checked', ids: { habitId: habit.id as string } } as RealtimeEvent);
-  return { ok: true, habitName: habit.name as string };
+
+  // Current streak: consecutive days ending today with a check for this habit.
+  const { data: checkRows } = await db
+    .from('habit_checks')
+    .select('check_date')
+    .eq('habit_id', habit.id as string)
+    .order('check_date', { ascending: false });
+  const dates = ((checkRows ?? []) as { check_date: string }[]).map((r) => r.check_date);
+  const streak = streakLength(dates, today);
+
+  return { ok: true, habitName: habit.name as string, streak };
 }
 
 /** SEAM — check off every habit the user has for `today`, skipping any already checked. */
