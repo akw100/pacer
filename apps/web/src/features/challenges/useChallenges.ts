@@ -62,6 +62,7 @@ export function useJoinChallenge() {
 export function useCheckIn() {
   const token = useToken();
   const qc = useQueryClient();
+  const userId = useAuth().session?.user.id ?? null;
   return useMutation({
     mutationFn: ({ id, date }: { id: string } & CheckInInput) =>
       apiFetch<ChallengeWithProgress>(`/challenges/${id}/check-in`, {
@@ -69,7 +70,33 @@ export function useCheckIn() {
         method: 'POST',
         body: { date },
       }),
-    onSuccess: () => invalidateChallenges(qc),
+    // Optimistic: a check-in adds exactly 1 to my progress — bump it instantly
+    // so the bar + odometer move before the round-trip, then reconcile on settle.
+    onMutate: async ({ id }) => {
+      await qc.cancelQueries({ queryKey: challengeKeys.list });
+      const previous = qc.getQueryData<ChallengeWithProgress[]>(challengeKeys.list);
+      if (previous && userId) {
+        qc.setQueryData<ChallengeWithProgress[]>(
+          challengeKeys.list,
+          previous.map((c) =>
+            c.id === id
+              ? {
+                  ...c,
+                  my_progress: c.my_progress + 1,
+                  leaderboard: c.leaderboard.map((r) =>
+                    r.user_id === userId ? { ...r, progress: r.progress + 1 } : r,
+                  ),
+                }
+              : c,
+          ),
+        );
+      }
+      return { previous };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.previous) qc.setQueryData(challengeKeys.list, ctx.previous);
+    },
+    onSettled: () => invalidateChallenges(qc),
   });
 }
 
