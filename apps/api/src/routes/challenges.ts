@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import {
   CreateChallengeInputSchema,
+  UpdateChallengeInputSchema,
   RespondChallengeInputSchema,
   CheckInInputSchema,
   challengeState,
@@ -365,6 +366,50 @@ export const challenges = new Hono<AppEnv>()
     const creators = await loadCreators([visible.challenge.creator_id]);
     notify(participants.map((p) => p.user_id), id);
     return c.json(await buildView(visible.challenge, participants, creators.get(visible.challenge.creator_id)!, userId));
+  })
+
+  // Edit a challenge (creator only, before it starts). Audience + participants
+  // are fixed at creation; only the rules/content change here.
+  .patch('/:id', zValidator('json', UpdateChallengeInputSchema), async (c) => {
+    const userId = c.get('userId');
+    const id = c.req.param('id');
+    const body = c.req.valid('json');
+    const svc = serviceClient();
+
+    const { data: existing } = await svc.from('challenges').select('*').eq('id', id).maybeSingle();
+    if (!existing) return c.json({ error: 'Not found' }, 404);
+    if ((existing as ChallengeRow).creator_id !== userId) return c.json({ error: 'Only the creator can edit a challenge' }, 403);
+    if (challengeState((existing as ChallengeRow).start_date, (existing as ChallengeRow).end_date, todayKey()) !== 'upcoming') {
+      return c.json({ error: 'A challenge can only be edited before it starts' }, 400);
+    }
+
+    const patch: Record<string, unknown> = {};
+    if (body.metric !== undefined) patch.metric = body.metric;
+    if (body.target !== undefined) patch.target = body.target;
+    if (body.start_date !== undefined) patch.start_date = body.start_date;
+    if (body.end_date !== undefined) patch.end_date = body.end_date;
+    if (body.description !== undefined) patch.description = body.description;
+    if (body.youtube_url !== undefined) {
+      if (body.youtube_url === null) {
+        patch.youtube_url = null;
+      } else {
+        const normalized = normalizeYouTubeUrl(body.youtube_url);
+        if (!normalized) return c.json({ error: 'Not a recognisable YouTube video URL' }, 422);
+        patch.youtube_url = normalized;
+      }
+    }
+    // Validate the resulting window if either bound changed.
+    const newStart = (patch.start_date as string) ?? (existing as ChallengeRow).start_date;
+    const newEnd = (patch.end_date as string) ?? (existing as ChallengeRow).end_date;
+    if (newEnd < newStart) return c.json({ error: 'end_date must be on or after start_date' }, 422);
+
+    const { data: updated, error } = await svc.from('challenges').update(patch).eq('id', id).select('*').single();
+    if (error || !updated) return c.json({ error: error?.message ?? 'Update failed' }, 400);
+
+    const participants = await loadParticipants(id);
+    const creators = await loadCreators([userId]);
+    notify(participants.map((p) => p.user_id), id);
+    return c.json(await buildView(updated as ChallengeRow, participants, creators.get(userId)!, userId));
   })
 
   // Cancel a challenge (creator only). Cascades delete participants + check-ins
