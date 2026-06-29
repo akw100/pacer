@@ -35,6 +35,28 @@ export function useCreateChallenge() {
   });
 }
 
+// Optimistically patch one challenge in the cached list; returns the snapshot
+// so onError can roll back. Shared by respond/join so the UI reacts instantly.
+async function optimisticPatch(
+  qc: ReturnType<typeof useQueryClient>,
+  id: string,
+  patch: (c: ChallengeWithProgress) => ChallengeWithProgress,
+): Promise<{ previous?: ChallengeWithProgress[] }> {
+  await qc.cancelQueries({ queryKey: challengeKeys.list });
+  const previous = qc.getQueryData<ChallengeWithProgress[]>(challengeKeys.list);
+  if (previous) {
+    qc.setQueryData<ChallengeWithProgress[]>(
+      challengeKeys.list,
+      previous.map((c) => (c.id === id ? patch(c) : c)),
+    );
+  }
+  return { previous };
+}
+
+function rollback(qc: ReturnType<typeof useQueryClient>, ctx?: { previous?: ChallengeWithProgress[] }) {
+  if (ctx?.previous) qc.setQueryData(challengeKeys.list, ctx.previous);
+}
+
 export function useRespondChallenge() {
   const token = useToken();
   const qc = useQueryClient();
@@ -45,7 +67,9 @@ export function useRespondChallenge() {
         method: 'POST',
         body: { status },
       }),
-    onSuccess: () => invalidateChallenges(qc),
+    onMutate: ({ id, status }) => optimisticPatch(qc, id, (c) => ({ ...c, my_status: status })),
+    onError: (_e, _v, ctx) => rollback(qc, ctx),
+    onSettled: () => invalidateChallenges(qc),
   });
 }
 
@@ -55,7 +79,15 @@ export function useJoinChallenge() {
   return useMutation({
     mutationFn: (id: string) =>
       apiFetch<ChallengeWithProgress>(`/challenges/${id}/join`, { token: token!, method: 'POST' }),
-    onSuccess: () => invalidateChallenges(qc),
+    onMutate: (id) =>
+      optimisticPatch(qc, id, (c) => ({
+        ...c,
+        my_status: 'accepted',
+        accepted_count: c.accepted_count + 1,
+        participant_count: c.participant_count + 1,
+      })),
+    onError: (_e, _v, ctx) => rollback(qc, ctx),
+    onSettled: () => invalidateChallenges(qc),
   });
 }
 
