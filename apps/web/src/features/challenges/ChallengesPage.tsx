@@ -26,6 +26,7 @@ export default function ChallengesPage() {
 
   const [createOpen, setCreateOpen] = useState(false);
   const [selected, setSelected] = useState<ChallengeWithProgress | null>(null);
+  const [filter, setFilter] = useState<Filter>('all');
 
   // Keep the open detail panel in sync with refetched list data.
   const selectedLive = useMemo(
@@ -33,19 +34,26 @@ export default function ChallengesPage() {
     [selected, challenges],
   );
 
+  // "Mine" = challenges I created or am a participant in (excludes open ones I
+  // haven't joined). Invitations are always surfaced regardless of the filter.
+  const visible = useMemo(
+    () => (challenges ?? []).filter((c) => filter === 'all' || c.my_status !== null),
+    [challenges, filter],
+  );
+
   const grouped = useMemo(() => {
     const invitations: ChallengeWithProgress[] = [];
     const active: ChallengeWithProgress[] = [];
     const upcoming: ChallengeWithProgress[] = [];
     const finished: ChallengeWithProgress[] = [];
-    for (const c of challenges ?? []) {
+    for (const c of visible) {
       if (c.my_status === 'invited') invitations.push(c);
       if (c.state === 'active') active.push(c);
       else if (c.state === 'upcoming') upcoming.push(c);
       else finished.push(c);
     }
     return { invitations, active, upcoming, finished };
-  }, [challenges]);
+  }, [visible]);
 
   const isEmpty = !isLoading && (challenges?.length ?? 0) === 0;
 
@@ -63,6 +71,8 @@ export default function ChallengesPage() {
         </button>
       </header>
 
+      {!isEmpty && !isLoading && <FilterTabs filter={filter} onChange={setFilter} />}
+
       {isLoading && <Skeleton />}
 
       {isEmpty && <EmptyState onCreate={() => setCreateOpen(true)} />}
@@ -79,6 +89,12 @@ export default function ChallengesPage() {
       <Section title="Upcoming" items={grouped.upcoming} units={units} youUserId={youUserId} onOpen={setSelected} />
       <Section title="Finished" items={grouped.finished} units={units} youUserId={youUserId} onOpen={setSelected} />
 
+      {!isEmpty && !isLoading && visible.length === 0 && (
+        <p className="py-8 text-center text-sm text-ink-muted">
+          You haven't joined any challenges yet. Switch to <span className="font-medium text-ink">All</span> to find open ones.
+        </p>
+      )}
+
       <CreateChallengeSheet open={createOpen} onOpenChange={setCreateOpen} units={units} />
       <ChallengeDetail
         challenge={selectedLive}
@@ -86,6 +102,36 @@ export default function ChallengesPage() {
         youUserId={youUserId}
         onOpenChange={(open) => !open && setSelected(null)}
       />
+    </div>
+  );
+}
+
+type Filter = 'all' | 'mine';
+
+function FilterTabs({ filter, onChange }: { filter: Filter; onChange: (f: Filter) => void }) {
+  const tabs: Array<{ id: Filter; label: string }> = [
+    { id: 'all', label: 'All' },
+    { id: 'mine', label: 'Mine' },
+  ];
+  return (
+    <div role="radiogroup" aria-label="Filter challenges" className="inline-flex rounded-pill border border-border bg-surface p-0.5 self-start">
+      {tabs.map((t) => {
+        const active = filter === t.id;
+        return (
+          <button
+            key={t.id}
+            role="radio"
+            aria-checked={active}
+            type="button"
+            onClick={() => onChange(t.id)}
+            className={`rounded-pill px-3 py-1 text-xs font-medium transition-colors ${
+              active ? 'bg-ink text-surface' : 'text-ink-muted hover:text-ink'
+            }`}
+          >
+            {t.label}
+          </button>
+        );
+      })}
     </div>
   );
 }

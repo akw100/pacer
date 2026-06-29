@@ -199,6 +199,9 @@ export const CHALLENGE_TEMPLATES: ChallengeTemplate[] = [
   { id: 'do-video-3x', title: 'Do this video 3×', emoji: '📺', metric: 'check_in', target: 3, days: 7, description: 'Everyone does this workout three times.' },
   { id: 'five-workouts', title: '5 workouts this week', emoji: '💪', metric: 'workout_count', target: 5, days: 7 },
   { id: 'top-score', title: 'Highest score this week', emoji: '🏆', metric: 'score', target: 200, days: 7 },
+  { id: 'run-streak-5', title: '5 runs this week', emoji: '👟', metric: 'run_count', target: 5, days: 7 },
+  { id: 'pushup-month', title: '1000 reps this month', emoji: '🔢', metric: 'reps', target: 1000, days: 30, description: 'Rack up 1000 reps any way you like.' },
+  { id: 'marathon-month', title: '100 km this month', emoji: '🏅', metric: 'distance', target: 100_000, days: 30 },
 ];
 
 // ── YouTube normalisation ────────────────────────────────────────────────────
