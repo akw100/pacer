@@ -12,7 +12,7 @@ export function openai(): OpenAI {
   if (!_client) {
     const apiKey = process.env['OPENAI_KEY'];
     if (!apiKey) throw new Error('OPENAI_KEY is not set');
-    _client = new OpenAI({ apiKey });
+    _client = new OpenAI({ apiKey, maxRetries: 2, timeout: 20_000 });
   }
   return _client;
 }
