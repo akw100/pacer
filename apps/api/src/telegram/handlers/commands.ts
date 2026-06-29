@@ -301,3 +301,55 @@ export async function handleRecords(ctx: Context): Promise<void> {
 
   await ctx.reply(['🏅 Records', ...lines].join('\n'));
 }
+
+/**
+ * /me — a one-line profile summary: handle + unit preference, lifetime counts of
+ * runs/workouts/habit check-ins, and lifetime points. Points are summed from the
+ * canonical score_events ledger (all of the user's events) — the same source of
+ * truth as routes/score.ts's lifetimeScore. Counts use exact head requests so we
+ * never pull the rows themselves.
+ */
+export async function handleMe(ctx: Context): Promise<void> {
+  if (!ctx.from) return;
+  const lang = ctx.from.language_code;
+  const userId = await linkedUserId(ctx.from.id);
+  if (!userId) {
+    await ctx.reply(t(lang, 'status_unlinked'));
+    return;
+  }
+
+  const db = serviceClient();
+  const [profileResult, runsCount, workoutsCount, habitCount, events] = await Promise.all([
+    db.from('profiles').select('handle, units').eq('id', userId).maybeSingle(),
+    db.from('runs').select('*', { count: 'exact', head: true }).eq('user_id', userId),
+    db.from('workouts').select('*', { count: 'exact', head: true }).eq('user_id', userId),
+    db.from('habit_checks').select('*', { count: 'exact', head: true }).eq('user_id', userId),
+    db.from('score_events').select('points').eq('user_id', userId),
+  ]);
+
+  const profile = profileResult.data as { handle: string | null; units: string | null } | null;
+  const handle = profile?.handle ?? 'you';
+  const units = profile?.units ?? 'km';
+
+  const runs = runsCount.count ?? 0;
+  const workouts = workoutsCount.count ?? 0;
+  const habits = habitCount.count ?? 0;
+
+  const points = ((events.data ?? []) as { points: number }[]).reduce(
+    (sum, row) => sum + Number(row.points ?? 0),
+    0,
+  );
+
+  const he = langOf(lang) === 'he';
+  const runLabel = he ? 'ריצות' : runs === 1 ? 'run' : 'runs';
+  const workoutLabel = he ? 'אימונים' : workouts === 1 ? 'workout' : 'workouts';
+  const habitLabel = he ? 'סימוני הרגלים' : habits === 1 ? 'habit check-in' : 'habit check-ins';
+  const ptsLabel = he ? 'נקודות לכל החיים' : 'lifetime points';
+  const unitsLabel = he ? 'יחידות' : 'units';
+
+  const reply =
+    `👤 @${handle} · ${unitsLabel}: ${units}\n` +
+    `🏃 ${runs} ${runLabel} · 🏋 ${workouts} ${workoutLabel} · ✅ ${habits} ${habitLabel}\n` +
+    `⭐ ${points} ${ptsLabel}`;
+  await ctx.reply(reply);
+}
