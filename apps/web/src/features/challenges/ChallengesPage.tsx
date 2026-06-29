@@ -6,7 +6,7 @@ import { useProfile } from '../auth/useProfile';
 import { useChallenges, useChallengesRealtime } from './useChallenges';
 import { ChallengeCard } from './ChallengeCard';
 import { ChallengeDetail } from './ChallengeDetail';
-import { CreateChallengeSheet } from './CreateChallengeSheet';
+import { CreateChallengeSheet, type ChallengePreset } from './CreateChallengeSheet';
 import { InvitationCard } from './InvitationCard';
 import { EmptyState } from './EmptyState';
 
@@ -25,8 +25,27 @@ export default function ChallengesPage() {
   useChallengesRealtime();
 
   const [createOpen, setCreateOpen] = useState(false);
+  const [preset, setPreset] = useState<ChallengePreset | null>(null);
   const [selected, setSelected] = useState<ChallengeWithProgress | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
+
+  function openCreate(p: ChallengePreset | null) {
+    setPreset(p);
+    setCreateOpen(true);
+  }
+
+  // "Rematch" a finished challenge: reopen the create flow with its settings.
+  function rematch(c: ChallengeWithProgress) {
+    setSelected(null);
+    openCreate({
+      audience: c.audience,
+      groupId: c.group_id,
+      metric: c.metric,
+      targetCanonical: c.target,
+      description: c.description ?? undefined,
+      youtubeUrl: c.youtube_url,
+    });
+  }
 
   // Keep the open detail panel in sync with refetched list data.
   const selectedLive = useMemo(
@@ -63,7 +82,7 @@ export default function ChallengesPage() {
         <h1 className="font-display text-2xl font-bold text-ink">Challenges</h1>
         <button
           type="button"
-          onClick={() => setCreateOpen(true)}
+          onClick={() => openCreate(null)}
           className="inline-flex items-center gap-1.5 rounded-pill bg-accent px-4 py-2 text-sm font-semibold text-white active:scale-[0.98] transition-transform"
         >
           <Plus size={16} strokeWidth={2.5} />
@@ -75,7 +94,7 @@ export default function ChallengesPage() {
 
       {isLoading && <Skeleton />}
 
-      {isEmpty && <EmptyState onCreate={() => setCreateOpen(true)} />}
+      {isEmpty && <EmptyState onCreate={() => openCreate(null)} />}
 
       {grouped.invitations.length > 0 && (
         <section className="flex flex-col gap-2">
@@ -95,12 +114,13 @@ export default function ChallengesPage() {
         </p>
       )}
 
-      <CreateChallengeSheet open={createOpen} onOpenChange={setCreateOpen} units={units} />
+      <CreateChallengeSheet open={createOpen} onOpenChange={setCreateOpen} units={units} preset={preset} />
       <ChallengeDetail
         challenge={selectedLive}
         units={units}
         youUserId={youUserId}
         onOpenChange={(open) => !open && setSelected(null)}
+        onRematch={rematch}
       />
     </div>
   );

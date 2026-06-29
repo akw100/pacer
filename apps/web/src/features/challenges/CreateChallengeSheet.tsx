@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Drawer } from '../../components/drawer';
 import { toast } from 'sonner';
@@ -26,15 +26,34 @@ import { metricUnitSuffix, todayKey } from './format';
 // the bot stay in lockstep. Distance targets are typed in the user's unit and
 // converted to canonical meters on submit.
 
+// Seed values for the form — used by "Challenge this group" and "Rematch".
+// targetCanonical is meters for distance, raw count otherwise.
+export interface ChallengePreset {
+  audience?: ChallengeAudience;
+  groupId?: string | null;
+  metric?: ChallengeMetric;
+  targetCanonical?: number;
+  description?: string;
+  youtubeUrl?: string | null;
+}
+
 interface CreateChallengeSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   units: Units;
-  /** Pre-select a group + audience when launched from a group ("Challenge this group"). */
-  presetGroupId?: string | null;
+  /** Prefill the form (e.g. "Challenge this group" or a rematch of a finished one). */
+  preset?: ChallengePreset | null;
 }
 
 type Step = 0 | 1 | 2;
+
+function canonicalToInput(value: number, metric: ChallengeMetric, units: Units): string {
+  if (CHALLENGE_METRICS[metric].unit === 'meters') {
+    const v = units === 'km' ? value / 1000 : value / 1609.344;
+    return String(Math.round(v));
+  }
+  return String(value);
+}
 
 function addDays(key: string, days: number): string {
   const d = new Date(`${key}T00:00:00`);
@@ -45,14 +64,14 @@ function addDays(key: string, days: number): string {
   return `${y}-${m}-${day}`;
 }
 
-export function CreateChallengeSheet({ open, onOpenChange, units, presetGroupId }: CreateChallengeSheetProps) {
+export function CreateChallengeSheet({ open, onOpenChange, units, preset }: CreateChallengeSheetProps) {
   const token = useAuth().session?.access_token ?? null;
   const create = useCreateChallenge();
 
   const [step, setStep] = useState<Step>(0);
-  const [audience, setAudience] = useState<ChallengeAudience>(presetGroupId ? 'group' : 'everyone');
+  const [audience, setAudience] = useState<ChallengeAudience>('everyone');
   const [targetHandle, setTargetHandle] = useState('');
-  const [groupId, setGroupId] = useState<string | null>(presetGroupId ?? null);
+  const [groupId, setGroupId] = useState<string | null>(null);
   const [metric, setMetric] = useState<ChallengeMetric>('distance');
   const [targetInput, setTargetInput] = useState('');
   const [start, setStart] = useState(todayKey());
@@ -70,16 +89,24 @@ export function CreateChallengeSheet({ open, onOpenChange, units, presetGroupId 
 
   function reset() {
     setStep(0);
-    setAudience(presetGroupId ? 'group' : 'everyone');
+    setAudience(preset?.audience ?? (preset?.groupId ? 'group' : 'everyone'));
     setTargetHandle('');
-    setGroupId(presetGroupId ?? null);
-    setMetric('distance');
-    setTargetInput('');
+    setGroupId(preset?.groupId ?? null);
+    setMetric(preset?.metric ?? 'distance');
+    setTargetInput(
+      preset?.targetCanonical != null ? canonicalToInput(preset.targetCanonical, preset.metric ?? 'distance', units) : '',
+    );
     setStart(todayKey());
     setEnd(addDays(todayKey(), 7));
-    setDescription('');
-    setYoutube('');
+    setDescription(preset?.description ?? '');
+    setYoutube(preset?.youtubeUrl ?? '');
   }
+
+  // Apply the preset whenever the sheet opens (it stays mounted between uses).
+  useEffect(() => {
+    if (open) reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   function applyTemplate(t: ChallengeTemplate) {
     setMetric(t.metric);
