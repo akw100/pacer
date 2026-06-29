@@ -13,6 +13,7 @@ import { transcribe } from '../transcribe';
 import { log } from '../log';
 import { t } from '../i18n';
 import { runSummary, workoutSummary } from '../summary';
+import { buildRunKeyboard } from './runKeyboard';
 import { logRunForUser } from '../save';
 import { logWorkoutForUser } from '../saveWorkout';
 import { today, linkedUserId, userGroups, habitNames, userUnits } from './shared';
@@ -23,14 +24,10 @@ const CONFIDENCE_FLOOR = 0.6;
 const AUTO_SAVE_CONFIDENCE = 0.95;
 
 async function offerConfirm(ctx: Context, userId: string, draft: RunDraft): Promise<void> {
-  // One "Save to <group>" button per group the user is in, plus a personal
-  // save and discard. Callback data is `save:<groupId>` (group) or `save`
-  // (personal); the confirm handler tags shared_group_id accordingly.
-  const groups = await userGroups(userId);
-  const kb = new InlineKeyboard();
-  for (const g of groups) kb.text(`✓ Save to ${g.name}`, `save:${g.id}`).row();
-  kb.text(groups.length ? '✓ Save (just me)' : '✓ Save', 'save').row();
-  kb.text('✗ Discard', 'discard');
+  // ± edit buttons, then one "Save to <group>" button per group the user is in,
+  // plus a personal save and discard. Callback data is `save:<groupId>` (group)
+  // or `save` (personal); the confirm handler tags shared_group_id accordingly.
+  const kb = buildRunKeyboard(await userGroups(userId));
   const units = await userUnits(userId);
   const sent = await ctx.reply(runSummary(draft, units), { reply_markup: kb });
   putDraft(`${sent.chat.id}:${sent.message_id}:${userId}`, draft);

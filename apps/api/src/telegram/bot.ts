@@ -3,6 +3,7 @@ import { botEnabled, botToken, webhookSecret, webhookUrl } from './env';
 import { handleStart } from './handlers/start';
 import { handleMessage } from './handlers/message';
 import { handleConfirm } from './handlers/confirm';
+import { handleRunEdit } from './handlers/editRun';
 import { handleWorkoutConfirm } from './handlers/confirmWorkout';
 import {
   handleHelp,
@@ -28,6 +29,7 @@ export function getBot(): Bot {
     // Workout-specific callbacks first so they're caught before the generic
     // run confirm handler (which handles save/save:<id>/discard).
     bot.callbackQuery(/^(wsave|wdiscard)/, handleWorkoutConfirm);
+    bot.callbackQuery(/^redit:/, handleRunEdit);
     bot.on('callback_query:data', handleConfirm);
     bot.on('message', handleMessage); // text + photo
     _bot = bot;
