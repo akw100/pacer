@@ -90,7 +90,7 @@ async function routeText(ctx: Context, userId: string, text: string): Promise<vo
   // default: treat as a run
   const draft = await parseText(text, today());
   if (draft.confidence < CONFIDENCE_FLOOR) {
-    await ctx.reply(t(code, 'no_run'));
+    await ctx.reply(t(code, 'not_understood'));
     return;
   }
   if (draft.confidence >= AUTO_SAVE_CONFIDENCE) {
