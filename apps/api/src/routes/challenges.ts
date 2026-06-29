@@ -112,6 +112,8 @@ async function buildView(
     creator_display_name: creator.display_name,
     my_status: mine?.status ?? null,
     my_progress: myRow?.progress ?? 0,
+    accepted_count: participants.filter((p) => p.status === 'accepted').length,
+    participant_count: participants.filter((p) => p.status !== 'declined').length,
     leaderboard,
   };
 }

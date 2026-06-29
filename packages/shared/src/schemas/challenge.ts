@@ -156,6 +156,9 @@ export const ChallengeWithProgressSchema = ChallengeSchema.extend({
   // The caller's own row: status + progress (null if not a participant yet).
   my_status: ParticipantStatusSchema.nullable(),
   my_progress: z.number(),
+  // Roster sizes: accepted players, and everyone still in (accepted + invited).
+  accepted_count: z.number(),
+  participant_count: z.number(),
   leaderboard: z.array(ChallengeLeaderRowSchema),
 });
 export type ChallengeWithProgress = z.infer<typeof ChallengeWithProgressSchema>;
