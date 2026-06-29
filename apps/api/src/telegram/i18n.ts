@@ -4,7 +4,7 @@ type Key =
   | 'unlinked' | 'photo_unreadable' | 'photo_limit' | 'text_limit'
   | 'no_run' | 'no_workout' | 'habit_done' | 'habit_fail' | 'habit_unclear'
   | 'save_failed' | 'discarded' | 'run_saved' | 'workout_saved' | 'something_wrong'
-  | 'code_invalid' | 'recent_none';
+  | 'code_invalid' | 'recent_none' | 'week_summary';
 
 const STRINGS: Record<Key, { en: string; he: string }> = {
   link_first:      { en: 'Link your account first: Pacer → Settings → copy code → send /start <code>.', he: 'קשר/י קודם את החשבון: Pacer → הגדרות → העתק/י קוד → שלח/י start <code>/.' },
@@ -28,6 +28,7 @@ const STRINGS: Record<Key, { en: string; he: string }> = {
   something_wrong: { en: 'Something went wrong reading that — please try again.', he: 'משהו השתבש — נסה/י שוב.' },
   code_invalid:    { en: 'That code is invalid or expired. Generate a fresh one in Pacer → Settings.', he: 'הקוד שגוי או שפג תוקפו. צור/צרי קוד חדש ב-Pacer → הגדרות.' },
   recent_none:     { en: 'No activity logged yet.', he: 'עדיין לא תועדה פעילות.' },
+  week_summary:    { en: 'This week', he: 'השבוע' },
 };
 
 /** Pick a language from Telegram's language_code (defaults to English). */
