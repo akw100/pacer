@@ -12,7 +12,7 @@ import { AnimatedMetric } from './AnimatedMetric';
 import { DaysLeftRing } from './DaysLeftRing';
 import { YouTubeEmbed } from './YouTubeEmbed';
 import { useCheckIn, useJoinChallenge, useDeleteChallenge } from './useChallenges';
-import { formatMetricValue, progressFraction, todayKey } from './format';
+import { formatMetricValue, progressFraction, todayKey, windowLabel } from './format';
 
 // Challenge detail — opens as a bottom sheet (mobile) / centered panel
 // (desktop): description, embedded video, your progress, the full leaderboard,
@@ -91,11 +91,7 @@ export function ChallengeDetail({ challenge, units, youUserId, onOpenChange, onR
               </h2>
               <p className="text-xs text-ink-muted">
                 by @{challenge.creator_handle} ·{' '}
-                {challenge.state === 'active'
-                  ? `ends ${challenge.end_date}`
-                  : challenge.state === 'upcoming'
-                    ? `starts ${challenge.start_date}`
-                    : 'finished'}
+                {windowLabel(challenge.state, challenge.start_date, challenge.end_date, todayKey())}
               </p>
             </div>
             {challenge.state === 'active' && (
