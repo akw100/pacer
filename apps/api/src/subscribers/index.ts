@@ -14,3 +14,4 @@
 
 import './scoring';
 import './groups';
+import './challenges';
