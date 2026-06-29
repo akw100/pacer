@@ -12,9 +12,14 @@ import { botToken } from '../env';
 import { log } from '../log';
 import { t } from '../i18n';
 import { runSummary, workoutSummary } from '../summary';
+import { logRunForUser } from '../save';
+import { logWorkoutForUser } from '../saveWorkout';
 import { today, linkedUserId, userGroups, habitNames, userUnits } from './shared';
 
 const CONFIDENCE_FLOOR = 0.6;
+// Above this parse confidence we skip the ✓/✗ confirm step for TEXT logs and
+// save immediately. Photos always confirm (a misread watch is too costly).
+const AUTO_SAVE_CONFIDENCE = 0.95;
 
 async function offerConfirm(ctx: Context, userId: string, draft: RunDraft): Promise<void> {
   // One "Save to <group>" button per group the user is in, plus a personal
@@ -117,6 +122,11 @@ export async function handleMessage(ctx: Context): Promise<void> {
           await ctx.reply(t(code, 'no_workout'));
           return;
         }
+        if (w.confidence >= AUTO_SAVE_CONFIDENCE) {
+          const r = await logWorkoutForUser(userId, w, today(), null);
+          await ctx.reply(r.ok ? t(code, 'workout_saved') : t(code, 'workout_save_error'));
+          return;
+        }
         await offerWorkoutConfirm(ctx, userId, w);
         return;
       }
@@ -134,6 +144,16 @@ export async function handleMessage(ctx: Context): Promise<void> {
       const draft = await parseText(text, today());
       if (draft.confidence < CONFIDENCE_FLOOR) {
         await ctx.reply(t(code, 'no_run'));
+        return;
+      }
+      if (draft.confidence >= AUTO_SAVE_CONFIDENCE) {
+        const r = await logRunForUser(userId, draft, today(), null);
+        if (r.ok) {
+          const pr = r.isDistancePR ? `\n${t(code, 'new_distance_record')}` : '';
+          await ctx.reply(t(code, 'run_saved') + pr);
+        } else {
+          await ctx.reply(t(code, 'run_save_error'));
+        }
         return;
       }
       await offerConfirm(ctx, userId, draft);
