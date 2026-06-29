@@ -8,6 +8,7 @@ import {
   type Units,
 } from '@pacer/shared';
 import { ProgressBar } from './ProgressBar';
+import { AnimatedMetric } from './AnimatedMetric';
 import { YouTubeEmbed } from './YouTubeEmbed';
 import { useCheckIn, useJoinChallenge, useDeleteChallenge } from './useChallenges';
 import { formatMetricValue, progressFraction, daysLeft, todayKey } from './format';
@@ -126,7 +127,7 @@ export function ChallengeDetail({ challenge, units, youUserId, onOpenChange }: C
                 <div className="flex items-baseline justify-between">
                   <span className="text-xs text-ink-muted">Your progress</span>
                   <span className="font-display text-sm font-bold text-ink tabular-nums">
-                    {formatMetricValue(challenge.my_progress, challenge.metric, units)}
+                    <AnimatedMetric value={challenge.my_progress} metric={challenge.metric} units={units} />
                     <span className="text-ink-muted font-medium">
                       {' / '}
                       {formatMetricValue(challenge.target, challenge.metric, units)}

@@ -6,6 +6,7 @@ import {
 } from '@pacer/shared';
 import { Trophy, Calendar, Video } from 'lucide-react';
 import { ProgressBar } from './ProgressBar';
+import { AnimatedMetric } from './AnimatedMetric';
 import { formatMetricValue, progressFraction, daysLeft, todayKey } from './format';
 
 // One challenge as a card on the hub: title line (metric + target), a progress
@@ -78,7 +79,7 @@ export function ChallengeCard({ challenge, units, youUserId, onOpen }: Challenge
           <div className="flex items-baseline justify-between">
             <span className="text-xs text-ink-muted">Your progress</span>
             <span className="font-display text-sm font-bold text-ink tabular-nums">
-              {formatMetricValue(challenge.my_progress, challenge.metric, units)}
+              <AnimatedMetric value={challenge.my_progress} metric={challenge.metric} units={units} />
               <span className="text-ink-muted font-medium">
                 {' / '}
                 {formatMetricValue(challenge.target, challenge.metric, units)}

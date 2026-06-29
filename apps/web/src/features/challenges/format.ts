@@ -15,6 +15,22 @@ export function formatMetricValue(value: number, metric: ChallengeMetric, units:
   return `${Math.round(value)}`;
 }
 
+/** Numeric display value + decimals + suffix, split so an odometer (NumberFlow)
+ *  can animate the number while the unit stays put. Distance converts to the
+ *  user's unit; others are whole counts/points/days. */
+export function metricParts(
+  value: number,
+  metric: ChallengeMetric,
+  units: Units,
+): { value: number; decimals: number; suffix: string } {
+  const meta = CHALLENGE_METRICS[metric];
+  if (meta.unit === 'meters') {
+    const { value: v } = metersToDisplayDistance(value, units);
+    return { value: v, decimals: 1, suffix: units };
+  }
+  return { value: Math.round(value), decimals: 0, suffix: metricUnitSuffix(metric, units) };
+}
+
 /** Short unit suffix for compact "12 / 30 km" style targets. */
 export function metricUnitSuffix(metric: ChallengeMetric, units: Units): string {
   const meta = CHALLENGE_METRICS[metric];
