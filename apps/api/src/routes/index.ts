@@ -19,6 +19,7 @@ import { groupInvitesActions, groupInvitesUnderGroup } from './group-invites';
 import { videoRoutines } from './video-routines';
 import { videoRoutinesInternal } from './video-routines-internal';
 import { voice } from './voice';
+import { assistant } from './assistant';
 
 // ── Route registry (APPEND-ONLY) ───────────────────────────────────────────
 // The single place routes are mounted onto the app. Each slice adds ONE line
@@ -50,5 +51,6 @@ export function registerRoutes(app: Hono<AppEnv>): void {
   app.route('/video-routines', videoRoutines); // authed
   app.route('/internal/video-routines', videoRoutinesInternal); // public prefix, INTERNAL_TOKEN-gated
   app.route('/voice', voice); // authed — mints Realtime ephemeral tokens
+  app.route('/assistant', assistant); // authed
   // ↑ add your slice's route here, one line.
 }
