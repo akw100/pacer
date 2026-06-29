@@ -7,6 +7,11 @@ test('runSummary includes distance, pace and points', () => {
   assert.match(s, /5\.00 km/);
   assert.match(s, /\+15 pts/);
 });
+test('runSummary renders miles when units=mi', () => {
+  const s = runSummary({ distance_meters: 1609, duration_seconds: 600, confidence: 1 }, 'mi');
+  assert.match(s, /1\.00 mi/);
+  assert.match(s, /\/mi/);
+});
 test('workoutSummary lists sets', () => {
   const s = workoutSummary({ name: 'Leg day', kind: 'strength', sets: [{ exercise_name: 'Squat', sets: 3, reps: 10, weight: 60 }], confidence: 1 });
   assert.match(s, /Leg day/);

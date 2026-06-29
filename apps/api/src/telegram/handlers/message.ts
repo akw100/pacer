@@ -12,7 +12,7 @@ import { botToken } from '../env';
 import { log } from '../log';
 import { t } from '../i18n';
 import { runSummary, workoutSummary } from '../summary';
-import { today, linkedUserId, userGroups, habitNames } from './shared';
+import { today, linkedUserId, userGroups, habitNames, userUnits } from './shared';
 
 const CONFIDENCE_FLOOR = 0.6;
 
@@ -25,7 +25,8 @@ async function offerConfirm(ctx: Context, userId: string, draft: RunDraft): Prom
   for (const g of groups) kb.text(`✓ Save to ${g.name}`, `save:${g.id}`).row();
   kb.text(groups.length ? '✓ Save (just me)' : '✓ Save', 'save').row();
   kb.text('✗ Discard', 'discard');
-  const sent = await ctx.reply(runSummary(draft), { reply_markup: kb });
+  const units = await userUnits(userId);
+  const sent = await ctx.reply(runSummary(draft, units), { reply_markup: kb });
   putDraft(`${sent.chat.id}:${sent.message_id}:${userId}`, draft);
 }
 
