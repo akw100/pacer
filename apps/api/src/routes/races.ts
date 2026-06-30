@@ -1,7 +1,14 @@
 import { Hono } from 'hono';
-import { CreateRaceInputSchema, InviteInputSchema, JoinInputSchema } from '@pacer/shared';
+import {
+  CreateRaceInputSchema,
+  InviteInputSchema,
+  JoinInputSchema,
+  FinishInputSchema,
+  isPlausibleFinish,
+} from '@pacer/shared';
 import type { AppEnv } from '../lib/auth';
 import { broadcast } from '../lib/realtime';
+import { logRaceRun, awardRaceWin } from '../lib/race-result';
 import { serviceClient } from '../lib/supabase';
 import { zValidator } from '../lib/validate';
 
@@ -123,5 +130,74 @@ export const races = new Hono<AppEnv>()
     if (race.creator_id !== userId) return c.json({ error: 'host only' }, 403);
     if (race.status !== 'lobby') return c.json({ error: 'only a lobby can be cancelled' }, 409);
     await db.from('races').update({ status: 'cancelled' }).eq('id', id);
+    return c.json({ ok: true });
+  })
+
+  // A runner reaches the target. Elapsed is derived server-side from start_at;
+  // an implausibly fast finish is rejected as DNF (anti-cheat). The first valid
+  // finisher is crowned (winner_id set only while still null), gets a logged run
+  // + RACE_WIN bonus; when no runner is still racing the race finishes.
+  .post('/:id/finish', zValidator('json', FinishInputSchema), async (c) => {
+    const id = c.req.param('id');
+    const userId = c.get('userId');
+    const body = c.req.valid('json');
+    const db = serviceClient();
+    const { data: race } = await db.from('races').select('*').eq('id', id).maybeSingle();
+    if (!race || race.status !== 'active' || !race.start_at) return c.json({ error: 'race not active' }, 409);
+    const elapsed = Math.round((Date.now() - new Date(race.start_at).getTime()) / 1000);
+    // anti-cheat: impossible average speed ⇒ DNF, never crowned
+    if (!isPlausibleFinish(race.target_meters, elapsed)) {
+      await db.from('race_participants').update({ state: 'dnf' }).eq('race_id', id).eq('user_id', userId);
+      return c.json({ ok: false, reason: 'implausible' }, 422);
+    }
+    const runId = await logRaceRun(userId, race.target_meters, elapsed);
+    await db
+      .from('race_participants')
+      .update({
+        state: 'finished',
+        finished_at: new Date().toISOString(),
+        elapsed_seconds: elapsed,
+        final_meters: body.final_meters,
+        manual_finish: body.manual,
+        run_id: runId,
+      })
+      .eq('race_id', id)
+      .eq('user_id', userId)
+      .eq('state', 'racing');
+    // first finisher wins: only set winner if still null
+    const { data: updated } = await db
+      .from('races')
+      .update({ winner_id: userId })
+      .eq('id', id)
+      .is('winner_id', null)
+      .select('winner_id')
+      .maybeSingle();
+    const won = updated?.winner_id === userId;
+    if (won) await awardRaceWin(userId, id);
+    // finish the race when no runner is still racing
+    const { count } = await db
+      .from('race_participants')
+      .select('*', { count: 'exact', head: true })
+      .eq('race_id', id)
+      .eq('state', 'racing');
+    if ((count ?? 0) === 0) {
+      await db.from('races').update({ status: 'finished', finished_at: new Date().toISOString() }).eq('id', id);
+      void broadcast(`race:${id}`, { type: 'race.finished', ids: { raceId: id } });
+    } else {
+      void broadcast(`race:${id}`, { type: 'race.finished', ids: { raceId: id, finisher: userId } });
+    }
+    return c.json({ ok: true, won, elapsed });
+  })
+
+  // A runner gives up mid-race ⇒ DNF.
+  .post('/:id/abandon', async (c) => {
+    const id = c.req.param('id');
+    const userId = c.get('userId');
+    await serviceClient()
+      .from('race_participants')
+      .update({ state: 'dnf' })
+      .eq('race_id', id)
+      .eq('user_id', userId)
+      .eq('state', 'racing');
     return c.json({ ok: true });
   });
