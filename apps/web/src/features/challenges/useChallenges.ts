@@ -31,7 +31,15 @@ export function useCreateChallenge() {
   return useMutation({
     mutationFn: (input: CreateChallengeInput) =>
       apiFetch<ChallengeWithProgress>('/challenges', { token: token!, method: 'POST', body: input }),
-    onSuccess: () => invalidateChallenges(qc),
+    // Drop the returned (fully enriched) challenge straight into the cached list
+    // so the creator sees it instantly — like every other mutation here patches
+    // the cache. The invalidate then reconciles with server truth.
+    onSuccess: (created) => {
+      qc.setQueryData<ChallengeWithProgress[]>(challengeKeys.list, (prev) =>
+        prev ? [created, ...prev.filter((c) => c.id !== created.id)] : [created],
+      );
+      invalidateChallenges(qc);
+    },
   });
 }
 
