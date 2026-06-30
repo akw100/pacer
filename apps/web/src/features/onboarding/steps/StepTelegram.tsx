@@ -13,20 +13,24 @@ interface StepTelegramProps {
   onSkip: () => void;
 }
 
-const BOT = (import.meta as { env?: Record<string, string | undefined> }).env?.VITE_TELEGRAM_BOT ?? 'pacer_bot';
-
 export function StepTelegram({ onContinue, onSkip }: StepTelegramProps) {
   const { session } = useAuth();
   const [code, setCode] = useState<string | null>(null);
+  const [deepLink, setDeepLink] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const token = session?.access_token;
     if (!token) return;
     let cancelled = false;
-    apiFetch<{ code: string }>('/telegram/link-code', { token })
+    // deep_link is built server-side from the bot's real username — use it
+    // verbatim rather than reconstructing from a frontend env var.
+    apiFetch<{ code: string; deep_link: string | null }>('/telegram/link-code', { token })
       .then((res) => {
-        if (!cancelled) setCode(res.code);
+        if (!cancelled) {
+          setCode(res.code);
+          setDeepLink(res.deep_link);
+        }
       })
       .catch(() => {
         // Telegram slice may not be merged yet — fail quietly.
@@ -38,8 +42,6 @@ export function StepTelegram({ onContinue, onSkip }: StepTelegramProps) {
       cancelled = true;
     };
   }, [session]);
-
-  const deepLink = code ? `https://t.me/${BOT}?start=${code}` : null;
 
   return (
     <div className="flex flex-col gap-5">
