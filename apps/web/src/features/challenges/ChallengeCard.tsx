@@ -1,6 +1,8 @@
 import {
   CHALLENGE_METRICS,
   challengeWinner,
+  isChallengeComplete,
+  youTubeThumbnailUrl,
   type ChallengeWithProgress,
   type Units,
 } from '@pacer/shared';
@@ -23,10 +25,11 @@ interface ChallengeCardProps {
 export function ChallengeCard({ challenge, units, youUserId, onOpen }: ChallengeCardProps) {
   const meta = CHALLENGE_METRICS[challenge.metric];
   const fraction = progressFraction(challenge.my_progress, challenge.target, challenge.metric);
-  const complete = challenge.my_progress >= challenge.target;
+  const complete = isChallengeComplete(challenge.my_progress, challenge.target);
   const left = daysLeft(challenge.end_date, todayKey());
   const winner = challenge.state === 'finished' ? challengeWinner(challenge.leaderboard) : null;
   const top = [...challenge.leaderboard].slice(0, 3);
+  const thumb = challenge.youtube_url ? youTubeThumbnailUrl(challenge.youtube_url) : null;
 
   return (
     <button
@@ -61,10 +64,15 @@ export function ChallengeCard({ challenge, units, youUserId, onOpen }: Challenge
         )}
       </header>
 
-      {challenge.youtube_url && (
-        <span className="inline-flex items-center gap-1 text-xs text-ink-muted">
-          <Video size={13} strokeWidth={1.8} /> video included
-        </span>
+      {thumb && (
+        <div className="relative overflow-hidden rounded-card border border-border" style={{ aspectRatio: '16 / 9' }}>
+          <img src={thumb} alt="" loading="lazy" className="h-full w-full object-cover" />
+          <span className="absolute inset-0 grid place-items-center bg-ink/20">
+            <span className="grid place-items-center w-9 h-9 rounded-pill bg-surface/90 text-ink">
+              <Video size={16} strokeWidth={2} />
+            </span>
+          </span>
+        </div>
       )}
 
       {winner ? (

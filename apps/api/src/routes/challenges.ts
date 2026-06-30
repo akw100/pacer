@@ -216,6 +216,19 @@ export const challenges = new Hono<AppEnv>()
     return c.json(views);
   })
 
+  // A single challenge the caller can see — for deep links and the bot/assistant.
+  .get('/:id', async (c) => {
+    const userId = c.get('userId');
+    const id = c.req.param('id');
+    const visible = await loadVisible(id, userId);
+    if (!visible.ok) return c.json({ error: visible.reason === '404' ? 'Not found' : 'Forbidden' }, visible.reason === '404' ? 404 : 403);
+    const creators = await loadCreators([visible.challenge.creator_id]);
+    const fallback: ProfileBits = { display_name: '—', handle: 'unknown', avatar_emoji: null };
+    return c.json(
+      await buildView(visible.challenge, visible.participants, creators.get(visible.challenge.creator_id) ?? fallback, userId),
+    );
+  })
+
   // Create a challenge. `audience` drives the initial participant set.
   .post('/', zValidator('json', CreateChallengeInputSchema), async (c) => {
     const userId = c.get('userId');
