@@ -18,6 +18,19 @@ import { zValidator } from '../lib/validate';
 // host: only they may start or cancel. Live GPS positions are NOT persisted —
 // they are browser→browser broadcasts on the race:<id> channel.
 
+// Whether `userId` already has a participant row in `raceId`. Used for the
+// membership / invite / participation authorization checks below (all writes go
+// through the service client, so each handler must authorize itself).
+async function isParticipant(raceId: string, userId: string): Promise<boolean> {
+  const { data } = await serviceClient()
+    .from('race_participants')
+    .select('user_id')
+    .eq('race_id', raceId)
+    .eq('user_id', userId)
+    .maybeSingle();
+  return Boolean(data);
+}
+
 export const races = new Hono<AppEnv>()
 
   // Open a new race lobby for a target distance; the creator joins as a runner.
@@ -55,6 +68,7 @@ export const races = new Hono<AppEnv>()
     const db = serviceClient();
     const { data: race } = await db.from('races').select('*').eq('id', id).maybeSingle();
     if (!race) return c.json({ error: 'not found' }, 404);
+    if (!(await isParticipant(id, c.get('userId')))) return c.json({ error: 'not found' }, 404);
     const { data: parts } = await db.from('race_participants').select('*').eq('race_id', id);
     return c.json({ race, participants: parts ?? [] });
   })
@@ -63,8 +77,12 @@ export const races = new Hono<AppEnv>()
   .post('/:id/invite', zValidator('json', InviteInputSchema), async (c) => {
     const id = c.req.param('id');
     const { userIds } = c.req.valid('json');
+    const db = serviceClient();
+    const { data: race } = await db.from('races').select('creator_id').eq('id', id).maybeSingle();
+    if (!race) return c.json({ error: 'not found' }, 404);
+    if (race.creator_id !== c.get('userId')) return c.json({ error: 'host only' }, 403);
     const rows = userIds.map((uid) => ({ race_id: id, user_id: uid, role: 'runner', state: 'invited' }));
-    const { error } = await serviceClient()
+    const { error } = await db
       .from('race_participants')
       .upsert(rows, { onConflict: 'race_id,user_id', ignoreDuplicates: true });
     if (error) return c.json({ error: error.message }, 400);
@@ -76,7 +94,13 @@ export const races = new Hono<AppEnv>()
     const id = c.req.param('id');
     const userId = c.get('userId');
     const { role } = c.req.valid('json');
-    const { error } = await serviceClient()
+    const db = serviceClient();
+    // Must already have an invite row, or be the race creator.
+    if (!(await isParticipant(id, userId))) {
+      const { data: race } = await db.from('races').select('creator_id').eq('id', id).maybeSingle();
+      if (!race || race.creator_id !== userId) return c.json({ error: 'not invited' }, 403);
+    }
+    const { error } = await db
       .from('race_participants')
       .upsert({ race_id: id, user_id: userId, role, state: 'joined' }, { onConflict: 'race_id,user_id' });
     if (error) return c.json({ error: error.message }, 400);
@@ -144,6 +168,16 @@ export const races = new Hono<AppEnv>()
     const db = serviceClient();
     const { data: race } = await db.from('races').select('*').eq('id', id).maybeSingle();
     if (!race || race.status !== 'active' || !race.start_at) return c.json({ error: 'race not active' }, 409);
+    // Only a runner who is actually still racing may finish (and thus claim the
+    // win + bonus). A non-participant or already-finished/dnf caller is rejected
+    // before any winner-claim or award logic runs.
+    const { data: me } = await db
+      .from('race_participants')
+      .select('state')
+      .eq('race_id', id)
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (!me || me.state !== 'racing') return c.json({ error: 'not racing' }, 409);
     const elapsed = Math.round((Date.now() - new Date(race.start_at).getTime()) / 1000);
     // anti-cheat: impossible average speed ⇒ DNF, never crowned
     if (!isPlausibleFinish(race.target_meters, elapsed)) {
@@ -181,10 +215,17 @@ export const races = new Hono<AppEnv>()
       .eq('race_id', id)
       .eq('state', 'racing');
     if ((count ?? 0) === 0) {
-      await db.from('races').update({ status: 'finished', finished_at: new Date().toISOString() }).eq('id', id);
-      void broadcast(`race:${id}`, { type: 'race.finished', ids: { raceId: id } });
-    } else {
-      void broadcast(`race:${id}`, { type: 'race.finished', ids: { raceId: id, finisher: userId } });
+      // Conditional on status='active' so the terminal transition can only fire
+      // once; a concurrent finisher who already flipped it gets no rows back.
+      const { data: finishedRows } = await db
+        .from('races')
+        .update({ status: 'finished', finished_at: new Date().toISOString() })
+        .eq('id', id)
+        .eq('status', 'active')
+        .select('id');
+      if ((finishedRows?.length ?? 0) > 0) {
+        void broadcast(`race:${id}`, { type: 'race.finished', ids: { raceId: id } });
+      }
     }
     return c.json({ ok: true, won, elapsed });
   })
@@ -193,6 +234,7 @@ export const races = new Hono<AppEnv>()
   .post('/:id/abandon', async (c) => {
     const id = c.req.param('id');
     const userId = c.get('userId');
+    if (!(await isParticipant(id, userId))) return c.json({ error: 'not racing' }, 409);
     await serviceClient()
       .from('race_participants')
       .update({ state: 'dnf' })
@@ -209,6 +251,7 @@ export const races = new Hono<AppEnv>()
     const db = serviceClient();
     const { data: prev } = await db.from('races').select('target_meters, status').eq('id', id).maybeSingle();
     if (!prev || prev.status !== 'finished') return c.json({ error: 'only finished races' }, 409);
+    if (!(await isParticipant(id, userId))) return c.json({ error: 'not a participant' }, 403);
     const { data: parts } = await db.from('race_participants').select('user_id, role').eq('race_id', id);
     const { data: race } = await db
       .from('races')
