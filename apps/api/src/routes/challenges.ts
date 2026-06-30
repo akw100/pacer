@@ -14,6 +14,7 @@ import { broadcast } from '../lib/realtime';
 import { serviceClient } from '../lib/supabase';
 import { zValidator } from '../lib/validate';
 import { computeChallengeProgress, type ParticipantSeed } from '../lib/challenge-progress';
+import { canSeeChallenge } from '../lib/challenge-visibility';
 
 // Challenges slice. Reads groups + activity through the service client (a
 // challenge spans many users), so every handler enforces visibility itself —
@@ -65,21 +66,6 @@ async function loadParticipants(challengeId: string): Promise<ParticipantSeed[]>
     handle: r.profiles.handle,
     avatar_emoji: r.profiles.avatar_emoji,
   }));
-}
-
-// Whether `viewer` may see `challenge`, given its participants + the viewer's
-// group memberships. Mirrors the can_see_challenge SQL helper.
-function canSee(
-  challenge: ChallengeRow,
-  participants: ParticipantSeed[],
-  viewer: string,
-  groupIds: string[],
-): boolean {
-  if (challenge.creator_id === viewer) return true;
-  if (challenge.audience === 'everyone') return true;
-  if (participants.some((p) => p.user_id === viewer)) return true;
-  if (challenge.audience === 'group' && challenge.group_id && groupIds.includes(challenge.group_id)) return true;
-  return false;
 }
 
 async function buildView(
@@ -148,7 +134,7 @@ async function loadVisible(
   if (!challenge) return { ok: false, reason: '404' };
   const participants = await loadParticipants(challengeId);
   const groupIds = await myGroupIds(viewerId);
-  if (!canSee(challenge as ChallengeRow, participants, viewerId, groupIds)) {
+  if (!canSeeChallenge(challenge as ChallengeRow, participants.map((p) => p.user_id), viewerId, groupIds)) {
     return { ok: false, reason: '403' };
   }
   return { ok: true, challenge: challenge as ChallengeRow, participants };
