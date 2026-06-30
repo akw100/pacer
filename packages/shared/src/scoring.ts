@@ -10,6 +10,7 @@ export const POINTS = {
   ALL_HABITS_BONUS: 2,
   PLAN_RUN_ON_SCHEDULE: 5,
   STREAK_7DAY: 10,
+  RACE_WIN: 15,
 } as const;
 
 export type ScoreReason =
@@ -18,7 +19,8 @@ export type ScoreReason =
   | 'habit'
   | 'habit_day_bonus'
   | 'plan_run'
-  | 'streak';
+  | 'streak'
+  | 'race_win';
 
 export type ScoreInput =
   | { reason: 'run'; distanceMeters: number }
@@ -26,7 +28,8 @@ export type ScoreInput =
   | { reason: 'habit' }
   | { reason: 'habit_day_bonus' }
   | { reason: 'plan_run' }
-  | { reason: 'streak' };
+  | { reason: 'streak' }
+  | { reason: 'race_win' };
 
 /** Pure. run = base + floor(km) * per_km; everything else is a flat constant. */
 export function scoreFor(input: ScoreInput): number {
@@ -43,5 +46,7 @@ export function scoreFor(input: ScoreInput): number {
       return POINTS.PLAN_RUN_ON_SCHEDULE;
     case 'streak':
       return POINTS.STREAK_7DAY;
+    case 'race_win':
+      return POINTS.RACE_WIN;
   }
 }

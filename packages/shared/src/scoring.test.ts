@@ -26,5 +26,11 @@ test('POINTS match the §6 table', () => {
     ALL_HABITS_BONUS: 2,
     PLAN_RUN_ON_SCHEDULE: 5,
     STREAK_7DAY: 10,
+    RACE_WIN: 15,
   });
+});
+
+test('a race win is worth RACE_WIN points', () => {
+  assert.equal(scoreFor({ reason: 'race_win' }), POINTS.RACE_WIN);
+  assert.equal(POINTS.RACE_WIN, 15);
 });
