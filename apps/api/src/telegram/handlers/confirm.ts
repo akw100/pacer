@@ -1,5 +1,5 @@
 import type { Context } from 'grammy';
-import { takeDraft } from '../draft';
+import { putDraft, takeDraft } from '../draft';
 import { logRunForUser } from '../save';
 import { today, linkedUserId, userGroups } from './shared';
 import { langOf, t, tShared } from '../i18n';
@@ -44,6 +44,9 @@ export async function handleConfirm(ctx: Context): Promise<void> {
       await ctx.editMessageText(t(lang, 'run_saved') + pr);
     }
   } else {
+    // Transient failure — put the draft back so tapping ✓ again retries it
+    // instead of hitting "no longer pending" and losing the parse.
+    putDraft(key, draft);
     await ctx.answerCallbackQuery(t(lang, 'save_failed_toast'));
     await ctx.editMessageText(t(lang, 'run_save_error'));
   }

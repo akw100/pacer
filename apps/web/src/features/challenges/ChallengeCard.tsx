@@ -55,7 +55,7 @@ export function ChallengeCard({ challenge, units, youUserId, onOpen }: Challenge
           </Chip>
         ) : challenge.state === 'active' ? (
           <Chip icon={<Calendar size={12} strokeWidth={2} />} tone="streak">
-            {left}d left
+            {left <= 0 ? 'Last day' : `${left}d left`}
           </Chip>
         ) : (
           <Chip icon={<Trophy size={12} strokeWidth={2} />} tone="success">

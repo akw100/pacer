@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { CHALLENGE_METRICS, metersToDisplayDistance, progressPercent, type ChallengeMetric, type ChallengeState, type Units } from '@pacer/shared';
+import { CHALLENGE_METRICS, metersToDisplayDistance, type ChallengeMetric, type ChallengeState, type Units } from '@pacer/shared';
 
 // Display formatting for challenge metric values. Distance is the only metric
 // stored in canonical units (meters) — we convert to the user's km/mi here at
@@ -41,12 +41,13 @@ export function metricUnitSuffix(metric: ChallengeMetric, units: Units): string 
   return CHALLENGE_METRICS[metric].label.toLowerCase();
 }
 
-/** Progress fraction toward target, clamped to [0, 1] (derived from the shared
- *  percent helper so web + bot agree). Distance progress + target are both in
- *  meters → the ratio is unit-agnostic. */
+/** Progress fraction toward target, clamped to [0, 1]. The raw ratio (not the
+ *  rounded percent) so a hair under target reads <100% — the bar only fills and
+ *  turns green when isChallengeComplete is true. Distance progress + target are
+ *  both in meters → the ratio is unit-agnostic. */
 export function progressFraction(progress: number, target: number, metric: ChallengeMetric): number {
   void metric;
-  return progressPercent(progress, target) / 100;
+  return target > 0 ? Math.max(0, Math.min(1, progress / target)) : 0;
 }
 
 /** Whole days remaining until end (inclusive), 0 once finished. */

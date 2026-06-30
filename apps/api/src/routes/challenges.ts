@@ -13,6 +13,7 @@ import type { AppEnv } from '../lib/auth';
 import { broadcast } from '../lib/realtime';
 import { serviceClient } from '../lib/supabase';
 import { zValidator } from '../lib/validate';
+import { todayKey } from '../lib/today';
 import { computeChallengeProgress, type ParticipantSeed } from '../lib/challenge-progress';
 
 // Challenges slice. Reads groups + activity through the service client (a
@@ -21,14 +22,6 @@ import { computeChallengeProgress, type ParticipantSeed } from '../lib/challenge
 // create (creator), respond (own invite), join (open/group), check-in (self).
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function todayKey(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
 
 interface ChallengeRow {
   id: string;
@@ -176,7 +169,8 @@ export const challenges = new Hono<AppEnv>()
     const { data: myParts } = await svc
       .from('challenge_participants')
       .select('challenge_id')
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .neq('status', 'declined'); // a declined invite shouldn't linger in the hub
     const participatingIds = (myParts ?? []).map((r: { challenge_id: string }) => r.challenge_id);
 
     // Pull the candidate rows in a few targeted queries, then dedupe by id.

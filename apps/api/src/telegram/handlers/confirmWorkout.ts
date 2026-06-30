@@ -1,5 +1,5 @@
 import type { Context } from 'grammy';
-import { takeWorkoutDraft } from '../workoutDraft';
+import { putWorkoutDraft, takeWorkoutDraft } from '../workoutDraft';
 import { logWorkoutForUser } from '../saveWorkout';
 import { today, linkedUserId, userGroups } from './shared';
 import { langOf, t, tShared } from '../i18n';
@@ -41,6 +41,8 @@ export async function handleWorkoutConfirm(ctx: Context): Promise<void> {
       await ctx.editMessageText(t(lang, 'workout_saved'));
     }
   } else {
+    // Transient failure — put the draft back so tapping ✓ again retries it.
+    putWorkoutDraft(key, draft);
     await ctx.answerCallbackQuery(t(lang, 'save_failed_toast'));
     await ctx.editMessageText(t(lang, 'workout_save_error'));
   }

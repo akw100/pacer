@@ -183,7 +183,7 @@ export async function handleWeek(ctx: Context): Promise<void> {
       .lte('event_date', endKey),
     db
       .from('runs')
-      .select('id')
+      .select('id, distance_meters')
       .eq('user_id', userId)
       .gte('run_date', startKey)
       .lte('run_date', endKey),
@@ -208,10 +208,13 @@ export async function handleWeek(ctx: Context): Promise<void> {
   // Prefer the canonical ledger (same source of truth as routes/score.ts); fall
   // back to recomputing from counts if the ledger window came back empty.
   const eventRows = (events.data ?? []) as { points: number }[];
+  // Fallback recompute uses each run's real distance so long runs aren't
+  // undercounted to RUN_BASE (the per-km component would otherwise be dropped).
+  const runRows = (runs.data ?? []) as { distance_meters: number }[];
   const points =
     eventRows.length > 0
       ? eventRows.reduce((sum, row) => sum + Number(row.points ?? 0), 0)
-      : runCount * scoreFor({ reason: 'run', distanceMeters: 0 }) +
+      : runRows.reduce((sum, r) => sum + scoreFor({ reason: 'run', distanceMeters: Number(r.distance_meters ?? 0) }), 0) +
         workoutCount * scoreFor({ reason: 'workout' }) +
         habitCount * scoreFor({ reason: 'habit' });
 

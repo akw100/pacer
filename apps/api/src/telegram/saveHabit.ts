@@ -19,20 +19,32 @@ export async function checkHabitForUser(userId: string, habitName: string, today
     .maybeSingle();
   if (!habit) return { ok: false, error: 'habit not found' };
 
-  const { data: check, error } = await db
+  // Idempotent: a habit is unique per (habit_id, check_date). If it's already
+  // checked today (here or in the web app), treat it as success and just report
+  // the streak — don't bubble up a DB "duplicate key" error as a fake failure.
+  const { data: existing } = await db
     .from('habit_checks')
-    .insert({ habit_id: habit.id as string, user_id: userId, check_date: today })
     .select('id')
-    .single();
-  if (error || !check) return { ok: false, error: error?.message ?? 'insert failed' };
+    .eq('habit_id', habit.id as string)
+    .eq('check_date', today)
+    .maybeSingle();
 
-  emit('habit.checked', {
-    userId,
-    habitId: habit.id as string,
-    habitCheckId: check.id as string,
-    checkDate: today,
-  });
-  void broadcast(`user:${userId}`, { type: 'habit.checked', ids: { habitId: habit.id as string } } as RealtimeEvent);
+  if (!existing) {
+    const { data: check, error } = await db
+      .from('habit_checks')
+      .insert({ habit_id: habit.id as string, user_id: userId, check_date: today })
+      .select('id')
+      .single();
+    if (error || !check) return { ok: false, error: error?.message ?? 'insert failed' };
+
+    emit('habit.checked', {
+      userId,
+      habitId: habit.id as string,
+      habitCheckId: check.id as string,
+      checkDate: today,
+    });
+    void broadcast(`user:${userId}`, { type: 'habit.checked', ids: { habitId: habit.id as string } } as RealtimeEvent);
+  }
 
   // Current streak: consecutive days ending today with a check for this habit.
   const { data: checkRows } = await db
