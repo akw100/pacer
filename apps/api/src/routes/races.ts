@@ -200,4 +200,28 @@ export const races = new Hono<AppEnv>()
       .eq('user_id', userId)
       .eq('state', 'racing');
     return c.json({ ok: true });
+  })
+
+  // Clone a finished race's roster into a fresh lobby (the caller hosts it).
+  .post('/:id/rematch', async (c) => {
+    const id = c.req.param('id');
+    const userId = c.get('userId');
+    const db = serviceClient();
+    const { data: prev } = await db.from('races').select('target_meters, status').eq('id', id).maybeSingle();
+    if (!prev || prev.status !== 'finished') return c.json({ error: 'only finished races' }, 409);
+    const { data: parts } = await db.from('race_participants').select('user_id, role').eq('race_id', id);
+    const { data: race } = await db
+      .from('races')
+      .insert({ creator_id: userId, target_meters: prev.target_meters, rematch_of: id })
+      .select('*')
+      .single();
+    if (!race) return c.json({ error: 'rematch failed' }, 400);
+    const rows = (parts ?? []).map((p) => ({
+      race_id: race.id,
+      user_id: p.user_id,
+      role: p.role,
+      state: p.user_id === userId ? 'joined' : 'invited',
+    }));
+    await db.from('race_participants').insert(rows);
+    return c.json(race, 201);
   });
