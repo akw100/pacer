@@ -1,12 +1,12 @@
 import { NavLink } from 'react-router'
-import { Home, BarChart2, Users, Trophy, User, Plus, Clapperboard, Sparkles } from 'lucide-react'
+import { Home, BarChart2, Users, User, Plus, Clapperboard, Sparkles } from 'lucide-react'
 import { openLogSheet } from '../features/logging/LogSheet'
 
 const tabs = [
   { to: '/', label: 'Home', Icon: Home },
   { to: '/progress', label: 'Progress', Icon: BarChart2 },
   { to: '/group', label: 'Group', Icon: Users },
-  { to: '/challenges', label: 'Challenges', Icon: Trophy },
+  { to: '/challenges', label: 'Coach', Icon: Sparkles },
   { to: '/flows', label: 'Flows', Icon: Clapperboard },
   { to: '/profile', label: 'Profile', Icon: User },
 ] as const
