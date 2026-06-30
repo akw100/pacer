@@ -287,3 +287,11 @@ export function youTubeEmbedUrl(input: string): string | null {
   const id = extractYouTubeId(input);
   return id ? `https://www.youtube-nocookie.com/embed/${id}` : null;
 }
+
+/** Thumbnail image URL for a stored video, or null. `hq` (default) = 480×360. */
+export function youTubeThumbnailUrl(input: string, quality: 'hq' | 'mq' = 'hq'): string | null {
+  const id = extractYouTubeId(input);
+  if (!id) return null;
+  const file = quality === 'mq' ? 'mqdefault' : 'hqdefault';
+  return `https://i.ytimg.com/vi/${id}/${file}.jpg`;
+}

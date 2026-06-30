@@ -6,6 +6,7 @@ import {
   extractYouTubeId,
   normalizeYouTubeUrl,
   youTubeEmbedUrl,
+  youTubeThumbnailUrl,
   CreateChallengeInputSchema,
   UpdateChallengeInputSchema,
   progressPercent,
@@ -54,6 +55,9 @@ test('normalize + embed urls are canonical', () => {
   assert.equal(normalizeYouTubeUrl('https://youtu.be/dQw4w9WgXcQ'), 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
   assert.equal(youTubeEmbedUrl('https://youtu.be/dQw4w9WgXcQ'), 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ');
   assert.equal(normalizeYouTubeUrl('garbage'), null);
+  assert.equal(youTubeThumbnailUrl('https://youtu.be/dQw4w9WgXcQ'), 'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg');
+  assert.equal(youTubeThumbnailUrl('https://youtu.be/dQw4w9WgXcQ', 'mq'), 'https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg');
+  assert.equal(youTubeThumbnailUrl('garbage'), null);
 });
 
 test('challengeWinner: highest unique progress, else null on tie/zero', () => {
