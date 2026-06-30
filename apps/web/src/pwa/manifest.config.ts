@@ -57,7 +57,13 @@ export const pwaConfig: Partial<VitePWAOptions> = {
     // Always serve the app shell offline; fall back to offline.html if even
     // the shell can't be reached (first visit while offline).
     navigateFallback: '/index.html',
-    navigateFallbackDenylist: [/^\/api/, /\/stats\/platform/],
+    // /presentation/* is a SEPARATE SPA (the pitch deck) served as a subfolder.
+    // Without this exclusion the SW intercepts deck navigations and serves the
+    // app's /index.html instead — so e.g. the deck's presenter popup
+    // (/presentation/s/<id>/presenter) lands on the auth-gated app and bounces
+    // to /signin. Deny it so those navigations hit the network (Caddy serves
+    // the deck's own index.html). Mirrors the Caddyfile's /presentation/* rule.
+    navigateFallbackDenylist: [/^\/api/, /\/stats\/platform/, /^\/presentation(\/|$)/],
     runtimeCaching: [
       {
         // Web fonts — cache aggressively, they rarely change.
