@@ -10,10 +10,11 @@ import {
   YAxis,
 } from 'recharts'
 import { metersToKm } from '@pacer/shared'
-import { Footprints, Pencil, Trash2 } from 'lucide-react'
+import { AlertTriangle, Footprints, Home, Pencil, Trash2 } from 'lucide-react'
 import { Button } from '../../components/Button'
-import { buildRamp, summarizeRamp, type RunningPlanInput } from './plan'
+import { assessPlan, buildRamp, summarizeRamp, type PlanAdvice, type RunningPlanInput } from './plan'
 import { useRunningPlan } from './useRunningPlan'
+import { useHomePlanPrefs } from './useHomePlanPrefs'
 
 interface FormState {
   current: string
@@ -26,6 +27,8 @@ const KM = 1000
 
 const chipButton =
   'inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-xs font-medium text-ink-muted transition-colors hover:bg-ink/5 hover:text-ink'
+const chipButtonActive =
+  'inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-xs font-medium text-accent bg-accent/10 transition-colors hover:bg-accent/15'
 
 function toForm(plan: RunningPlanInput | null): FormState {
   if (!plan)
@@ -54,6 +57,7 @@ function parseForm(form: FormState): RunningPlanInput {
 
 export default function RunningPlanCard() {
   const { plan, save, clear } = useRunningPlan()
+  const { prefs, toggle } = useHomePlanPrefs()
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState<FormState>(() => toForm(plan))
 
@@ -67,6 +71,13 @@ export default function RunningPlanCard() {
   }, [showForm, form, plan])
 
   const summary = useMemo(() => summarizeRamp(ramp), [ramp])
+
+  // Friendly heads-up for severe (unrealistic) plans only — shown live while
+  // editing and on the saved plan.
+  const advice = useMemo<PlanAdvice>(() => {
+    const input = showForm ? parseForm(form) : plan
+    return input ? assessPlan(input) : { severity: 'ok' }
+  }, [showForm, form, plan])
 
   const chartData = useMemo(
     () =>
@@ -100,6 +111,14 @@ export default function RunningPlanCard() {
         </div>
         {plan && !editing && (
           <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => toggle('running')}
+              aria-pressed={prefs.running}
+              className={prefs.running ? chipButtonActive : chipButton}
+            >
+              <Home size={15} strokeWidth={1.8} /> {prefs.running ? 'On Home' : 'Add to Home'}
+            </button>
             <button type="button" onClick={() => { setForm(toForm(plan)); setEditing(true) }} className={chipButton}>
               <Pencil size={15} strokeWidth={1.8} /> Edit
             </button>
@@ -170,6 +189,16 @@ export default function RunningPlanCard() {
           recovery weeks.
         </p>
       </div>
+
+      {advice.severity === 'severe' && advice.message && (
+        <div
+          role="status"
+          className="mt-4 flex items-start gap-2.5 rounded-card border border-streak/40 bg-streak/10 p-3 text-sm text-ink"
+        >
+          <AlertTriangle size={18} strokeWidth={1.8} className="mt-0.5 shrink-0 text-streak" />
+          <p className="leading-relaxed">{advice.message}</p>
+        </div>
+      )}
 
       {showForm && (
         <div className="mt-4 flex justify-end gap-2">

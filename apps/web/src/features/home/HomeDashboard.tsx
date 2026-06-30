@@ -8,6 +8,7 @@ import { TodayCard } from './TodayCard';
 import { ThisWeekCard } from './ThisWeekCard';
 import { GroupPulseCard } from './GroupPulseCard';
 import { RecentActivityList } from './RecentActivityList';
+import { HomePlansSection } from '../planning/HomePlansSection';
 import { greetingFor, useHomeData } from './useHomeData';
 
 // Live-data Home. Renders real personal numbers (greeting from profile,
@@ -48,6 +49,8 @@ export function HomeDashboard() {
       <StandingCard />
 
       <FriendsStandingCard />
+
+      <HomePlansSection />
 
       <div className="grid gap-4 md:grid-cols-2 md:gap-5 items-start">
         <div className="flex flex-col gap-4 md:gap-5">
