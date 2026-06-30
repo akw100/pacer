@@ -39,3 +39,5 @@ export function takeDraft(key: string): RunDraft | undefined {
   drafts.delete(key);
   return d;
 }
+export function peekDraft(key: string): RunDraft | undefined { return drafts.get(key); }
+export function updateDraft(key: string, draft: RunDraft): void { if (drafts.has(key)) drafts.set(key, draft); }

@@ -1,5 +1,6 @@
 import type { Context } from 'grammy';
 import { serviceClient } from '../../lib/supabase';
+import { t } from '../i18n';
 
 // /start <code> — validate an unexpired link code, link this Telegram user to
 // the owning account, and delete the one-time code.
@@ -7,8 +8,9 @@ export async function handleStart(ctx: Context): Promise<void> {
   const from = ctx.from;
   const code = (ctx.match?.toString() ?? '').trim().toUpperCase();
   if (!from) return;
+  const lang = from.language_code;
   if (!code) {
-    await ctx.reply('To link, open Pacer → Settings, get your 8-char code, then send: /start <code>');
+    await ctx.reply(t(lang, 'link_first'));
     return;
   }
   const db = serviceClient();
@@ -18,7 +20,7 @@ export async function handleStart(ctx: Context): Promise<void> {
     .eq('code', code)
     .maybeSingle();
   if (!row || new Date(row.expires_at as string).getTime() < Date.now()) {
-    await ctx.reply('That code is invalid or expired. Generate a fresh one in Pacer → Settings.');
+    await ctx.reply(t(lang, 'code_invalid'));
     return;
   }
   const { error } = await db.from('telegram_links').upsert({
@@ -28,9 +30,9 @@ export async function handleStart(ctx: Context): Promise<void> {
     linked_at: new Date().toISOString(),
   });
   if (error) {
-    await ctx.reply('Could not link your account, please try again.');
+    await ctx.reply(t(lang, 'link_error'));
     return;
   }
   await db.from('telegram_link_codes').delete().eq('code', code);
-  await ctx.reply('Linked! Send me a run like "ran 5k in 28 min" or a photo of your watch.');
+  await ctx.reply(t(lang, 'linked_ok'));
 }

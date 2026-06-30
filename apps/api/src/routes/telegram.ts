@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import type { AppEnv } from '../lib/auth';
 import { serviceClient } from '../lib/supabase';
 import { generateLinkCode } from '../telegram/linkCode';
+import { botUsername } from '../telegram/env';
 
 const LINK_CODE_TTL_MS = 10 * 60 * 1000;
 
@@ -11,13 +12,20 @@ const LINK_CODE_TTL_MS = 10 * 60 * 1000;
 export const telegram = new Hono<AppEnv>()
   .post('/link-code', async (c) => {
     const userId = c.get('userId');
+    // Best-effort cleanup of stale codes; never block issuing a fresh one.
+    await serviceClient()
+      .from('telegram_link_codes')
+      .delete()
+      .lt('expires_at', new Date().toISOString());
     const code = generateLinkCode();
     const expires_at = new Date(Date.now() + LINK_CODE_TTL_MS).toISOString();
     const { error } = await serviceClient()
       .from('telegram_link_codes')
       .insert({ code, user_id: userId, expires_at });
     if (error) return c.json({ error: error.message }, 400);
-    return c.json({ code, expires_at });
+    const username = botUsername();
+    const deep_link = username ? `https://t.me/${username}?start=${code}` : null;
+    return c.json({ code, expires_at, deep_link });
   })
   .get('/status', async (c) => {
     const userId = c.get('userId');

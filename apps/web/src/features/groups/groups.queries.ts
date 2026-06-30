@@ -27,6 +27,9 @@ export function invalidateGroup(qc: QueryClient, groupId: string): void {
   qc.invalidateQueries({ queryKey: groupKeys.detail(groupId) });
   qc.invalidateQueries({ queryKey: groupKeys.stats(groupId) });
   qc.invalidateQueries({ queryKey: groupKeys.feed(groupId) });
+  // Goal progress is derived live from members' shared activity, so a member
+  // logging a run/workout must refresh the goals too.
+  qc.invalidateQueries({ queryKey: groupKeys.goals(groupId) });
 }
 
 export function invalidateAllGroups(qc: QueryClient): void {

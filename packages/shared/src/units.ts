@@ -18,6 +18,12 @@ export function metersToDisplayDistance(
   return { value, unit: units };
 }
 
+/** Inverse of metersToDisplayDistance: a value typed in the user's unit → meters
+ *  for canonical storage. Forms convert on submit; we never store the display value. */
+export function displayDistanceToMeters(value: number, units: Units): number {
+  return units === 'km' ? value * 1000 : value * METERS_PER_MILE;
+}
+
 /** Seconds per km|mi. Returns 0 for non-positive distance (callers guard display). */
 export function paceSecondsPerUnit(
   distanceMeters: number,

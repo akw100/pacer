@@ -1,26 +1,9 @@
 import { serviceClient } from '../../lib/supabase';
+import { todayKey } from '../../lib/today';
 
-/**
- * Today's date as yyyy-mm-dd in the app's timezone. The bot has no per-message
- * clock from the user, and the server runs in UTC — so a run logged late at
- * night would land on the previous UTC day and fall outside the user's local
- * week in the app. Set APP_TIMEZONE to an IANA zone (e.g. 'Asia/Jerusalem') so
- * the date matches what the user (and the web app, which buckets locally) sees.
- * Defaults to UTC; an invalid zone falls back to UTC rather than breaking saves.
- */
+/** Today's date as yyyy-mm-dd in the app's timezone (see lib/today). */
 export function today(): string {
-  const tz = process.env['APP_TIMEZONE'];
-  if (!tz || tz === 'UTC') return new Date().toISOString().slice(0, 10);
-  try {
-    return new Intl.DateTimeFormat('en-CA', {
-      timeZone: tz,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).format(new Date());
-  } catch {
-    return new Date().toISOString().slice(0, 10);
-  }
+  return todayKey();
 }
 
 /** The Pacer user linked to a Telegram user id, or null if unlinked. */
@@ -31,6 +14,22 @@ export async function linkedUserId(telegramUserId: number): Promise<string | nul
     .eq('telegram_user_id', telegramUserId)
     .maybeSingle();
   return (data?.user_id as string) ?? null;
+}
+
+/** The user's distance-unit preference (km|mi); defaults to 'km' if unset. */
+export async function userUnits(userId: string): Promise<'km' | 'mi'> {
+  const { data } = await serviceClient()
+    .from('profiles')
+    .select('units')
+    .eq('id', userId)
+    .maybeSingle();
+  return (data?.units as 'km' | 'mi' | null) ?? 'km';
+}
+
+/** Names of the user's habits (for intent classification + matching). */
+export async function habitNames(userId: string): Promise<string[]> {
+  const { data } = await serviceClient().from('habits').select('name').eq('user_id', userId);
+  return ((data ?? []) as { name: string }[]).map((h) => h.name);
 }
 
 /** Groups the user belongs to (id + name) — drives the share-to-group buttons. */

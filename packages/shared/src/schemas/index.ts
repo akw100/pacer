@@ -12,3 +12,5 @@ export * from './friendship';
 export * from './group-goal';
 export * from './group-invite';
 export * from './video-routine';
+export * from './assistant';
+export * from './challenge';

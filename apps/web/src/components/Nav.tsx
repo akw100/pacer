@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router'
-import { Home, BarChart2, Users, Trophy, User, Plus, Clapperboard, Sparkles } from 'lucide-react'
+import { Home, BarChart2, Users, Trophy, User, Plus, Clapperboard, Sparkles, CalendarRange } from 'lucide-react'
 import { openLogSheet } from '../features/logging/LogSheet'
 
 const tabs = [
@@ -7,6 +7,7 @@ const tabs = [
   { to: '/progress', label: 'Progress', Icon: BarChart2 },
   { to: '/group', label: 'Group', Icon: Users },
   { to: '/challenges', label: 'Challenges', Icon: Trophy },
+  { to: '/planning', label: 'Planning', Icon: CalendarRange },
   { to: '/flows', label: 'Flows', Icon: Clapperboard },
   { to: '/profile', label: 'Profile', Icon: User },
 ] as const

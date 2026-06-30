@@ -1,7 +1,7 @@
+import ChallengesPage from '../features/challenges/ChallengesPage'
+
+// The Challenges tab simply mounts the challenges slice's hub. All behaviour
+// (list, create, respond, join, check-in, realtime) lives in features/challenges.
 export default function Challenges() {
-  return (
-    <div className="p-4">
-      <h1 className="font-display text-2xl font-bold text-ink">Challenges</h1>
-    </div>
-  )
+  return <ChallengesPage />
 }

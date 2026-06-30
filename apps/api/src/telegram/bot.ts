@@ -3,6 +3,20 @@ import { botEnabled, botToken, webhookSecret, webhookUrl } from './env';
 import { handleStart } from './handlers/start';
 import { handleMessage } from './handlers/message';
 import { handleConfirm } from './handlers/confirm';
+import { handleRunEdit } from './handlers/editRun';
+import { handleWorkoutConfirm } from './handlers/confirmWorkout';
+import {
+  handleHelp,
+  handleStatusCmd,
+  handleUnlink,
+  handleRecent,
+  handleWeek,
+  handleHabitsCmd,
+  handleRecords,
+  handleMe,
+  handleUnknownCommand,
+} from './handlers/commands';
+import { log } from './log';
 
 // Lazily built so importing this module never throws when the token is absent.
 let _bot: Bot | null = null;
@@ -11,7 +25,22 @@ export function getBot(): Bot {
   if (!_bot) {
     const bot = new Bot(botToken());
     bot.command('start', handleStart);
+    bot.command('help', handleHelp);
+    bot.command('status', handleStatusCmd);
+    bot.command('unlink', handleUnlink);
+    bot.command('recent', handleRecent);
+    bot.command('week', handleWeek);
+    bot.command('habits', handleHabitsCmd);
+    bot.command('records', handleRecords);
+    bot.command('me', handleMe);
+    // Workout-specific callbacks first so they're caught before the generic
+    // run confirm handler (which handles save/save:<id>/discard).
+    bot.callbackQuery(/^(wsave|wdiscard)/, handleWorkoutConfirm);
+    bot.callbackQuery(/^redit:/, handleRunEdit);
     bot.on('callback_query:data', handleConfirm);
+    // Any slash-command we didn't register above is unknown — known commands
+    // are registered first and short-circuit, so only UNknown ones reach here.
+    bot.on('message:entities:bot_command', handleUnknownCommand);
     bot.on('message', handleMessage); // text + photo
     _bot = bot;
   }
@@ -27,8 +56,8 @@ export async function startPolling(): Promise<void> {
   const bot = getBot();
   // Fire-and-forget, but catch: a polling error (e.g. a 409 conflict when a
   // rolling deploy briefly overlaps two instances) must not crash the whole API.
-  bot.start().catch((err) => console.error('[telegram] polling stopped:', err));
-  console.log('[telegram] bot started (long-polling).');
+  bot.start().catch((err) => log.error('polling_stopped', { err: String(err) }));
+  log.info('bot_polling_started');
 }
 
 /** Register the webhook with Telegram (production). Requires secret + url. */
