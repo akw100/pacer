@@ -6,6 +6,7 @@ const MODEL = 'gpt-4o-mini';
 export const HabitMatchSchema = z.object({
   matched: z.boolean(),
   habit_name: z.string().nullable(),
+  all: z.boolean(),
   confidence: z.number().min(0).max(1),
 });
 export type HabitMatch = z.infer<typeof HabitMatchSchema>;
@@ -19,9 +20,10 @@ const HABIT_JSON_SCHEMA = {
     properties: {
       matched: { type: 'boolean' },
       habit_name: { type: ['string', 'null'], description: 'exact name from the provided list, or null' },
+      all: { type: 'boolean' },
       confidence: { type: 'number' },
     },
-    required: ['matched', 'habit_name', 'confidence'],
+    required: ['matched', 'habit_name', 'all', 'confidence'],
   },
 } as const;
 
@@ -35,7 +37,8 @@ export async function parseHabit(message: string, habitNames: string[]): Promise
   const sys =
     "Decide if the message reports completing one of the user's habits today. " +
     `Habits: ${JSON.stringify(habitNames)}. ` +
-    'Set matched true only if it clearly matches one; habit_name must be EXACTLY one of the listed names or null.';
+    'Set matched true only if it clearly matches one; habit_name must be EXACTLY one of the listed names or null. ' +
+    'Set all=true if the user reports completing ALL their habits; otherwise all=false and habit_name = the single matched habit or null.';
   const res = await openai().chat.completions.create({
     model: MODEL,
     response_format: { type: 'json_schema', json_schema: HABIT_JSON_SCHEMA },

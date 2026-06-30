@@ -3,6 +3,7 @@ import { botEnabled, botToken, webhookSecret, webhookUrl } from './env';
 import { handleStart } from './handlers/start';
 import { handleMessage } from './handlers/message';
 import { handleConfirm } from './handlers/confirm';
+import { handleRunEdit } from './handlers/editRun';
 import { handleWorkoutConfirm } from './handlers/confirmWorkout';
 import {
   handleHelp,
@@ -10,6 +11,10 @@ import {
   handleUnlink,
   handleRecent,
   handleWeek,
+  handleHabitsCmd,
+  handleRecords,
+  handleMe,
+  handleUnknownCommand,
 } from './handlers/commands';
 import { log } from './log';
 
@@ -25,10 +30,17 @@ export function getBot(): Bot {
     bot.command('unlink', handleUnlink);
     bot.command('recent', handleRecent);
     bot.command('week', handleWeek);
+    bot.command('habits', handleHabitsCmd);
+    bot.command('records', handleRecords);
+    bot.command('me', handleMe);
     // Workout-specific callbacks first so they're caught before the generic
     // run confirm handler (which handles save/save:<id>/discard).
     bot.callbackQuery(/^(wsave|wdiscard)/, handleWorkoutConfirm);
+    bot.callbackQuery(/^redit:/, handleRunEdit);
     bot.on('callback_query:data', handleConfirm);
+    // Any slash-command we didn't register above is unknown — known commands
+    // are registered first and short-circuit, so only UNknown ones reach here.
+    bot.on('message:entities:bot_command', handleUnknownCommand);
     bot.on('message', handleMessage); // text + photo
     _bot = bot;
   }

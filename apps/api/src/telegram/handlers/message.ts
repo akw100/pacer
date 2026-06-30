@@ -6,13 +6,14 @@ import { parseWorkout, parseWorkoutPhoto } from '../parseWorkout';
 import { parseHabit } from '../parseHabit';
 import { putDraft, type RunDraft } from '../draft';
 import { putWorkoutDraft, type WorkoutDraft } from '../workoutDraft';
-import { checkHabitForUser } from '../saveHabit';
+import { checkHabitForUser, checkAllHabitsForUser } from '../saveHabit';
 import { tryConsumePhoto, tryConsumeText } from '../dailyCap';
 import { botToken } from '../env';
 import { transcribe } from '../transcribe';
 import { log } from '../log';
 import { t } from '../i18n';
 import { runSummary, workoutSummary } from '../summary';
+import { buildRunKeyboard } from './runKeyboard';
 import { logRunForUser } from '../save';
 import { logWorkoutForUser } from '../saveWorkout';
 import { today, linkedUserId, userGroups, habitNames, userUnits } from './shared';
@@ -23,14 +24,10 @@ const CONFIDENCE_FLOOR = 0.6;
 const AUTO_SAVE_CONFIDENCE = 0.95;
 
 async function offerConfirm(ctx: Context, userId: string, draft: RunDraft): Promise<void> {
-  // One "Save to <group>" button per group the user is in, plus a personal
-  // save and discard. Callback data is `save:<groupId>` (group) or `save`
-  // (personal); the confirm handler tags shared_group_id accordingly.
-  const groups = await userGroups(userId);
-  const kb = new InlineKeyboard();
-  for (const g of groups) kb.text(`✓ Save to ${g.name}`, `save:${g.id}`).row();
-  kb.text(groups.length ? '✓ Save (just me)' : '✓ Save', 'save').row();
-  kb.text('✗ Discard', 'discard');
+  // ± edit buttons, then one "Save to <group>" button per group the user is in,
+  // plus a personal save and discard. Callback data is `save:<groupId>` (group)
+  // or `save` (personal); the confirm handler tags shared_group_id accordingly.
+  const kb = buildRunKeyboard(await userGroups(userId));
   const units = await userUnits(userId);
   const sent = await ctx.reply(runSummary(draft, units), { reply_markup: kb });
   putDraft(`${sent.chat.id}:${sent.message_id}:${userId}`, draft);
@@ -72,9 +69,19 @@ async function routeText(ctx: Context, userId: string, text: string): Promise<vo
   }
   if (intent === 'habit') {
     const h = await parseHabit(text, names);
+    if (h.all) {
+      const r = await checkAllHabitsForUser(userId, today());
+      await ctx.reply(r.ok ? t(code, 'all_habits_done') : t(code, 'habit_fail'));
+      return;
+    }
     if (h.matched && h.habit_name && h.confidence >= CONFIDENCE_FLOOR) {
       const r = await checkHabitForUser(userId, h.habit_name, today());
-      await ctx.reply(r.ok ? t(code, 'habit_done') : t(code, 'habit_fail'));
+      if (r.ok) {
+        const streak = r.streak >= 2 ? ` 🔥 ${r.streak}` : '';
+        await ctx.reply(t(code, 'habit_done') + streak);
+      } else {
+        await ctx.reply(t(code, 'habit_fail'));
+      }
     } else {
       await ctx.reply(t(code, 'habit_unclear'));
     }
@@ -83,7 +90,7 @@ async function routeText(ctx: Context, userId: string, text: string): Promise<vo
   // default: treat as a run
   const draft = await parseText(text, today());
   if (draft.confidence < CONFIDENCE_FLOOR) {
-    await ctx.reply(t(code, 'no_run'));
+    await ctx.reply(t(code, 'not_understood'));
     return;
   }
   if (draft.confidence >= AUTO_SAVE_CONFIDENCE) {
