@@ -1,7 +1,13 @@
 import { useMemo } from 'react'
-import { CalendarDays, Dumbbell, Footprints, Moon, RotateCcw } from 'lucide-react'
+import { CalendarDays, Dumbbell, Footprints, Home, Moon, RotateCcw } from 'lucide-react'
 import { DAY_KIND_LABEL, DAY_LABELS, type DayKind } from './plan'
 import { useWorkoutPlan } from './useWorkoutPlan'
+import { useHomePlanPrefs } from './useHomePlanPrefs'
+
+const chipButton =
+  'inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-xs font-medium text-ink-muted transition-colors hover:bg-ink/5 hover:text-ink'
+const chipButtonActive =
+  'inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-xs font-medium text-accent bg-accent/10 transition-colors hover:bg-accent/15'
 
 // Token-based styling per kind. `dot` is used in the legend.
 const KIND_STYLE: Record<DayKind, { cell: string; dot: string }> = {
@@ -18,6 +24,7 @@ function KindIcon({ kind, size = 18 }: { kind: DayKind; size?: number }) {
 
 export default function WorkoutPlanCard() {
   const { template, cycleDay, reset } = useWorkoutPlan()
+  const { prefs, toggle } = useHomePlanPrefs()
 
   const counts = useMemo(() => {
     const c: Record<DayKind, number> = { rest: 0, run: 0, strength: 0 }
@@ -37,13 +44,19 @@ export default function WorkoutPlanCard() {
             <p className="text-xs text-ink-muted">Tap a day to set Rest → Run → Strength.</p>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={reset}
-          className="inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-xs font-medium text-ink-muted transition-colors hover:bg-ink/5 hover:text-ink"
-        >
-          <RotateCcw size={15} strokeWidth={1.8} /> Reset
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => toggle('workout')}
+            aria-pressed={prefs.workout}
+            className={prefs.workout ? chipButtonActive : chipButton}
+          >
+            <Home size={15} strokeWidth={1.8} /> {prefs.workout ? 'On Home' : 'Add to Home'}
+          </button>
+          <button type="button" onClick={reset} className={chipButton}>
+            <RotateCcw size={15} strokeWidth={1.8} /> Reset
+          </button>
+        </div>
       </header>
 
       <div className="mt-4 grid grid-cols-7 gap-1.5 sm:gap-2">

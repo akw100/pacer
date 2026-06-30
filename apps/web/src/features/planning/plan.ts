@@ -61,6 +61,55 @@ export function buildRamp(input: RunningPlanInput): RampWeek[] {
   return ramp
 }
 
+// ── Realism check ────────────────────────────────────────────────────────────
+// Friendly, opt-out-of-nagging advice: we ONLY speak up for genuinely extreme
+// plans (a huge weekly jump, tripling volume in under a month, or an absurd
+// per-run distance). Sensible-but-ambitious plans get no warning.
+
+export type PlanSeverity = 'ok' | 'severe'
+
+export interface PlanAdvice {
+  severity: PlanSeverity
+  /** Present only when severity is 'severe'. */
+  message?: string
+}
+
+export function assessPlan(input: RunningPlanInput): PlanAdvice {
+  const current = input.currentWeeklyMeters
+  const goal = input.goalWeeklyMeters
+  const weeks = Math.max(1, Math.floor(input.weeks))
+  const runs = Math.max(1, Math.floor(input.runsPerWeek))
+
+  const perRunKm = metersToKm(goal / runs)
+  const hasBase = current >= 1000 // ignore ratio/growth from a ~zero base (couch-to-5k is fine)
+  const ratio = current > 0 ? goal / current : Infinity
+  // Compounding weekly increase the ramp would demand.
+  const growth = hasBase && weeks > 1 ? Math.pow(goal / current, 1 / (weeks - 1)) - 1 : Infinity
+
+  const severeGrowth = hasBase && goal > current && growth > 0.5 // >50%/week, compounding
+  const severeRatio = hasBase && ratio > 3 && weeks < 4 // >3× the volume in under a month
+  const severePerRun = perRunKm > 30 // a single run over 30 km
+
+  if (severeGrowth || severeRatio || severePerRun) {
+    const goalKm = metersToKm(goal)
+    const curKm = metersToKm(current)
+    const detail = severePerRun
+      ? `that's about ${perRunKm.toFixed(0)} km in every run`
+      : hasBase
+        ? `that's roughly ${ratio.toFixed(0)}× your current volume`
+        : 'that ramps up very fast'
+    return {
+      severity: 'severe',
+      message:
+        `Going from ${curKm.toFixed(0)} to ${goalKm.toFixed(0)} km/week in ` +
+        `${weeks} ${weeks === 1 ? 'week' : 'weeks'} — ${detail} — is a big jump and likely ` +
+        `isn't doable safely. Coaches usually add about 10% a week. Try spreading it over ` +
+        `more weeks, adding runs per week, or easing the goal. 🙂`,
+    }
+  }
+  return { severity: 'ok' }
+}
+
 export interface RampSummary {
   peakWeeklyKm: number
   totalKm: number

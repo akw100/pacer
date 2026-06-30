@@ -30,6 +30,7 @@ import { useAuth } from './features/auth/AuthProvider'
 import { GroupProvider } from './features/groups/GroupContext'
 import { VoiceAgent } from './features/voice/VoiceAgent'
 import { useUserRealtime } from './features/logging/useUserRealtime'
+import { PlanCelebration } from './features/planning/PlanCelebration'
 
 function Shell() {
   // Keep the logged-in UI fresh on every screen when a run/workout is saved
@@ -122,6 +123,7 @@ function AuthedOverlays() {
       <CoachmarkTour />
       <ContextualHints />
       <HowPacerWorksSheet />
+      <PlanCelebration />
     </>
   )
 }
