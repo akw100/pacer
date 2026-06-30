@@ -4,6 +4,7 @@ import { X, Trophy, CheckCircle2, Trash2, RotateCcw, Pencil } from 'lucide-react
 import {
   CHALLENGE_METRICS,
   challengeWinner,
+  isChallengeComplete,
   type ChallengeWithProgress,
   type Units,
 } from '@pacer/shared';
@@ -137,7 +138,7 @@ export function ChallengeDetail({ challenge, units, youUserId, onOpenChange, onR
                 </div>
                 <ProgressBar
                   fraction={progressFraction(challenge.my_progress, challenge.target, challenge.metric)}
-                  complete={challenge.my_progress >= challenge.target}
+                  complete={isChallengeComplete(challenge.my_progress, challenge.target)}
                 />
               </div>
             )}

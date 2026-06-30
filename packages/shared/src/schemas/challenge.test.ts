@@ -8,8 +8,24 @@ import {
   youTubeEmbedUrl,
   CreateChallengeInputSchema,
   UpdateChallengeInputSchema,
+  progressPercent,
+  isChallengeComplete,
   type ChallengeLeaderRow,
 } from './challenge';
+
+test('progressPercent: clamped integer 0–100', () => {
+  assert.equal(progressPercent(15000, 30000), 50);
+  assert.equal(progressPercent(45000, 30000), 100); // clamped
+  assert.equal(progressPercent(0, 30000), 0);
+  assert.equal(progressPercent(5, 0), 0); // guard zero target
+  assert.equal(progressPercent(1, 3), 33); // rounds
+});
+
+test('isChallengeComplete', () => {
+  assert.equal(isChallengeComplete(30000, 30000), true);
+  assert.equal(isChallengeComplete(29999, 30000), false);
+  assert.equal(isChallengeComplete(5, 0), false);
+});
 
 test('challengeState: upcoming / active / finished by date-key compare', () => {
   assert.equal(challengeState('2026-07-01', '2026-07-07', '2026-06-30'), 'upcoming');
