@@ -166,6 +166,10 @@ async function execTool(
 
 const MAX_ITERATIONS = 3;
 
+// Never hand the UI an empty bubble — if the model returns nothing parseable
+// (unexpected output shape, or just no text), say so instead of rendering blank.
+const EMPTY_REPLY = "Sorry — I couldn't put together a reply just then. Mind trying again?";
+
 interface RunAssistantResult {
   message: { role: 'assistant'; content: string };
   tools_used: string[];
@@ -233,7 +237,7 @@ export async function runAssistant(
     const fnCalls = output.filter((it) => it.type === 'function_call');
     if (fnCalls.length === 0) {
       const text = extractText(output);
-      return { message: { role: 'assistant', content: text }, tools_used: toolsUsed };
+      return { message: { role: 'assistant', content: text || EMPTY_REPLY }, tools_used: toolsUsed };
     }
 
     // Execute each function call; append both the call and its output to
@@ -287,10 +291,7 @@ export async function runAssistant(
     content?: Array<{ type: string; text?: string }>;
   };
   const text = extractText((final.output ?? []) as OutputItem[]);
-  // Never hand the UI an empty bubble — if the model returned nothing parseable
-  // (e.g. an unexpected output shape), say so instead of rendering blank.
-  const content = text || "Sorry — I couldn't put together a reply just then. Mind trying again?";
-  return { message: { role: 'assistant', content }, tools_used: toolsUsed };
+  return { message: { role: 'assistant', content: text || EMPTY_REPLY }, tools_used: toolsUsed };
 }
 
 function extractText(

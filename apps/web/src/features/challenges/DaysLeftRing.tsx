@@ -50,7 +50,7 @@ export function DaysLeftRing({ start, end, today, size = 52 }: DaysLeftRingProps
         )}
       </span>
       <span className="sr-only">
-        {remaining} of {total} days left
+        {remaining <= 0 ? 'Last day' : `${remaining} of ${total} days left`}
       </span>
     </span>
   );

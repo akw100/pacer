@@ -43,10 +43,9 @@ export function metricUnitSuffix(metric: ChallengeMetric, units: Units): string 
 
 /** Progress fraction toward target, clamped to [0, 1]. The raw ratio (not the
  *  rounded percent) so a hair under target reads <100% — the bar only fills and
- *  turns green when isChallengeComplete is true. Distance progress + target are
- *  both in meters → the ratio is unit-agnostic. */
-export function progressFraction(progress: number, target: number, metric: ChallengeMetric): number {
-  void metric;
+ *  turns green when isChallengeComplete is true. Unit-agnostic: progress + target
+ *  are always in the same unit (distance in meters, everything else a raw count). */
+export function progressFraction(progress: number, target: number): number {
   return target > 0 ? Math.max(0, Math.min(1, progress / target)) : 0;
 }
 

@@ -153,7 +153,7 @@ export function ChallengeDetail({ challenge, units, youUserId, onOpenChange, onR
                   </span>
                 </div>
                 <ProgressBar
-                  fraction={progressFraction(challenge.my_progress, challenge.target, challenge.metric)}
+                  fraction={progressFraction(challenge.my_progress, challenge.target)}
                   complete={isChallengeComplete(challenge.my_progress, challenge.target)}
                 />
               </div>
