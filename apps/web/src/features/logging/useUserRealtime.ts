@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../auth/AuthProvider';
 import { invalidateLogging } from './logging.queries';
+import { invalidateChallenges } from '../challenges/challenges.queries';
 
 /**
  * App-wide subscription to the caller's own realtime channel. SERVER-SIDE saves
@@ -22,6 +23,9 @@ export function useUserRealtime(): void {
     channel.on('broadcast', { event: '*' }, () => {
       invalidateLogging(qc);
       qc.invalidateQueries({ queryKey: ['score', 'summary'] });
+      // Off-device logging can move a challenge metric (distance/score/etc.) and
+      // challenge.updated also lands here — keep the challenges hub fresh too.
+      invalidateChallenges(qc);
     });
     channel.subscribe();
     return () => {

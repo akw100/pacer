@@ -19,20 +19,30 @@ export async function checkHabitForUser(userId: string, habitName: string, today
     .maybeSingle();
   if (!habit) return { ok: false, error: 'habit not found' };
 
-  const { data: check, error } = await db
+  // Idempotent + race-safe: a habit_check is unique per (habit_id, check_date).
+  // ON CONFLICT DO NOTHING (ignoreDuplicates) means a concurrent check or one
+  // already made in the web app is silently ignored — no fake "duplicate key"
+  // failure. .select() returns the row only when we actually inserted it, so we
+  // emit exactly once for a fresh check and skip it when it already existed.
+  const { data: inserted, error } = await db
     .from('habit_checks')
-    .insert({ habit_id: habit.id as string, user_id: userId, check_date: today })
+    .upsert(
+      { habit_id: habit.id as string, user_id: userId, check_date: today },
+      { onConflict: 'habit_id,check_date', ignoreDuplicates: true },
+    )
     .select('id')
-    .single();
-  if (error || !check) return { ok: false, error: error?.message ?? 'insert failed' };
+    .maybeSingle();
+  if (error) return { ok: false, error: error.message };
 
-  emit('habit.checked', {
-    userId,
-    habitId: habit.id as string,
-    habitCheckId: check.id as string,
-    checkDate: today,
-  });
-  void broadcast(`user:${userId}`, { type: 'habit.checked', ids: { habitId: habit.id as string } } as RealtimeEvent);
+  if (inserted) {
+    emit('habit.checked', {
+      userId,
+      habitId: habit.id as string,
+      habitCheckId: inserted.id as string,
+      checkDate: today,
+    });
+    void broadcast(`user:${userId}`, { type: 'habit.checked', ids: { habitId: habit.id as string } } as RealtimeEvent);
+  }
 
   // Current streak: consecutive days ending today with a check for this habit.
   const { data: checkRows } = await db

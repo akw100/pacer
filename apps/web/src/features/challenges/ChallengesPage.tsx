@@ -3,7 +3,7 @@ import { Plus } from 'lucide-react';
 import type { ChallengeWithProgress } from '@pacer/shared';
 import { useAuth } from '../auth/AuthProvider';
 import { useProfile } from '../auth/useProfile';
-import { useChallenges, useChallengesRealtime } from './useChallenges';
+import { useChallenges } from './useChallenges';
 import { ChallengeCard } from './ChallengeCard';
 import { ChallengeDetail } from './ChallengeDetail';
 import { CreateChallengeSheet, type ChallengePreset } from './CreateChallengeSheet';
@@ -22,7 +22,6 @@ export default function ChallengesPage() {
   const youUserId = session?.user.id ?? null;
 
   const { data: challenges, isLoading, isError, refetch } = useChallenges();
-  useChallengesRealtime();
 
   const [createOpen, setCreateOpen] = useState(false);
   const [preset, setPreset] = useState<ChallengePreset | null>(null);
@@ -43,6 +42,9 @@ export default function ChallengesPage() {
       targetCanonical: c.target,
       description: c.description ?? undefined,
       youtubeUrl: c.youtube_url,
+      // Only the edit sheet reads these (create-mode rematch ignores them).
+      startDate: c.start_date,
+      endDate: c.end_date,
     };
   }
 

@@ -39,11 +39,18 @@ export function DaysLeftRing({ start, end, today, size = 52 }: DaysLeftRingProps
         />
       </svg>
       <span className="absolute flex flex-col items-center leading-none">
-        <span className="font-display text-sm font-bold text-ink tabular-nums">{remaining}</span>
-        <span className="text-[9px] uppercase tracking-wide text-ink-muted">{remaining === 1 ? 'day' : 'days'}</span>
+        {remaining <= 0 ? (
+          // Window still open today — its final day. "0 days" would read as over.
+          <span className="font-display text-[10px] font-bold uppercase tracking-wide text-ink">Last day</span>
+        ) : (
+          <>
+            <span className="font-display text-sm font-bold text-ink tabular-nums">{remaining}</span>
+            <span className="text-[9px] uppercase tracking-wide text-ink-muted">{remaining === 1 ? 'day' : 'days'}</span>
+          </>
+        )}
       </span>
       <span className="sr-only">
-        {remaining} of {total} days left
+        {remaining <= 0 ? 'Last day' : `${remaining} of ${total} days left`}
       </span>
     </span>
   );

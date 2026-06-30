@@ -24,7 +24,7 @@ interface ChallengeCardProps {
 
 export function ChallengeCard({ challenge, units, youUserId, onOpen }: ChallengeCardProps) {
   const meta = CHALLENGE_METRICS[challenge.metric];
-  const fraction = progressFraction(challenge.my_progress, challenge.target, challenge.metric);
+  const fraction = progressFraction(challenge.my_progress, challenge.target);
   const complete = isChallengeComplete(challenge.my_progress, challenge.target);
   const left = daysLeft(challenge.end_date, todayKey());
   const winner = challenge.state === 'finished' ? challengeWinner(challenge.leaderboard) : null;
@@ -55,7 +55,7 @@ export function ChallengeCard({ challenge, units, youUserId, onOpen }: Challenge
           </Chip>
         ) : challenge.state === 'active' ? (
           <Chip icon={<Calendar size={12} strokeWidth={2} />} tone="streak">
-            {left}d left
+            {left <= 0 ? 'Last day' : `${left}d left`}
           </Chip>
         ) : (
           <Chip icon={<Trophy size={12} strokeWidth={2} />} tone="success">
