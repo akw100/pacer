@@ -8,3 +8,4 @@ export * from './events';
 export * from './assistant-tools';
 export * from './onboarding';
 export * from './lib/join-code';
+export * from './geo';
