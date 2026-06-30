@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { CreateRaceInputSchema, InviteInputSchema, JoinInputSchema } from '@pacer/shared';
 import type { AppEnv } from '../lib/auth';
+import { broadcast } from '../lib/realtime';
 import { serviceClient } from '../lib/supabase';
 import { zValidator } from '../lib/validate';
 
@@ -86,5 +87,41 @@ export const races = new Hono<AppEnv>()
       .eq('user_id', userId)
       .eq('state', 'joined');
     if (error) return c.json({ error: error.message }, 400);
+    return c.json({ ok: true });
+  })
+
+  // Host starts the race: a short synchronized countdown (start_at = now + 5s)
+  // so every client begins together. Runners flip joined/ready → racing.
+  .post('/:id/start', async (c) => {
+    const id = c.req.param('id');
+    const userId = c.get('userId');
+    const db = serviceClient();
+    const { data: race } = await db.from('races').select('*').eq('id', id).maybeSingle();
+    if (!race) return c.json({ error: 'not found' }, 404);
+    if (race.creator_id !== userId) return c.json({ error: 'host only' }, 403);
+    if (race.status !== 'lobby') return c.json({ error: 'not in lobby' }, 409);
+    const COUNTDOWN_MS = 5000;
+    const startAt = new Date(Date.now() + COUNTDOWN_MS).toISOString();
+    await db.from('races').update({ status: 'active', start_at: startAt }).eq('id', id);
+    await db
+      .from('race_participants')
+      .update({ state: 'racing' })
+      .eq('race_id', id)
+      .eq('role', 'runner')
+      .in('state', ['joined', 'ready']);
+    void broadcast(`race:${id}`, { type: 'race.started', ids: { raceId: id } });
+    return c.json({ start_at: startAt });
+  })
+
+  // Host cancels a lobby that never started.
+  .post('/:id/cancel', async (c) => {
+    const id = c.req.param('id');
+    const userId = c.get('userId');
+    const db = serviceClient();
+    const { data: race } = await db.from('races').select('creator_id, status').eq('id', id).maybeSingle();
+    if (!race) return c.json({ error: 'not found' }, 404);
+    if (race.creator_id !== userId) return c.json({ error: 'host only' }, 403);
+    if (race.status !== 'lobby') return c.json({ error: 'only a lobby can be cancelled' }, 409);
+    await db.from('races').update({ status: 'cancelled' }).eq('id', id);
     return c.json({ ok: true });
   });
