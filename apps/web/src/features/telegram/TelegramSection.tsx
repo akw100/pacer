@@ -19,15 +19,18 @@ interface TelegramStatus {
 interface LinkCode {
   code: string;
   expires_at: string;
+  // Built server-side from the bot's real username; null if the bot isn't
+  // configured. Use this verbatim — never reconstruct it from a frontend env.
+  deep_link: string | null;
 }
 
-const BOT = import.meta.env.VITE_TELEGRAM_BOT ?? 'pacer_bot';
 const statusKey = ['telegram', 'status'] as const;
 
 export function TelegramSection() {
   const token = useAuth().session?.access_token ?? null;
   const qc = useQueryClient();
   const [code, setCode] = useState<string | null>(null);
+  const [deepLink, setDeepLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   function copyCode() {
@@ -51,7 +54,10 @@ export function TelegramSection() {
   const link = useMutation({
     mutationFn: () =>
       apiFetch<LinkCode>('/telegram/link-code', { token: token!, method: 'POST' }),
-    onSuccess: (res) => setCode(res.code),
+    onSuccess: (res) => {
+      setCode(res.code);
+      setDeepLink(res.deep_link);
+    },
     onError: () => toast.error('Could not get a link code — try again.'),
   });
 
@@ -59,13 +65,12 @@ export function TelegramSection() {
     mutationFn: () => apiFetch<void>('/telegram/link', { token: token!, method: 'DELETE' }),
     onSuccess: () => {
       setCode(null);
+      setDeepLink(null);
       toast.success('Telegram disconnected.');
       void qc.invalidateQueries({ queryKey: statusKey });
     },
     onError: () => toast.error('Could not disconnect — try again.'),
   });
-
-  const deepLink = code ? `https://t.me/${BOT}?start=${code}` : null;
 
   return (
     <section

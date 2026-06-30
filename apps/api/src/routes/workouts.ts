@@ -12,11 +12,14 @@ export const workouts = new Hono<AppEnv>()
   .get('/', async (c) => {
     const db = c.get('userClient');
     const userId = c.get('userId');
-    const { data, error } = await db
-      .from('workouts')
-      .select('*, workout_sets(*)')
-      .eq('user_id', userId)
-      .order('workout_date', { ascending: false });
+    // Optional yyyy-MM-dd window (inclusive). The assistant's get_recent_activity
+    // tool relies on these; omitting either bound returns the full list.
+    const from = c.req.query('from');
+    const to = c.req.query('to');
+    let q = db.from('workouts').select('*, workout_sets(*)').eq('user_id', userId);
+    if (from) q = q.gte('workout_date', from);
+    if (to) q = q.lte('workout_date', to);
+    const { data, error } = await q.order('workout_date', { ascending: false });
     if (error) return c.json({ error: error.message }, 400);
     return c.json(data);
   })

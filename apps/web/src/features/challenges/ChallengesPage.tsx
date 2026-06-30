@@ -77,8 +77,10 @@ export default function ChallengesPage() {
     const upcoming: ChallengeWithProgress[] = [];
     const finished: ChallengeWithProgress[] = [];
     for (const c of visible) {
+      // An open invite lives only in the invitations strip until answered;
+      // once accepted/declined it falls into its date-driven state section.
       if (c.my_status === 'invited') invitations.push(c);
-      if (c.state === 'active') active.push(c);
+      else if (c.state === 'active') active.push(c);
       else if (c.state === 'upcoming') upcoming.push(c);
       else finished.push(c);
     }
