@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   FriendLookupResponse,
+  FriendRequestByEmailInput,
+  FriendRequestByEmailResponse,
   FriendRequestInput,
   Friendship,
   FriendshipWithProfile,
@@ -71,6 +73,27 @@ export function useFriendRequest() {
   return useMutation({
     mutationFn: (input: FriendRequestInput) =>
       apiFetch<Friendship>('/friends/request', {
+        token: token!,
+        method: 'POST',
+        body: input,
+      }),
+    onSuccess: () => invalidateAllFriends(qc),
+  });
+}
+
+/**
+ * POST /friends/request-by-email — dedicated endpoint for the "add by email"
+ * flow. Response is `{ status: 'queued' }` when the email doesn't belong to
+ * a Pacer user (privacy-safe: caller cannot enumerate), otherwise the full
+ * Friendship row. Invalidates the friends list either way so a newly-created
+ * outgoing request appears immediately.
+ */
+export function useFriendRequestByEmail() {
+  const token = useToken();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: FriendRequestByEmailInput) =>
+      apiFetch<FriendRequestByEmailResponse>('/friends/request-by-email', {
         token: token!,
         method: 'POST',
         body: input,
