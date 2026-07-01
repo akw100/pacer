@@ -21,6 +21,7 @@ import { videoRoutinesInternal } from './video-routines-internal';
 import { voice } from './voice';
 import { assistant } from './assistant';
 import { challenges } from './challenges';
+import { races } from './races';
 
 // ── Route registry (APPEND-ONLY) ───────────────────────────────────────────
 // The single place routes are mounted onto the app. Each slice adds ONE line
@@ -54,5 +55,6 @@ export function registerRoutes(app: Hono<AppEnv>): void {
   app.route('/voice', voice); // authed — mints Realtime ephemeral tokens
   app.route('/assistant', assistant); // authed
   app.route('/challenges', challenges); // authed
+  app.route('/races', races); // authed
   // ↑ add your slice's route here, one line.
 }

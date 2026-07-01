@@ -10,7 +10,10 @@ export type DomainEventName =
   | 'habit.checked'
   | 'reaction.added'
   | 'score.awarded'
-  | 'challenge.updated';
+  | 'challenge.updated'
+  | 'race.started'
+  | 'race.finished'
+  | 'race.lobby';
 
 export type DomainEventPayloads = {
   'run.logged': { userId: string; runId: string; runDate: string; distanceMeters: number };
@@ -23,9 +26,16 @@ export type DomainEventPayloads = {
   };
   'score.awarded': { userId: string; points: number; reason: ScoreReason; eventDate: string };
   'challenge.updated': { challengeId: string; userId?: string };
+  'race.started': { raceId: string; startAt: string };
+  'race.finished': { raceId: string; winnerId: string | null };
+  'race.lobby': { raceId: string };
 };
 
 // Realtime broadcast: one channel per group + a per-user channel. Events carry
 // WHAT changed (type + ids), never data — clients refetch via the normal API.
-export type RealtimeChannel = `group:${string}` | `user:${string}`;
+export type RealtimeChannel = `group:${string}` | `user:${string}` | `race:${string}`;
 export type RealtimeEvent = { type: DomainEventName; ids: Record<string, string> };
+
+export type RacePositionEvent = { kind: 'position'; userId: string; meters: number; ts: number };
+export type RaceReactionEvent = { kind: 'reaction'; userId: string; emoji: string };
+export type RaceChannelEvent = RacePositionEvent | RaceReactionEvent;

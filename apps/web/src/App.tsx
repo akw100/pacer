@@ -7,6 +7,10 @@ import Home from './screens/Home'
 import Progress from './screens/Progress'
 import Group from './screens/Group'
 import Challenges from './screens/Challenges'
+import RacesPage from './features/races/RacesPage'
+import LobbyScreen from './features/races/LobbyScreen'
+import RaceScreen from './features/races/RaceScreen'
+import ResultScreen from './features/races/ResultScreen'
 import Planning from './screens/Planning'
 import Frames from './screens/Frames'
 import Profile from './screens/Profile'
@@ -100,6 +104,10 @@ const router = createBrowserRouter([
       { path: 'progress', element: <Progress /> },
       { path: 'group', element: <Group /> },
       { path: 'challenges', element: <Challenges /> },
+      { path: 'races', element: <RacesPage /> },
+      { path: 'races/:id/lobby', element: <LobbyScreen /> },
+      { path: 'races/:id', element: <RaceScreen /> },
+      { path: 'races/:id/result', element: <ResultScreen /> },
       { path: 'planning', element: <Planning /> },
       { path: 'flows', element: <Frames /> },
       { path: 'profile', element: <Profile /> },
