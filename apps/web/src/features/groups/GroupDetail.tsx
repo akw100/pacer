@@ -6,6 +6,7 @@ import { useGroupDetail, useGroupFeed, useGroupRealtime, useGroupStats } from '.
 import { LeaderboardCard } from './LeaderboardCard';
 import { LeaderCallout } from './LeaderCallout';
 import { GroupMemberContributionChart } from './GroupMemberContributionChart';
+import { GroupWeeklyTotalsChart } from './GroupWeeklyTotalsChart';
 import { YouVsGroupCard } from './YouVsGroupCard';
 import { FeedCard } from './FeedCard';
 import { MembersCard } from './MembersCard';
@@ -103,6 +104,7 @@ export function GroupDetail({ groupId, youUserId, units, onBack }: GroupDetailPr
       <div className="grid gap-5 md:grid-cols-2 items-start">
         <div className="flex flex-col gap-5">
           <LeaderCallout stats={stats.data} youUserId={youUserId} />
+          <GroupWeeklyTotalsChart stats={stats.data} units={units} />
           <GroupMemberContributionChart
             stats={stats.data}
             youUserId={youUserId}
