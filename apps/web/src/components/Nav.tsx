@@ -49,7 +49,11 @@ export default function Nav() {
       {/* Desktop sidebar */}
       <aside className="hidden md:flex fixed left-0 inset-y-0 w-56 flex-col bg-panel border-r border-border z-10 p-4 gap-1">
         <span className="font-display font-bold text-xl text-ink px-3 py-2 mb-4">Pacer</span>
-        {tabs.map(({ to, label, Icon }) => (
+        {/* Render every tab EXCEPT Profile — Profile is pinned as the last
+            regular app-screen entry, below Coach. Mobile is unaffected: the
+            mobile bar reads the FULL `tabs` array via .slice(0, 2) / .slice(2)
+            below, so Profile stays at its existing rightmost slot there. */}
+        {tabs.filter(({ to }) => to !== '/profile').map(({ to, label, Icon }) => (
           <NavLink
             key={to}
             to={to}
@@ -83,6 +87,21 @@ export default function Nav() {
         >
           <Sparkles size={18} strokeWidth={1.8} />
           Coach
+        </NavLink>
+
+        {/* Profile — pinned last among regular app screens on desktop only. */}
+        <NavLink
+          to="/profile"
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-3 py-2.5 rounded-card text-sm transition-colors ${
+              isActive
+                ? 'bg-accent/10 text-accent font-medium'
+                : 'text-ink hover:bg-ink/5'
+            }`
+          }
+        >
+          <User size={18} strokeWidth={1.8} />
+          Profile
         </NavLink>
 
         {/* Link to the public marketing landing page (also the logged-out root). */}
