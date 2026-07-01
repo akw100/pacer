@@ -72,21 +72,37 @@ async function fanOutToGroup(groupId: string, ids: Record<string, string>, type:
 
 export const groups = new Hono<AppEnv>()
 
-  // List groups the current user belongs to (with member count).
+  // List groups the current user belongs to (with member count). Archived
+  // groups (soft-delete via `archived_at`, migration 0014_groups_archive)
+  // are excluded from this listing — history (feed / stats / tagged
+  // runs & workouts / goals) is preserved on the DB; only the surface
+  // changes.
   .get('/', async (c) => {
     const userId = c.get('userId');
     const svc = serviceClient();
     const { data: memberships, error } = await svc
       .from('group_members')
-      .select('group_id, groups!inner(id, name, join_code, owner_id, created_at)')
+      .select('group_id, groups!inner(id, name, join_code, owner_id, archived_at, created_at)')
       .eq('user_id', userId);
     if (error) return c.json({ error: error.message }, 400);
 
     type Row = {
       group_id: string;
-      groups: { id: string; name: string; join_code: string; owner_id: string; created_at: string };
+      groups: {
+        id: string;
+        name: string;
+        join_code: string;
+        owner_id: string;
+        archived_at: string | null;
+        created_at: string;
+      };
     };
-    const groupsList = ((memberships ?? []) as unknown as Row[]).map((r) => r.groups);
+    const groupsList = ((memberships ?? []) as unknown as Row[])
+      .map((r) => r.groups)
+      // Filter in JS instead of the join clause — supabase-js v2 filters on
+      // `!inner` joined columns are fragile; JS filter is unambiguous and
+      // the list is always small (family-scale groups).
+      .filter((g) => g.archived_at === null);
 
     // Member counts in one roundtrip via grouped count.
     const ids = groupsList.map((g) => g.id);
@@ -193,6 +209,47 @@ export const groups = new Hono<AppEnv>()
 
     const svc = serviceClient();
     const { data, error } = await svc.from('groups').update(patch).eq('id', id).select('*').single();
+    if (error) return c.json({ error: error.message }, 400);
+    return c.json(data);
+  })
+
+  // Owner-only soft archive. Sets `archived_at = now()`; the group drops
+  // out of `GET /` and Home pulse but every downstream row (members,
+  // reactions, tagged runs/workouts, group goals) stays intact. Idempotent
+  // — archiving an already-archived group is a no-op.
+  .patch('/:id/archive', async (c) => {
+    const userId = c.get('userId');
+    const id = c.req.param('id');
+    const check = await assertOwner(id, userId);
+    if (!check.ok) return c.json({ error: check.reason === '404' ? 'Not found' : 'Forbidden' }, check.reason === '404' ? 404 : 403);
+
+    const svc = serviceClient();
+    const { data, error } = await svc
+      .from('groups')
+      .update({ archived_at: new Date().toISOString() })
+      .eq('id', id)
+      .select('*')
+      .single();
+    if (error) return c.json({ error: error.message }, 400);
+    return c.json(data);
+  })
+
+  // Owner-only restore. Clears `archived_at` back to NULL so the group
+  // reappears in listings. History was preserved during archive so there's
+  // nothing to rebuild.
+  .patch('/:id/restore', async (c) => {
+    const userId = c.get('userId');
+    const id = c.req.param('id');
+    const check = await assertOwner(id, userId);
+    if (!check.ok) return c.json({ error: check.reason === '404' ? 'Not found' : 'Forbidden' }, check.reason === '404' ? 404 : 403);
+
+    const svc = serviceClient();
+    const { data, error } = await svc
+      .from('groups')
+      .update({ archived_at: null })
+      .eq('id', id)
+      .select('*')
+      .single();
     if (error) return c.json({ error: error.message }, 400);
     return c.json(data);
   })
