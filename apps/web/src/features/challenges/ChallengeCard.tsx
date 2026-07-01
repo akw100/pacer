@@ -32,10 +32,19 @@ export function ChallengeCard({ challenge, units, youUserId, onOpen }: Challenge
   const thumb = challenge.youtube_url ? youTubeThumbnailUrl(challenge.youtube_url) : null;
 
   return (
-    <button
-      type="button"
+    // A card holds a list + headings (flow content), so it can't be a <button>.
+    // Use a focusable role="button" with keyboard activation instead.
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() => onOpen(challenge)}
-      className="w-full text-left rounded-card border border-border bg-surface p-4 shadow-sm flex flex-col gap-3 active:scale-[0.99] transition-transform"
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onOpen(challenge);
+        }
+      }}
+      className="w-full text-left rounded-card border border-border bg-surface p-4 shadow-sm flex flex-col gap-3 cursor-pointer active:scale-[0.99] transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
     >
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -115,7 +124,7 @@ export function ChallengeCard({ challenge, units, youUserId, onOpen }: Challenge
           ))}
         </ol>
       )}
-    </button>
+    </div>
   );
 }
 
