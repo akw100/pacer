@@ -7,6 +7,7 @@ import { LeaderboardCard } from './LeaderboardCard';
 import { LeaderCallout } from './LeaderCallout';
 import { GroupMemberContributionChart } from './GroupMemberContributionChart';
 import { GroupWeeklyTotalsChart } from './GroupWeeklyTotalsChart';
+import { ScoreExplainerCard } from '../scoring/ScoreExplainerCard';
 import { YouVsGroupCard } from './YouVsGroupCard';
 import { FeedCard } from './FeedCard';
 import { MembersCard } from './MembersCard';
@@ -119,6 +120,7 @@ export function GroupDetail({ groupId, youUserId, units, onBack }: GroupDetailPr
           <YouVsGroupCard stats={stats.data} units={units} />
         </div>
         <div className="flex flex-col gap-5">
+          <ScoreExplainerCard mode="rules-only" />
           <FeedCard
             groupId={group.id}
             items={feed.data}
