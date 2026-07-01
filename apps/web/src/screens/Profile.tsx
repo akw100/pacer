@@ -112,7 +112,9 @@ export default function Profile() {
             Landing page
           </Link>
           {/* The pitch deck is a static open-slide build served outside the SPA at
-              /presentation/, so it's a plain anchor (not a react-router Link). */}
+              /presentation/, so it's a plain anchor (not a react-router Link).
+              (Bare /presentation/ works in production; local Vite dev rewrites it
+              to the app shell — use the deck dev server on :5273 to preview.) */}
           <a
             href="/presentation/"
             target="_blank"
