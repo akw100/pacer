@@ -70,4 +70,23 @@ html.dark {
   label[for] {
     cursor: pointer;
   }
+
+  /* Our numeric fields (distance, mm:ss, sleep) are narrow; the browser's
+     native spin buttons overlap the value. Hide them — steppers aren't needed. */
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type='number'] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
+  /* Vaul draws an ::after overscroll fill below the sheet; on the centered
+     desktop modal it reads as a detached white strip under the panel. Drop it
+     (off-screen on the mobile bottom sheet, so nothing visible is lost). */
+  [data-vaul-drawer]::after {
+    display: none;
+  }
 }

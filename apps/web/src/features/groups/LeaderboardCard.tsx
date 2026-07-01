@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { metersToDisplayDistance, type Units } from '@pacer/shared';
 import type { GroupStats, LeaderboardRow } from './useGroups';
+import { colorFor } from './memberColors';
 
 type Metric = 'score' | 'km' | 'runs';
 
@@ -11,6 +12,13 @@ interface LeaderboardCardProps {
   units: Units;
 }
 
+// v1 visual pass — the ordered list is now a horizontal bar chart: each row
+// keeps its identity (rank + avatar + name + value) and gains a proportional
+// bar-fill background sized against the max metric value across the FULL
+// leaderboard. Truncated top-9 + "you" if you rank outside so the caller can
+// always spot themselves in the chart. Empty-state copy is unchanged.
+const VISIBLE_ROWS = 10;
+
 export function LeaderboardCard({ stats, loading, youUserId, units }: LeaderboardCardProps) {
   const [metric, setMetric] = useState<Metric>('score');
 
@@ -18,6 +26,20 @@ export function LeaderboardCard({ stats, loading, youUserId, units }: Leaderboar
   if (!stats) return null;
 
   const sorted = sortByMetric(stats.leaderboard, metric);
+  const withRank = sorted.map((r, i) => ({ ...r, rank: i + 1 }));
+
+  // Always keep "you" visible in the chart: if the caller ranks outside the
+  // top-N, drop the last visible row and pin the caller's row at the bottom.
+  const topN = withRank.slice(0, VISIBLE_ROWS);
+  const youInTop = youUserId != null && topN.some((r) => r.user_id === youUserId);
+  const youOutsideRow =
+    youUserId != null && !youInTop ? withRank.find((r) => r.user_id === youUserId) : undefined;
+  const display =
+    youOutsideRow != null ? [...topN.slice(0, VISIBLE_ROWS - 1), youOutsideRow] : topN;
+
+  // Scale the bars against the FULL leaderboard's max — not just what's
+  // visible — so the gap between you and the leader stays honest.
+  const maxValue = Math.max(0, ...withRank.map((r) => valueOf(r, metric)));
 
   return (
     <section
@@ -37,13 +59,33 @@ export function LeaderboardCard({ stats, loading, youUserId, units }: Leaderboar
         </p>
       ) : (
         <ol role="list" className="flex flex-col gap-1.5">
-          {sorted.map((row, i) => (
-            <Row key={row.user_id} row={row} rank={i + 1} you={row.user_id === youUserId} metric={metric} units={units} />
+          {display.map((row) => (
+            <Row
+              key={row.user_id}
+              row={row}
+              rank={row.rank}
+              you={row.user_id === youUserId}
+              metric={metric}
+              units={units}
+              maxValue={maxValue}
+            />
           ))}
+          {youOutsideRow && (
+            <p
+              className="text-[11px] text-ink-muted text-center mt-1"
+              aria-live="polite"
+            >
+              Rows {VISIBLE_ROWS}–{withRank.length - 1} hidden — your row is pinned so you can find yourself.
+            </p>
+          )}
         </ol>
       )}
     </section>
   );
+}
+
+function valueOf(row: LeaderboardRow, metric: Metric): number {
+  return row[metricKey(metric)];
 }
 
 function sortByMetric(rows: LeaderboardRow[], metric: Metric): LeaderboardRow[] {
@@ -79,37 +121,64 @@ function Row({
   you,
   metric,
   units,
+  maxValue,
 }: {
   row: LeaderboardRow;
   rank: number;
   you: boolean;
   metric: Metric;
   units: Units;
+  maxValue: number;
 }) {
+  const value = valueOf(row, metric);
+  const pct = maxValue > 0 ? Math.min(100, (value / maxValue) * 100) : 0;
+  // v2 visual pass: bar fill is `bg-accent/15` for the viewer's row and a
+  // deterministic per-member color at low opacity for everyone else. Same
+  // color also drives a small chip next to the name so identity carries
+  // even when the bar is tiny. See features/groups/memberColors.ts.
+  const memberColor = you ? null : colorFor(row.user_id);
   return (
     <li
-      className={`flex items-center gap-3 rounded-card border px-3 py-2 ${
-        you ? 'border-accent/40 bg-accent/5' : 'border-border bg-surface'
+      className={`relative flex items-center gap-3 rounded-card border px-3 py-2 overflow-hidden ${
+        you ? 'border-accent/40' : 'border-border'
       }`}
+      aria-label={`Rank ${rank}, ${you ? 'You' : row.display_name}, ${metricLabel(row, metric, units)} ${metricUnit(metric, units)}`}
     >
+      {/* Proportional bar-fill background. Honest: value 0 renders nothing. */}
+      <div
+        aria-hidden="true"
+        className={`absolute inset-y-0 left-0 transition-[width] duration-500 ${
+          you ? 'bg-accent/15' : ''
+        }`}
+        style={{
+          width: `${pct}%`,
+          ...(memberColor ? { backgroundColor: `${memberColor}22` } : {}),
+        }}
+      />
       <span
-        aria-label={`Rank ${rank}`}
-        className={`grid place-items-center w-7 h-7 rounded-pill text-xs font-bold ${
+        aria-hidden="true"
+        className={`relative z-10 grid place-items-center w-7 h-7 rounded-pill text-xs font-bold ${
           rank === 1 ? 'bg-streak/15 text-streak' : 'bg-ink/5 text-ink-muted'
         }`}
       >
         {rank}
       </span>
-      <span aria-hidden="true" className="text-base leading-none">
+      <span aria-hidden="true" className="relative z-10 text-base leading-none">
         {row.avatar_emoji ?? '🏃'}
       </span>
-      <div className="flex-1 min-w-0">
-        <div className={`text-sm truncate ${you ? 'font-semibold text-ink' : 'text-ink'}`}>
-          {you ? 'You' : row.display_name}
+      <div className="relative z-10 flex-1 min-w-0">
+        <div className={`text-sm truncate flex items-center gap-1.5 ${you ? 'font-semibold text-ink' : 'text-ink'}`}>
+          {/* Per-member color chip — solid at 100% so it reads at any bar width. */}
+          <span
+            aria-hidden="true"
+            className="inline-block w-1.5 h-1.5 rounded-full shrink-0"
+            style={{ backgroundColor: you ? 'var(--color-accent)' : memberColor! }}
+          />
+          <span className="truncate">{you ? 'You' : row.display_name}</span>
         </div>
         <div className="text-xs text-ink-muted truncate">@{row.handle}</div>
       </div>
-      <span className="font-display text-base font-bold text-ink tabular-nums">
+      <span className="relative z-10 font-display text-base font-bold text-ink tabular-nums">
         {metricLabel(row, metric, units)}
         <span className="text-xs text-ink-muted font-medium ml-1">{metricUnit(metric, units)}</span>
       </span>
