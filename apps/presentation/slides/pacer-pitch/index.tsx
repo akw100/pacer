@@ -187,37 +187,7 @@ const Cover: Page = () => (
   </div>
 );
 
-// ═══ 2. Agenda ════════════════════════════════════════════════════════════════
-const AgendaItem = ({ n, t, s, delay }: { n: string; t: string; s: string; delay: number }) => (
-  <div className="pc-up" style={{ animationDelay: `${delay}s`, display: 'flex', gap: 22, alignItems: 'flex-start' }}>
-    <span style={{ ...display, fontSize: 34, color: CORAL, minWidth: 56 }}>{n}</span>
-    <div>
-      <div style={{ fontSize: 34, fontWeight: 700, color: INK }}>{t}</div>
-      <div style={{ fontSize: 23, color: MUTED, marginTop: 4 }}>{s}</div>
-    </div>
-  </div>
-);
-
-const Agenda: Page = () => (
-  <div style={fill}>
-    <Warmth />
-    <div style={{ position: 'absolute', inset: 0, padding: '120px 150px', display: 'flex', flexDirection: 'column' }}>
-      <Eyebrow className="pc-up">The plan</Eyebrow>
-      <h2 className="pc-up" style={{ ...heading, animationDelay: '0.08s', marginTop: 16 }}>What we'll walk through</h2>
-      <div style={{ marginTop: 66, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px 110px' }}>
-        <AgendaItem n="01" t="The problem" s="Why a family's data never comes together" delay={0.18} />
-        <AgendaItem n="02" t="The idea" s="Everything in one place — yours and theirs" delay={0.26} />
-        <AgendaItem n="03" t="A look inside" s="What Pacer actually does today" delay={0.34} />
-        <AgendaItem n="04" t="Under the hood" s="The architecture & the data model" delay={0.42} />
-        <AgendaItem n="05" t="How we built it" s="Our process — and who did what" delay={0.5} />
-        <AgendaItem n="06" t="What's next" s="The features still on the way" delay={0.58} />
-      </div>
-    </div>
-    <PageNum />
-  </div>
-);
-
-// ═══ 3. The problem ═══════════════════════════════════════════════════════════
+// ═══ 2. The problem ═══════════════════════════════════════════════════════════
 const SiloCard = ({ emoji, app, owner, delay }: { emoji: string; app: string; owner: string; delay: number }) => (
   <div className="pc-up" style={{ ...card, animationDelay: `${delay}s`, flex: 1, padding: '34px 22px', display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'center', textAlign: 'center' }}>
     <span style={{ fontSize: 64 }}>{emoji}</span>
@@ -428,8 +398,8 @@ const Demo: Page = () => (
         <Eyebrow className="pc-up">Live demo</Eyebrow>
         <h2 className="pc-up" style={{ ...heading, animationDelay: '0.08s', marginTop: 14, fontSize: 100 }}>Let's open it.</h2>
         <p className="pc-up" style={{ animationDelay: '0.18s', marginTop: 26, fontSize: 32, lineHeight: 1.5, color: INK, maxWidth: 640 }}>
-          No app to install — Pacer is just a website that works on any phone or laptop, and you can
-          log straight from Telegram. Here's home — let's switch to the live app.
+          Nothing to install — Pacer runs in any browser, on any phone or laptop, and you can log a
+          run straight from Telegram. Enough slides — let's open the real thing.
         </p>
         <a className="pc-up" href="https://pacer-web-production-b697.up.railway.app/" target="_blank" rel="noopener noreferrer" style={{ animationDelay: '0.3s', marginTop: 34, display: 'inline-flex', alignItems: 'center', gap: 12, background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 999, padding: '14px 24px', fontSize: 23, fontWeight: 600, color: INK, textDecoration: 'none', boxShadow: '0 18px 36px -26px rgba(31,39,51,0.3)' }}>
           <span style={{ fontSize: 24 }}>🔗</span> pacer-web-production-b697.up.railway.app
@@ -554,15 +524,21 @@ const DataModel: Page = () => (
           <TableChip name="plan_runs" />
           <TableChip name="workout_plans" />
           <TableChip name="workout_plan_slots" />
+          <TableChip name="video_routines" />
         </GroupCard>
         <GroupCard emoji="👨‍👩‍👧" title="Social" accent={BLUE} delay={0.4}>
           <TableChip name="groups" />
           <TableChip name="group_members" />
+          <TableChip name="group_invites" />
+          <TableChip name="group_goals" />
+          <TableChip name="friendships" />
           <TableChip name="challenges" />
           <TableChip name="challenge_participants" />
           <TableChip name="reactions" />
         </GroupCard>
-        <GroupCard emoji="🧮" title="System" accent={INK} delay={0.48}>
+        <GroupCard emoji="🏁" title="Compete & system" accent={INK} delay={0.48}>
+          <TableChip name="races" />
+          <TableChip name="race_participants" />
           <TableChip name="score_events" />
           <TableChip name="telegram_links" />
         </GroupCard>
@@ -607,12 +583,12 @@ const Process: Page = () => (
 // ═══ 12. Who did what ═════════════════════════════════════════════════════════
 const Bullet = ({ children }: { children: ReactNode }) => (
   <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 20, lineHeight: 1.35, color: INK }}>
-    <span style={{ color: CORAL, marginTop: 1 }}>{''}</span>
+    <span style={{ color: CORAL, marginTop: 1 }}>{'•Deployment (Railway) '}</span>
     <span>{children}</span>
   </div>
 );
 
-const TeamCard = ({ emoji, name, role, tone, b1, b2, b3, b4, b5, b6, delay }: { emoji: string; name: string; role: string; tone: string; b1: string; b2: string; b3: string; b4: string; b5: string; b6?: string; delay: number }) => (
+const TeamCard = ({ emoji, name, role, tone, bullets, delay }: { emoji: string; name: string; role: string; tone: string; bullets: string[]; delay: number }) => (
   <div className="pc-up" style={{ ...card, animationDelay: `${delay}s`, flex: 1, padding: '26px 22px', display: 'flex', flexDirection: 'column', gap: 12 }}>
     <div style={{ width: 78, height: 78, borderRadius: 22, background: `${tone}1f`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }}>{emoji}</div>
     <div>
@@ -620,12 +596,7 @@ const TeamCard = ({ emoji, name, role, tone, b1, b2, b3, b4, b5, b6, delay }: { 
       <div style={{ fontSize: 18, fontWeight: 700, color: tone, marginTop: 2 }}>{role}</div>
     </div>
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <Bullet>{b1}</Bullet>
-      <Bullet>{b2}</Bullet>
-      <Bullet>{b3}</Bullet>
-      <Bullet>{b4}</Bullet>
-      <Bullet>{b5}</Bullet>
-      {b6 ? <Bullet>{b6}</Bullet> : null}
+      {bullets.map((b) => <Bullet key={b}>{b}</Bullet>)}
     </div>
   </div>
 );
@@ -637,10 +608,10 @@ const Team: Page = () => (
       <Eyebrow className="pc-up">The team</Eyebrow>
       <h2 className="pc-up" style={{ ...heading, animationDelay: '0.08s', marginTop: 14 }}>Who built what</h2>
       <div style={{ marginTop: 40, display: 'flex', gap: 24, alignItems: 'stretch' }}>
-        <TeamCard emoji="🧱" name="Ayelet" role="" tone={CORAL} b1="Repo, branches & workflow" b2="Web shell, theme & core UI" b3="Deployment (Railway)" b4="Dark mode" b5="Voice assistant" b6="YouTube workout flows" delay={0.18} />
-        <TeamCard emoji="🔌" name="Natan" role="" tone={BLUE} b1="API server foundation" b2="Database & auth wiring" b3="Google sign-in + onboarding" b4="Telegram logging bot" b5="Challenges (next up)" delay={0.28} />
-        <TeamCard emoji="⚙️" name="Omri" role="" tone={GREEN} b1="Schema + security rules" b2="Scoring engine & habits" b3="Records, calendar & habits" b4="Training plans" b5="Assistant tool layer" delay={0.38} />
-        <TeamCard emoji="📱" name="Shaked" role="" tone={AMBER} b1="Logging screens & charts" b2="Groups & leaderboard" b3="Realtime activity feed" b4="Community stats" b5="Onboarding & first-run flow" delay={0.48} />
+        <TeamCard emoji="🧱" name="Ayelet" role="" tone={CORAL} bullets={['Repo, branches & workflow', 'Web shell, theme & dark mode', 'Deployment (Railway)', 'Landing page & this deck', 'Code review — CodeRabbit', 'Voice + YouTube workout flows']} delay={0.18} />
+        <TeamCard emoji="🔌" name="Natan" role="" tone={BLUE} bullets={['API server foundation', 'Database, auth & Google sign-in', 'Telegram logging bot + commands', 'Challenges, end to end', 'Live races — the whole feature']} delay={0.28} />
+        <TeamCard emoji="⚙️" name="Omri" role="" tone={GREEN} bullets={['Schema + row-level security', 'Records & calendar', 'Running & workout plans', 'Planning screen + plans on Home']} delay={0.38} />
+        <TeamCard emoji="📱" name="Shaked" role="" tone={AMBER} bullets={['Logging screens & charts', 'Groups & live leaderboard', 'Realtime activity feed', 'Community stats', 'Pacer Coach — AI chat assistant']} delay={0.48} />
       </div>
       <div className="pc-up" style={{ animationDelay: '0.6s', marginTop: 30, fontSize: 24, color: MUTED, textAlign: 'center' }}>
         Four people, one flexible codebase — and we're just getting started.
@@ -665,13 +636,13 @@ const Next: Page = () => (
       <Eyebrow className="pc-up">What's next</Eyebrow>
       <h2 className="pc-up" style={{ ...heading, animationDelay: '0.08s', marginTop: 14 }}>We're just getting started.</h2>
       <div style={{ marginTop: 50, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 22 }}>
-        <NextChip emoji="✈️" label="Finish the Telegram bot" delay={0.16} />
-        <NextChip emoji="🎯" label="Challenges + YouTube" delay={0.22} />
-        <NextChip emoji="💬" label="In-app AI chat" delay={0.28} />
-        <NextChip emoji="🎙️" label="Hands-free voice" delay={0.34} />
-        <NextChip emoji="🌍" label="Community insights" delay={0.4} />
-        <NextChip emoji="🔁" label="Adaptive plans" delay={0.46} />
-        <NextChip emoji="⌚" label="Auto-import from your watch" delay={0.52} />
+        <NextChip emoji="⌚" label="Watch & Strava auto-import" delay={0.16} />
+        <NextChip emoji="🍎" label="Apple Health / Google Fit" delay={0.22} />
+        <NextChip emoji="🗺️" label="Route maps & GPS traces" delay={0.28} />
+        <NextChip emoji="🏅" label="Badges & achievements" delay={0.34} />
+        <NextChip emoji="🔔" label="Smart reminders & nudges" delay={0.4} />
+        <NextChip emoji="📱" label="Native iOS & Android apps" delay={0.46} />
+        <NextChip emoji="🔁" label="Adaptive training plans" delay={0.52} />
         <NextChip emoji="✨" label="…and more" delay={0.58} />
       </div>
       <div className="pc-up" style={{ animationDelay: '0.7s', marginTop: 46, fontSize: 27, color: MUTED, lineHeight: 1.45, maxWidth: 1400 }}>
@@ -728,7 +699,6 @@ export const meta: SlideMeta = {
 
 export default [
   Cover,
-  Agenda,
   Problem,
   Idea,
   Loop,
