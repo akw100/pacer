@@ -583,7 +583,7 @@ const Process: Page = () => (
 // ═══ 12. Who did what ═════════════════════════════════════════════════════════
 const Bullet = ({ children }: { children: ReactNode }) => (
   <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 20, lineHeight: 1.35, color: INK }}>
-    <span style={{ color: CORAL, marginTop: 1 }}>{'•Deployment (Railway) '}</span>
+    <span style={{ color: CORAL, marginTop: 1 }}>•</span>
     <span>{children}</span>
   </div>
 );
