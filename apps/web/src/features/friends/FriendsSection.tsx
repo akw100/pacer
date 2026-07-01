@@ -8,6 +8,7 @@ import {
   useFriendLookup,
   useFriendRemove,
   useFriendRequest,
+  useFriendRequestByEmail,
   useFriendsList,
   type FriendshipWithProfile,
 } from './useFriends';
@@ -21,6 +22,12 @@ import {
 // their own management screens in a follow-up.
 
 const HANDLE_REGEX = /^[a-z0-9_]{3,20}$/;
+// Deliberately conservative — the source of truth is the zod
+// `.email()` check that runs on the API. We only use this locally to
+// decide whether the user typed an email vs. a handle so we can send
+// them to the right endpoint. A false-positive here just routes to the
+// email endpoint, which will 400 if zod also rejects it.
+const EMAIL_HINT_REGEX = /^\S+@\S+\.\S+$/;
 
 export function FriendsSection() {
   const list = useFriendsList();
@@ -74,7 +81,7 @@ export function FriendsSection() {
           Friends
         </h2>
         <p className="text-xs text-ink-muted mt-1">
-          Add people by their @handle to compare your week with theirs.
+          Add people by @handle or email to compare your week with theirs.
         </p>
       </header>
 
@@ -180,32 +187,75 @@ export function FriendsSection() {
   );
 }
 
-// ── Add Friend (handle lookup + send request) ────────────────────────────
+// ── Add Friend (two-mode: @handle lookup OR email direct-send) ───────────
+//
+// Detection is based purely on whether the trimmed input looks like an
+// email address (contains "@" with something on either side + a dot).
+//   • Email  →  POST /friends/request-by-email (single round-trip; no
+//               separate lookup step because handles are semi-public
+//               but emails are not — we don't want to leak whether the
+//               address belongs to a Pacer user).
+//   • Handle →  GET /friends/lookup then POST /friends/request (two-step
+//               so we can show the target's display name for confirmation
+//               before sending — handles ARE semi-public, so the lookup
+//               response leaks nothing new).
+
+type AddResult =
+  | { kind: 'idle' }
+  | { kind: 'not-found' }
+  | { kind: 'found'; id: string; handle: string; display_name: string; avatar_emoji: string | null };
 
 function AddFriend() {
   const lookup = useFriendLookup();
   const request = useFriendRequest();
-  const [handle, setHandle] = useState('');
-  const [result, setResult] = useState<
-    | { kind: 'idle' }
-    | { kind: 'not-found' }
-    | { kind: 'found'; id: string; handle: string; display_name: string; avatar_emoji: string | null }
-  >({ kind: 'idle' });
+  const requestByEmail = useFriendRequestByEmail();
+  const [input, setInput] = useState('');
+  const [result, setResult] = useState<AddResult>({ kind: 'idle' });
 
-  // Accept everything a human might type when searching for a friend: bare
-  // handle ("ayelet"), @-prefixed handle ("@ayelet"), any uppercase mix
-  // ("@Ayelet"), and stray spaces. Strip a leading @, trim, and lowercase
-  // BEFORE validating against the backend's `^[a-z0-9_]{3,20}$` rule, so
-  // the "handles are 3–20 lowercase…" error no longer fires just because
-  // the user typed the leading @ or a capital letter. Validation still
-  // fires on genuinely-invalid input (e.g. "!!!") so the backend query is
-  // never sent a request it would reject.
-  const cleanHandle = handle.trim().replace(/^@+/, '').toLowerCase();
-  const isValid = HANDLE_REGEX.test(cleanHandle);
+  const trimmed = input.trim();
+  const looksLikeEmail = EMAIL_HINT_REGEX.test(trimmed);
 
-  async function doLookup() {
-    if (!isValid) {
-      toast.error('Handles are 3–20 lowercase letters, digits, or underscores');
+  // Handle branch: strip leading @, trim, lowercase before validating
+  // against the backend's `^[a-z0-9_]{3,20}$` rule so "@Ayelet" / "Ayelet"
+  // / "ayelet" all normalize identically.
+  const cleanHandle = trimmed.replace(/^@+/, '').toLowerCase();
+  const isValidHandle = HANDLE_REGEX.test(cleanHandle);
+
+  const searching = lookup.isPending || requestByEmail.isPending;
+
+  async function doSubmit() {
+    if (!trimmed) return;
+
+    if (looksLikeEmail) {
+      // Single-shot email flow: server resolves + creates the request
+      // in one call. Unknown emails come back as { status: "queued" }
+      // so we never leak Pacer membership.
+      try {
+        const res = await requestByEmail.mutateAsync({ email: trimmed });
+        if ('status' in res && res.status === 'queued') {
+          toast.success(
+            'Request sent if this email belongs to a Pacer user.',
+          );
+        } else {
+          toast.success('Friend request sent.');
+        }
+        setInput('');
+        setResult({ kind: 'idle' });
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 400) {
+          toast.error(err.message || "That email doesn't look right");
+        } else if (err instanceof ApiError && err.status === 409) {
+          toast.error('Already friends or request already exists');
+        } else {
+          toast.error(err instanceof Error ? err.message : 'Could not send request');
+        }
+      }
+      return;
+    }
+
+    // Handle flow: two-step so the caller can eyeball the display name.
+    if (!isValidHandle) {
+      toast.error('Enter an @handle or an email address');
       return;
     }
     try {
@@ -230,7 +280,7 @@ function AddFriend() {
     try {
       await request.mutateAsync({ user_id: targetId });
       toast.success(`Friend request sent to ${name}`);
-      setHandle('');
+      setInput('');
       setResult({ kind: 'idle' });
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
@@ -252,25 +302,25 @@ function AddFriend() {
           />
           <input
             type="text"
-            value={handle}
+            value={input}
             onChange={(e) => {
-              setHandle(e.target.value);
+              setInput(e.target.value);
               if (result.kind !== 'idle') setResult({ kind: 'idle' });
             }}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') void doLookup();
+              if (e.key === 'Enter') void doSubmit();
             }}
-            placeholder="@handle"
+            placeholder="@handle or email"
             className="w-full rounded-card border border-border bg-surface pl-9 pr-3 py-2 text-sm text-ink focus:outline-none focus:border-accent"
           />
         </div>
         <button
           type="button"
-          onClick={doLookup}
-          disabled={lookup.isPending || !handle}
+          onClick={doSubmit}
+          disabled={searching || !trimmed}
           className="rounded-pill bg-accent px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-accent/20 disabled:opacity-50"
         >
-          {lookup.isPending ? 'Searching…' : 'Find'}
+          {searching ? 'Sending…' : looksLikeEmail ? 'Send' : 'Find'}
         </button>
       </div>
 
