@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { WorkoutKindCountsSchema } from './workouts';
 
 // Friendships / accepted social graph.
 // Shape mirrors the `friendships` table created in 0005_friendships.sql.
@@ -97,6 +98,13 @@ export const FriendLeaderboardRowSchema = z.object({
   distance_meters: z.number().nonnegative(),
   runs: z.number().int().nonnegative(),
   workouts: z.number().int().nonnegative(),
+  /**
+   * Per-kind weekly workout counts for this row's user. Optional so old
+   * clients still parse a response where the server hasn't been rolled
+   * out yet. When present, `.workouts` equals the sum of these five —
+   * they're a breakdown of the same aggregation, not a separate source.
+   */
+  workout_kind_counts: WorkoutKindCountsSchema.optional(),
 });
 export type FriendLeaderboardRow = z.infer<typeof FriendLeaderboardRowSchema>;
 

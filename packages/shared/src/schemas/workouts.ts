@@ -2,6 +2,36 @@ import { z } from 'zod';
 
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
+// Single source of truth for the five workout kinds. Mirrors the DB
+// CHECK constraint on public.workouts.kind (see 0002_logging.sql). The
+// WorkoutCreateSchema.kind enum below and WorkoutKindCountsSchema both
+// derive from this const array so any future kind (or removal) lands in
+// exactly one place.
+export const WORKOUT_KINDS = ['strength', 'mobility', 'swim', 'bike', 'other'] as const;
+export type WorkoutKind = (typeof WORKOUT_KINDS)[number];
+
+/**
+ * Weekly workout counts bucketed by real `workouts.kind` values. Real
+ * zeros are legal (every field is nonnegative-int), so an all-zero
+ * object represents a member/friend with no workouts logged in the
+ * window — never a placeholder. Consumers should not synthesise this
+ * object; either the aggregation ran and returned real counts, or the
+ * whole field is omitted upstream.
+ */
+export const WorkoutKindCountsSchema = z.object({
+  strength: z.number().int().nonnegative(),
+  mobility: z.number().int().nonnegative(),
+  swim:     z.number().int().nonnegative(),
+  bike:     z.number().int().nonnegative(),
+  other:    z.number().int().nonnegative(),
+});
+export type WorkoutKindCounts = z.infer<typeof WorkoutKindCountsSchema>;
+
+/** All-zeros starting point for per-user aggregation loops. */
+export function emptyWorkoutKindCounts(): WorkoutKindCounts {
+  return { strength: 0, mobility: 0, swim: 0, bike: 0, other: 0 };
+}
+
 export const WorkoutSetInputSchema = z.object({
   exercise_name: z.string().min(1),
   sets:          z.number().int().positive(),

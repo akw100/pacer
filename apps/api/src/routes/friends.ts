@@ -2,8 +2,10 @@ import { Hono } from 'hono';
 import {
   FriendRequestInputSchema,
   HandleSchema,
+  emptyWorkoutKindCounts,
   scoreFor,
   WEEK_START,
+  WORKOUT_KINDS,
   type FriendLeaderboardRow,
   type FriendLookupResponse,
   type FriendProfile,
@@ -11,6 +13,7 @@ import {
   type FriendsListResponse,
   type Friendship,
   type FriendshipWithProfile,
+  type WorkoutKind,
 } from '@pacer/shared';
 import { startOfWeek, endOfWeek } from 'date-fns';
 import { z } from 'zod';
@@ -476,9 +479,14 @@ export const friends = new Hono<AppEnv>()
       .gte('run_date', weekStartKey)
       .lte('run_date', weekEndKey);
 
+    // `kind` is projected alongside user_id so we can derive
+    // workout_kind_counts in the same aggregation pass (§0002_logging
+    // CHECK constraint guarantees kind is one of the five values, so
+    // the switch below never falls through). No new query — same row
+    // set, one extra column.
     const { data: weekWorkouts } = await svc
       .from('workouts')
-      .select('user_id')
+      .select('user_id, kind')
       .in('user_id', participantIds)
       .gte('workout_date', weekStartKey)
       .lte('workout_date', weekEndKey);
@@ -507,6 +515,7 @@ export const friends = new Hono<AppEnv>()
         distance_meters: 0,
         runs: 0,
         workouts: 0,
+        workout_kind_counts: emptyWorkoutKindCounts(),
       });
     }
 
@@ -519,11 +528,18 @@ export const friends = new Hono<AppEnv>()
       row.runs += 1;
       row.score += scoreFor({ reason: 'run', distanceMeters: m });
     }
-    for (const w of (weekWorkouts ?? []) as { user_id: string }[]) {
+    for (const w of (weekWorkouts ?? []) as { user_id: string; kind: string }[]) {
       const row = rows.get(w.user_id);
       if (!row) continue;
       row.workouts += 1;
       row.score += scoreFor({ reason: 'workout' });
+      // The DB CHECK guarantees `kind` is one of WORKOUT_KINDS, but we
+      // guard defensively so an unexpected value (backfill, future
+      // migration) never explodes the aggregator — it silently drops
+      // instead of misclassifying.
+      if (row.workout_kind_counts && (WORKOUT_KINDS as readonly string[]).includes(w.kind)) {
+        row.workout_kind_counts[w.kind as WorkoutKind] += 1;
+      }
     }
 
     const leaderboard = [...rows.values()].sort(
