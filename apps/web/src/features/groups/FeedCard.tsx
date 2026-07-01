@@ -81,7 +81,8 @@ function FeedRow({
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-sm text-ink leading-snug">
-            <span className="font-semibold">{item.display_name}</span>{' '}
+            <span className="font-semibold">{item.display_name}</span>
+            <span className="text-ink-muted text-xs"> @{item.handle}</span>{' '}
             <span>{describeItem(item, units)}</span>
             <span className="text-ink-muted"> · {ago}</span>
           </p>

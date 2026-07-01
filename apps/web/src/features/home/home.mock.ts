@@ -40,6 +40,9 @@ export interface WeekProgress {
 export interface LeaderboardRow {
   id: string;
   name: string;
+  /** Optional @handle — rendered as secondary identity text under the
+   *  display name in the Home group pulse row. */
+  handle?: string;
   points: number;
   isYou?: boolean;
 }
