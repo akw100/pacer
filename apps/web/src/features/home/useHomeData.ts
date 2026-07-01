@@ -348,6 +348,7 @@ function computeGroupPulse(
   const top = stats.leaderboard.slice(0, 3).map((r) => ({
     id: r.user_id,
     name: r.display_name,
+    handle: r.handle,
     points: r.score,
     isYou: r.user_id === stats.you_vs_group.you?.user_id,
   }));
@@ -360,6 +361,7 @@ function computeGroupPulse(
     top.push({
       id: you.user_id,
       name: you.display_name,
+      handle: you.handle,
       points: you.score,
       isYou: true,
     });
