@@ -3,6 +3,7 @@ import { AlertCircle, LogIn, Plus, Sparkles } from 'lucide-react';
 import { FriendsStandingCard } from '../friends/FriendsStandingCard';
 import { AddFriendInline } from '../friends/AddFriendInline';
 import { ScoreExplainerCard } from '../scoring/ScoreExplainerCard';
+import { WorkoutKindLeaders } from '../scoring/WorkoutKindLeaders';
 import { useFriendsLeaderboard } from '../friends/useFriends';
 import { useAuth } from '../auth/AuthProvider';
 import { HomeHeader } from './HomeHeader';
@@ -77,6 +78,17 @@ export function HomeDashboard() {
         mode="with-leaderboard"
         leaderboard={friendsLb.data}
         callerId={callerId}
+      />
+
+      {/* Per-kind weekly winners across the caller's accepted-friends
+          set. Same useFriendsLeaderboard query — TanStack dedupes,
+          zero extra network. Returns null when no friend + caller has
+          any workouts in any kind, so the card doesn't show as a
+          placeholder shell. */}
+      <WorkoutKindLeaders
+        rows={friendsLb.data?.leaderboard ?? []}
+        callerId={callerId}
+        scope="Among your friends this week"
       />
 
       <HomePlansSection />

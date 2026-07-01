@@ -8,6 +8,7 @@ import { LeaderCallout } from './LeaderCallout';
 import { GroupMemberContributionChart } from './GroupMemberContributionChart';
 import { GroupWeeklyTotalsChart } from './GroupWeeklyTotalsChart';
 import { ScoreExplainerCard } from '../scoring/ScoreExplainerCard';
+import { WorkoutKindLeaders } from '../scoring/WorkoutKindLeaders';
 import { YouVsGroupCard } from './YouVsGroupCard';
 import { FeedCard } from './FeedCard';
 import { MembersCard } from './MembersCard';
@@ -110,6 +111,17 @@ export function GroupDetail({ groupId, youUserId, units, onBack }: GroupDetailPr
             stats={stats.data}
             youUserId={youUserId}
             units={units}
+          />
+          {/* Per-kind winners across this group's members. Uses the
+              stats.leaderboard rows already fetched above — same query,
+              no extra network — and shows only real group-tagged
+              workout counts (guaranteed by PR #100's shared_group_id
+              filter in computeGroupStats). Returns null on its own
+              when no member has any workouts in any kind this week. */}
+          <WorkoutKindLeaders
+            rows={stats.data?.leaderboard ?? []}
+            callerId={youUserId}
+            scope="In this group this week"
           />
           <LeaderboardCard
             stats={stats.data}
