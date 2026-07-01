@@ -94,7 +94,7 @@ export function ManageGroupSheet({
             </button>
           </header>
 
-          <div className="px-5 pb-6 flex flex-col gap-3">
+          <div className="px-5 pb-4 flex flex-col gap-3">
             {/* Owner: rename */}
             {isOwner && (
               <div className="rounded-card border border-border bg-surface p-4">

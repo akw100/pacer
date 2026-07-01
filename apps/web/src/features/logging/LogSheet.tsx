@@ -79,7 +79,7 @@ export function LogSheetMount({ units = 'km' }: LogSheetMountProps) {
       <Drawer.Portal>
         <Drawer.Overlay className="fixed inset-0 z-40 bg-ink/40" />
         <Drawer.Content
-          className="fixed inset-x-0 bottom-0 z-50 flex max-h-[90vh] flex-col rounded-t-card border border-border bg-surface md:left-1/2 md:right-auto md:bottom-auto md:top-1/2 md:max-h-[85vh] md:w-[28rem] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-card"
+          className="fixed inset-x-0 bottom-0 z-50 flex max-h-[90vh] flex-col rounded-t-card border border-border bg-surface md:left-1/2 md:right-auto md:bottom-auto md:top-1/2 md:w-[28rem] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-card"
           aria-describedby={undefined}
         >
           <Drawer.Title className="sr-only">Log activity</Drawer.Title>
@@ -97,7 +97,7 @@ export function LogSheetMount({ units = 'km' }: LogSheetMountProps) {
             </button>
           </header>
 
-          <div className="flex-1 overflow-y-auto px-5 pb-6 flex flex-col gap-4">
+          <div className="overflow-y-auto px-5 pb-4 flex flex-col gap-4 max-h-[calc(90vh-3.5rem)]">
             {tab !== 'habits' && (
               <GroupSelector value={sharedGroupId} onChange={handleShareChange} />
             )}
