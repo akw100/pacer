@@ -92,13 +92,20 @@ function LeaderRow({
       >
         {rank}
       </span>
-      <span
-        className={`flex-1 truncate text-sm ${
-          row.isYou ? 'text-ink font-semibold' : 'text-ink'
-        }`}
-      >
-        {row.isYou ? 'You' : row.name}
-      </span>
+      <div className="flex-1 min-w-0">
+        <div
+          className={`truncate text-sm ${
+            row.isYou ? 'text-ink font-semibold' : 'text-ink'
+          }`}
+        >
+          {row.isYou ? 'You' : row.name}
+        </div>
+        {row.handle && (
+          <div className="text-[10px] text-ink-muted truncate leading-tight">
+            @{row.handle}
+          </div>
+        )}
+      </div>
       <span className="font-display text-base font-bold text-ink tabular-nums">
         {row.points}
         <span className="text-xs text-ink-muted font-medium ml-1">pts</span>

@@ -5,6 +5,10 @@ import { openLogSheet } from '../logging/LogSheet';
 import { useGroupDetail, useGroupFeed, useGroupRealtime, useGroupStats } from './useGroups';
 import { LeaderboardCard } from './LeaderboardCard';
 import { LeaderCallout } from './LeaderCallout';
+import { GroupMemberContributionChart } from './GroupMemberContributionChart';
+import { GroupWeeklyTotalsChart } from './GroupWeeklyTotalsChart';
+import { ScoreExplainerCard } from '../scoring/ScoreExplainerCard';
+import { WorkoutKindLeaders } from '../scoring/WorkoutKindLeaders';
 import { YouVsGroupCard } from './YouVsGroupCard';
 import { FeedCard } from './FeedCard';
 import { MembersCard } from './MembersCard';
@@ -102,6 +106,23 @@ export function GroupDetail({ groupId, youUserId, units, onBack }: GroupDetailPr
       <div className="grid gap-5 md:grid-cols-2 items-start">
         <div className="flex flex-col gap-5">
           <LeaderCallout stats={stats.data} youUserId={youUserId} />
+          <GroupWeeklyTotalsChart stats={stats.data} units={units} />
+          <GroupMemberContributionChart
+            stats={stats.data}
+            youUserId={youUserId}
+            units={units}
+          />
+          {/* Per-kind winners across this group's members. Uses the
+              stats.leaderboard rows already fetched above — same query,
+              no extra network — and shows only real group-tagged
+              workout counts (guaranteed by PR #100's shared_group_id
+              filter in computeGroupStats). Returns null on its own
+              when no member has any workouts in any kind this week. */}
+          <WorkoutKindLeaders
+            rows={stats.data?.leaderboard ?? []}
+            callerId={youUserId}
+            scope="In this group this week"
+          />
           <LeaderboardCard
             stats={stats.data}
             loading={stats.isLoading}
@@ -111,6 +132,7 @@ export function GroupDetail({ groupId, youUserId, units, onBack }: GroupDetailPr
           <YouVsGroupCard stats={stats.data} units={units} />
         </div>
         <div className="flex flex-col gap-5">
+          <ScoreExplainerCard mode="rules-only" />
           <FeedCard
             groupId={group.id}
             items={feed.data}

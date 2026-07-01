@@ -1,14 +1,14 @@
 import { useMemo, useState } from 'react'
 import { CheckCircle2, Circle, Plus, Sparkles, Trash2, X } from 'lucide-react'
-import { scoreFor } from '@pacer/shared'
+import { scoreFor, toDateKey } from '@pacer/shared'
 import { toast } from 'sonner'
 import {
-  useCheckHabitToday,
+  useCheckHabit,
   useCreateHabit,
   useDeleteHabit,
+  useHabitChecksForDate,
   useHabits,
-  useTodayChecks,
-  useUncheckHabitToday,
+  useUncheckHabit,
 } from './useHabits'
 
 // HabitsSection — real data only. Reads habits from GET /habits and today's
@@ -21,10 +21,14 @@ const EMOJI_PALETTE = ['🧘', '🥗', '🥤', '😴', '📚', '💪', '🚶', '
 
 export default function HabitsSection() {
   const habits = useHabits()
-  const todayChecks = useTodayChecks()
+  // `todayKey` is the max the date picker will accept — future is blocked.
+  const todayKey = toDateKey(new Date())
+  const [selectedDate, setSelectedDate] = useState<string>(todayKey)
+  const isToday = selectedDate === todayKey
+  const checks = useHabitChecksForDate(selectedDate)
   const create = useCreateHabit()
-  const check = useCheckHabitToday()
-  const uncheck = useUncheckHabitToday()
+  const check = useCheckHabit(selectedDate)
+  const uncheck = useUncheckHabit(selectedDate)
   const remove = useDeleteHabit()
 
   const [adding, setAdding] = useState(false)
@@ -33,8 +37,8 @@ export default function HabitsSection() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
   const checkedIds = useMemo(
-    () => new Set((todayChecks.data ?? []).map((c) => c.habit_id)),
-    [todayChecks.data],
+    () => new Set((checks.data ?? []).map((c) => c.habit_id)),
+    [checks.data],
   )
   const rows = habits.data ?? []
   const total = rows.length
@@ -117,16 +121,45 @@ export default function HabitsSection() {
             Daily habits
           </h2>
           <p className="text-xs text-ink-muted mt-1">
-            Tap to mark complete today. Streak is shared with your weekly score.
+            Tap to mark complete for the selected day. Streak is shared with your weekly score.
           </p>
         </div>
         {total > 0 && (
           <span className="inline-flex items-center gap-1.5 rounded-pill bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent">
             <Sparkles size={12} strokeWidth={2} />
-            +{todayPoints} pts possible today
+            +{todayPoints} pts possible {isToday ? 'today' : 'on this day'}
           </span>
         )}
       </header>
+
+      {/* Date picker — default today, past dates allowed, future blocked
+          via max={todayKey}. Persists real habit_checks for the selected
+          date through the same PUT/DELETE API. */}
+      <div className="flex items-center gap-2">
+        <label htmlFor="habit-date" className="text-xs font-medium text-ink-muted shrink-0">
+          Day
+        </label>
+        <input
+          id="habit-date"
+          type="date"
+          value={selectedDate}
+          max={todayKey}
+          onChange={(e) => {
+            const next = e.target.value
+            if (next && next <= todayKey) setSelectedDate(next)
+          }}
+          className="rounded-pill border border-border bg-surface px-3 py-1.5 text-xs text-ink focus:outline-none focus:border-accent"
+        />
+        {!isToday && (
+          <button
+            type="button"
+            onClick={() => setSelectedDate(todayKey)}
+            className="rounded-pill border border-border bg-surface px-3 py-1.5 text-xs font-medium text-ink-muted hover:text-ink hover:bg-ink/5"
+          >
+            Today
+          </button>
+        )}
+      </div>
 
       {total === 0 && !adding && (
         <EmptyState onAdd={() => setAdding(true)} />

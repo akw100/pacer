@@ -58,6 +58,27 @@ export const workouts = new Hono<AppEnv>()
     return c.json(full ?? workout, 201);
   })
 
+  .patch('/:id', zValidator('json', WorkoutUpdateSchema), async (c) => {
+    const db = c.get('userClient');
+    const userId = c.get('userId');
+    const id = c.req.param('id');
+    const body = c.req.valid('json');
+    // Owner-only by construction: `.eq('user_id', userId)` + RLS on the
+    // workouts table. Sets aren't editable via this route (mirrors
+    // WorkoutUpdateSchema which omits `sets`). Score-events triggers on
+    // the DB handle any score recompute triggered by field changes.
+    const { data, error } = await db
+      .from('workouts')
+      .update(body)
+      .eq('id', id)
+      .eq('user_id', userId)
+      .select('*, workout_sets(*)')
+      .single();
+    if (error) return c.json({ error: error.message }, 400);
+    if (!data) return c.json({ error: 'Not found' }, 404);
+    return c.json(data);
+  })
+
   .delete('/:id', async (c) => {
     const db = c.get('userClient');
     const userId = c.get('userId');

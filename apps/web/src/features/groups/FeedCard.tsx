@@ -56,6 +56,16 @@ function FeedRow({
   units: Units;
 }) {
   const react = useReact(groupId);
+  // Track WHICH emoji is currently in flight so only that chip disables — the
+  // whole row shouldn't lock up when the mutation runs. `react.variables` is
+  // the last-fired input; combined with `isPending` this scopes the pending
+  // state to the chip the user actually clicked.
+  const pendingEmoji =
+    react.isPending &&
+    react.variables?.input.target_id === item.id &&
+    react.variables?.input.target_type === (item.kind === 'run' ? 'run' : 'workout')
+      ? react.variables.input.emoji
+      : null;
 
   function toggle(emoji: ReactionEmoji, on: boolean) {
     react.mutate({
@@ -81,7 +91,8 @@ function FeedRow({
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-sm text-ink leading-snug">
-            <span className="font-semibold">{item.display_name}</span>{' '}
+            <span className="font-semibold">{item.display_name}</span>
+            <span className="text-ink-muted text-xs"> @{item.handle}</span>{' '}
             <span>{describeItem(item, units)}</span>
             <span className="text-ink-muted"> · {ago}</span>
           </p>
@@ -93,13 +104,14 @@ function FeedRow({
           </div>
         </div>
       </div>
-      <div className="flex flex-wrap gap-2 pl-13">
+      <div className="flex flex-wrap gap-2 pl-12">
         {item.reactions.map((r) => (
           <ReactionButton
             key={r.emoji}
             emoji={r.emoji as ReactionEmoji}
             count={r.count}
             mine={r.reacted_by_me}
+            pending={pendingEmoji === r.emoji}
             onToggle={(on) => toggle(r.emoji as ReactionEmoji, on)}
           />
         ))}
@@ -123,26 +135,30 @@ function ReactionButton({
   emoji,
   count,
   mine,
+  pending,
   onToggle,
 }: {
   emoji: ReactionEmoji;
   count: number;
   mine: boolean;
+  pending: boolean;
   onToggle: (next: boolean) => void;
 }) {
   const label = emoji === '👏' ? 'Clap' : emoji === '🔥' ? 'Fire' : 'Strong';
   return (
     <button
       type="button"
-      aria-label={`${label} (${count})${mine ? ', added by you' : ''}`}
+      aria-label={`${label} (${count})${mine ? ', added by you' : ''}${pending ? ', saving' : ''}`}
+      aria-pressed={mine}
+      disabled={pending}
       onClick={() => onToggle(!mine)}
-      className={`inline-flex items-center gap-1 rounded-pill border px-2.5 py-1 text-xs font-medium transition-colors ${
+      className={`inline-flex items-center gap-1 rounded-pill border px-2.5 py-1 text-xs font-medium transition-all active:scale-95 disabled:opacity-60 disabled:cursor-wait ${
         mine
-          ? 'border-accent/40 bg-accent/10 text-accent'
-          : 'border-border bg-surface text-ink hover:bg-ink/5'
+          ? 'border-accent/40 bg-accent/10 text-accent hover:bg-accent/15'
+          : 'border-border bg-surface text-ink hover:border-accent/40 hover:bg-accent/5'
       }`}
     >
-      <span aria-hidden="true">{emoji}</span>
+      <span aria-hidden="true" className="text-base leading-none">{emoji}</span>
       <span className="tabular-nums">{count}</span>
     </button>
   );

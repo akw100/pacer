@@ -77,7 +77,7 @@ export function HistorySection({ units = 'km' }: HistorySectionProps) {
                 units={units}
                 onEdit={() => {
                   if (a.kind === 'run') openLogSheet({ tab: 'run', editRun: a.run });
-                  else toast.message('Edit a workout from the form (coming soon)');
+                  else openLogSheet({ tab: 'workout', editWorkout: a.workout });
                 }}
                 onDelete={() => setConfirmId(id)}
               />
