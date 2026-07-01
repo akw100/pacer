@@ -10,15 +10,23 @@ export const POINTS = {
   ALL_HABITS_BONUS: 2,
   PLAN_RUN_ON_SCHEDULE: 5,
   STREAK_7DAY: 10,
+  RACE_WIN: 15,
 } as const;
 
-export type ScoreReason =
-  | 'run'
-  | 'workout'
-  | 'habit'
-  | 'habit_day_bonus'
-  | 'plan_run'
-  | 'streak';
+// Single source for the reason enum: the TS union, the zod schema
+// (schemas/score-event.ts), and — kept in sync by hand — the score_events
+// reason CHECK constraint in the DB migrations. Append-only.
+export const SCORE_REASONS = [
+  'run',
+  'workout',
+  'habit',
+  'habit_day_bonus',
+  'plan_run',
+  'streak',
+  'race_win',
+] as const;
+
+export type ScoreReason = (typeof SCORE_REASONS)[number];
 
 export type ScoreInput =
   | { reason: 'run'; distanceMeters: number }
@@ -26,7 +34,8 @@ export type ScoreInput =
   | { reason: 'habit' }
   | { reason: 'habit_day_bonus' }
   | { reason: 'plan_run' }
-  | { reason: 'streak' };
+  | { reason: 'streak' }
+  | { reason: 'race_win' };
 
 /** Pure. run = base + floor(km) * per_km; everything else is a flat constant. */
 export function scoreFor(input: ScoreInput): number {
@@ -43,5 +52,7 @@ export function scoreFor(input: ScoreInput): number {
       return POINTS.PLAN_RUN_ON_SCHEDULE;
     case 'streak':
       return POINTS.STREAK_7DAY;
+    case 'race_win':
+      return POINTS.RACE_WIN;
   }
 }

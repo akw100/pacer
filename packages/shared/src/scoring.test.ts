@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { scoreFor, POINTS } from './scoring';
+import { scoreFor, POINTS, SCORE_REASONS } from './scoring';
+import { ScoreEventSchema } from './schemas/score-event';
 
 test('run = base + floor(km) * per_km', () => {
   assert.equal(scoreFor({ reason: 'run', distanceMeters: 5000 }), 15); // 10 + 5
@@ -26,5 +27,28 @@ test('POINTS match the §6 table', () => {
     ALL_HABITS_BONUS: 2,
     PLAN_RUN_ON_SCHEDULE: 5,
     STREAK_7DAY: 10,
+    RACE_WIN: 15,
   });
+});
+
+test('a race win is worth RACE_WIN points', () => {
+  assert.equal(scoreFor({ reason: 'race_win' }), POINTS.RACE_WIN);
+  assert.equal(POINTS.RACE_WIN, 15);
+});
+
+// Guards the drift that let 'race_win' land in the DB but not the zod enum.
+test('ScoreEventSchema accepts every SCORE_REASONS value', () => {
+  for (const reason of SCORE_REASONS) {
+    const parsed = ScoreEventSchema.safeParse({
+      id: '00000000-0000-0000-0000-000000000000',
+      userId: '00000000-0000-0000-0000-000000000000',
+      points: 10,
+      reason,
+      sourceType: 'run',
+      sourceId: 'x',
+      eventDate: '2026-07-01',
+      createdAt: '2026-07-01T00:00:00.000Z',
+    });
+    assert.ok(parsed.success, `reason '${reason}' should parse`);
+  }
 });

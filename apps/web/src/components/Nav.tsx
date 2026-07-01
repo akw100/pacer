@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router'
-import { Home, BarChart2, Users, Trophy, User, Plus, Clapperboard, Sparkles, CalendarRange } from 'lucide-react'
+import { Home, BarChart2, Users, Trophy, User, Plus, Clapperboard, Sparkles, Swords, CalendarRange } from 'lucide-react'
 import { openLogSheet } from '../features/logging/LogSheet'
 
 const tabs = [
@@ -7,6 +7,7 @@ const tabs = [
   { to: '/progress', label: 'Progress', Icon: BarChart2 },
   { to: '/group', label: 'Group', Icon: Users },
   { to: '/challenges', label: 'Challenges', Icon: Trophy },
+  { to: '/races', label: 'Races', Icon: Swords },
   { to: '/planning', label: 'Planning', Icon: CalendarRange },
   { to: '/flows', label: 'Flows', Icon: Clapperboard },
   { to: '/profile', label: 'Profile', Icon: User },
@@ -65,6 +66,24 @@ export default function Nav() {
             {label}
           </NavLink>
         ))}
+
+        {/* Desktop-only Coach entry. Kept outside the shared `tabs` array so
+            the mobile bottom bar stays at its current 8 tabs — Coach is also
+            reachable from anywhere via the floating "Ask Coach" pill
+            (CoachLauncher). */}
+        <NavLink
+          to="/coach"
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-3 py-2.5 rounded-card text-sm transition-colors ${
+              isActive
+                ? 'bg-accent/10 text-accent font-medium'
+                : 'text-ink hover:bg-ink/5'
+            }`
+          }
+        >
+          <Sparkles size={18} strokeWidth={1.8} />
+          Coach
+        </NavLink>
 
         {/* Link to the public marketing landing page (also the logged-out root). */}
         <NavLink

@@ -431,15 +431,15 @@ const Demo: Page = () => (
           No app to install — Pacer is just a website that works on any phone or laptop, and you can
           log straight from Telegram. Here's home — let's switch to the live app.
         </p>
-        <a className="pc-up" href="https://pacer-web-production.up.railway.app/" target="_blank" rel="noopener noreferrer" style={{ animationDelay: '0.3s', marginTop: 34, display: 'inline-flex', alignItems: 'center', gap: 12, background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 999, padding: '14px 24px', fontSize: 23, fontWeight: 600, color: INK, textDecoration: 'none', boxShadow: '0 18px 36px -26px rgba(31,39,51,0.3)' }}>
-          <span style={{ fontSize: 24 }}>🔗</span> pacer-web-production.up.railway.app
+        <a className="pc-up" href="https://pacer-web-production-b697.up.railway.app/" target="_blank" rel="noopener noreferrer" style={{ animationDelay: '0.3s', marginTop: 34, display: 'inline-flex', alignItems: 'center', gap: 12, background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 999, padding: '14px 24px', fontSize: 23, fontWeight: 600, color: INK, textDecoration: 'none', boxShadow: '0 18px 36px -26px rgba(31,39,51,0.3)' }}>
+          <span style={{ fontSize: 24 }}>🔗</span> pacer-web-production-b697.up.railway.app
         </a>
       </div>
 
       {/* Phone — live preview of the real production site */}
       <div className="pc-pop" style={{ animationDelay: '0.2s', width: 372, height: 744, background: '#FAF8F5', border: `1px solid ${BORDER}`, borderRadius: 52, padding: 14, boxShadow: '0 50px 90px -40px rgba(31,39,51,0.45)', display: 'flex', flexShrink: 0, overflow: 'hidden' }}>
         <iframe
-          src="https://pacer-web-production.up.railway.app/"
+          src="https://pacer-web-production-b697.up.railway.app/"
           title="Pacer — live production site"
           loading="lazy"
           style={{ width: '100%', height: '100%', border: 'none', borderRadius: 40, background: '#FAF8F5' }}
@@ -696,7 +696,7 @@ const Closing: Page = () => (
         Thanks — now let's go log a run. 🏃
       </p>
       <div className="pc-up" style={{ animationDelay: '0.34s', marginTop: 36, display: 'inline-flex', alignItems: 'center', gap: 12, background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 999, padding: '14px 26px', fontSize: 23, fontWeight: 600, color: INK, boxShadow: '0 18px 36px -26px rgba(31,39,51,0.3)' }}>
-        <span style={{ fontSize: 24 }}>🔗</span> pacer-web-production.up.railway.app
+        <span style={{ fontSize: 24 }}>🔗</span> pacer-web-production-b697.up.railway.app
       </div>
     </div>
   </div>

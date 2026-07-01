@@ -15,7 +15,63 @@ on('workout.logged', async ({ userId, workoutId, workoutDate }) => {
 on('habit.checked', async ({ userId, habitCheckId, checkDate }) => {
   const points = scoreFor({ reason: 'habit' });
   await awardScore(userId, points, 'habit', 'habit', habitCheckId, checkDate);
+  await maybeAwardHabitDayBonus(userId, checkDate);
 });
+
+type BonusAward = {
+  points: number;
+  reason: ScoreReason;
+  sourceType: string;
+  sourceId: string;
+  eventDate: string;
+};
+
+/**
+ * §6 "all habits in a day" +2 bonus — the payload to write when every one of the
+ * user's habits is checked for `checkDate`, else null. Pure so the rule is
+ * unit-tested without a DB. Keyed on the day; source_id carries userId because
+ * score_events is unique on (reason, source_type, source_id) with no user_id.
+ */
+export function habitDayBonusAward(
+  userId: string,
+  checkDate: string,
+  totalHabits: number,
+  checkedToday: number,
+): BonusAward | null {
+  if (totalHabits === 0 || checkedToday < totalHabits) return null;
+  return {
+    points: scoreFor({ reason: 'habit_day_bonus' }),
+    reason: 'habit_day_bonus',
+    sourceType: 'habit_day',
+    sourceId: `${userId}:${checkDate}`,
+    eventDate: checkDate,
+  };
+}
+
+// ponytail: award-only. Like the per-habit points, an uncheck doesn't revoke
+// this (no uncheck event / cleanup trigger); and two concurrent web checks of
+// the final habits can both read done<total and skip it. Add a DB-side trigger
+// if either edge starts to matter.
+async function maybeAwardHabitDayBonus(userId: string, checkDate: string): Promise<void> {
+  const db = serviceClient();
+  const [habits, checks] = await Promise.all([
+    db.from('habits').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+    db
+      .from('habit_checks')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('check_date', checkDate),
+  ]);
+  // Fail loud on a count error rather than reading it as 0 — that would silently
+  // drop a legitimate bonus. The bus logs the rejection; the per-habit award above
+  // already landed and is unaffected.
+  if (habits.error || checks.error) {
+    throw new Error(`habit-day bonus count failed: ${(habits.error ?? checks.error)?.message}`);
+  }
+  const award = habitDayBonusAward(userId, checkDate, habits.count ?? 0, checks.count ?? 0);
+  if (!award) return;
+  await awardScore(userId, award.points, award.reason, award.sourceType, award.sourceId, award.eventDate);
+}
 
 async function awardScore(
   userId: string,

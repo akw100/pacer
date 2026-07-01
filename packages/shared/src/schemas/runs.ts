@@ -12,7 +12,7 @@ export const RunCreateSchema = z.object({
   post_run_food:    z.boolean().default(false),
   sleep_hours:      z.number().min(0).max(24).nullish(),
   notes:            z.string().max(2000).nullish(),
-  source:           z.enum(['web', 'telegram']).default('web'),
+  source:           z.enum(['web', 'telegram', 'race']).default('web'),
   // Optional group share — the run is ALWAYS personal; this only flags it for
   // a single group's feed/leaderboard. Server validates membership. Null /
   // omitted = personal only. See migration 0003_groups_and_share.sql.

@@ -192,4 +192,7 @@ An assistant that lives *inside* the platform (the Telegram bot's sibling), ship
 - Chat/comments inside groups (reactions only).
 - Public profiles or discovery — groups are private, join-code-only.
 - GPS tracking / live run recording — this is a *log*, not a tracker; watch photos cover the data entry.
+  **Bounded exception — Live Race (§11):** browser GPS is used *only while a Live Race is active*
+  to stream each runner's distance to the shared leaderboard. It is never used for ordinary run
+  logging, and no location data is persisted — positions are broadcast-only and discarded at the end.
 - Native mobile apps or an installable PWA — Pacer ships as a plain responsive website; the Telegram bot covers quick on-the-go logging.
