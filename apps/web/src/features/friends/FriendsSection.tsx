@@ -192,7 +192,15 @@ function AddFriend() {
     | { kind: 'found'; id: string; handle: string; display_name: string; avatar_emoji: string | null }
   >({ kind: 'idle' });
 
-  const cleanHandle = handle.trim().toLowerCase();
+  // Accept everything a human might type when searching for a friend: bare
+  // handle ("ayelet"), @-prefixed handle ("@ayelet"), any uppercase mix
+  // ("@Ayelet"), and stray spaces. Strip a leading @, trim, and lowercase
+  // BEFORE validating against the backend's `^[a-z0-9_]{3,20}$` rule, so
+  // the "handles are 3–20 lowercase…" error no longer fires just because
+  // the user typed the leading @ or a capital letter. Validation still
+  // fires on genuinely-invalid input (e.g. "!!!") so the backend query is
+  // never sent a request it would reject.
+  const cleanHandle = handle.trim().replace(/^@+/, '').toLowerCase();
   const isValid = HANDLE_REGEX.test(cleanHandle);
 
   async function doLookup() {
