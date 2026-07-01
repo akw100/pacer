@@ -55,7 +55,7 @@ export function HowPacerWorksSheet() {
                 <X size={18} strokeWidth={1.8} />
               </button>
             </header>
-            <div className="px-5 pb-6 flex flex-col gap-4">
+            <div className="px-5 pb-4 flex flex-col gap-4">
               <Beat
                 icon={<Footprints size={20} strokeWidth={1.8} />}
                 title="1. Log"
