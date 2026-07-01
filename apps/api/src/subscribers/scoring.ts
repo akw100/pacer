@@ -62,6 +62,12 @@ async function maybeAwardHabitDayBonus(userId: string, checkDate: string): Promi
       .eq('user_id', userId)
       .eq('check_date', checkDate),
   ]);
+  // Fail loud on a count error rather than reading it as 0 — that would silently
+  // drop a legitimate bonus. The bus logs the rejection; the per-habit award above
+  // already landed and is unaffected.
+  if (habits.error || checks.error) {
+    throw new Error(`habit-day bonus count failed: ${(habits.error ?? checks.error)?.message}`);
+  }
   const award = habitDayBonusAward(userId, checkDate, habits.count ?? 0, checks.count ?? 0);
   if (!award) return;
   await awardScore(userId, award.points, award.reason, award.sourceType, award.sourceId, award.eventDate);
