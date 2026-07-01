@@ -6,11 +6,30 @@ interface YouVsGroupCardProps {
   units: Units;
 }
 
+// v1 visual pass — adds two simple horizontal bar comparisons (You vs
+// Group avg for distance + score) above the existing numeric tiles. Bar
+// lengths are proportional to max(you, avg) within each pair, so both
+// bars stay legible regardless of scale. When the group has no
+// leaderboard rows yet, or the viewer hasn't logged into it, the bars
+// don't render — the honest empty state is the existing motivation copy.
 export function YouVsGroupCard({ stats, units }: YouVsGroupCardProps) {
   if (!stats) return null;
   const { totals, you_vs_group, leaderboard } = stats;
   const totalKm = metersToDisplayDistance(totals.week_distance_meters, units);
   const motivation = motivationCopy(stats);
+
+  const you = you_vs_group.you;
+  const youDistance = metersToDisplayDistance(you?.distance_meters ?? 0, units);
+  const avgDistance = metersToDisplayDistance(you_vs_group.avg_distance_meters, units);
+  // Only render the visual comparison when there's real data on either
+  // side of it. Otherwise the empty motivation copy carries the message.
+  const hasComparison =
+    !!you &&
+    leaderboard.length > 0 &&
+    (you.score > 0 ||
+      you.distance_meters > 0 ||
+      you_vs_group.avg_score > 0 ||
+      you_vs_group.avg_distance_meters > 0);
 
   return (
     <section
@@ -30,6 +49,25 @@ export function YouVsGroupCard({ stats, units }: YouVsGroupCardProps) {
 
       <p className="text-sm font-medium text-ink leading-snug">{motivation}</p>
 
+      {hasComparison && (
+        <div className="flex flex-col gap-3">
+          <ComparisonBar
+            label={`Distance this week (${units})`}
+            youValue={youDistance.value}
+            avgValue={avgDistance.value}
+            youText={`${youDistance.value.toFixed(1)} ${units}`}
+            avgText={`${avgDistance.value.toFixed(1)} ${units}`}
+          />
+          <ComparisonBar
+            label="Score this week"
+            youValue={you!.score}
+            avgValue={you_vs_group.avg_score}
+            youText={`${you!.score} pts`}
+            avgText={`${Math.round(you_vs_group.avg_score)} pts`}
+          />
+        </div>
+      )}
+
       <div className="grid grid-cols-3 gap-3">
         <Stat
           label={`Group ${units} this week`}
@@ -42,6 +80,69 @@ export function YouVsGroupCard({ stats, units }: YouVsGroupCardProps) {
 
       <YouRow stats={stats} units={units} />
     </section>
+  );
+}
+
+function ComparisonBar({
+  label,
+  youValue,
+  avgValue,
+  youText,
+  avgText,
+}: {
+  label: string;
+  youValue: number;
+  avgValue: number;
+  youText: string;
+  avgText: string;
+}) {
+  const max = Math.max(youValue, avgValue, 0);
+  const youPct = max > 0 ? Math.min(100, (youValue / max) * 100) : 0;
+  const avgPct = max > 0 ? Math.min(100, (avgValue / max) * 100) : 0;
+  return (
+    <div aria-label={label}>
+      <div className="text-[11px] uppercase tracking-wide text-ink-muted mb-1.5">{label}</div>
+      <div className="flex flex-col gap-1.5">
+        <BarRow
+          who="You"
+          text={youText}
+          pct={youPct}
+          fillClass="bg-accent"
+        />
+        <BarRow
+          who="Group avg"
+          text={avgText}
+          pct={avgPct}
+          fillClass="bg-ink/25"
+        />
+      </div>
+    </div>
+  );
+}
+
+function BarRow({
+  who,
+  text,
+  pct,
+  fillClass,
+}: {
+  who: string;
+  text: string;
+  pct: number;
+  fillClass: string;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-xs text-ink-muted w-16 shrink-0">{who}</span>
+      <div className="flex-1 h-2 rounded-pill bg-ink/5 overflow-hidden">
+        <div
+          className={`h-full rounded-pill transition-[width] duration-500 ${fillClass}`}
+          style={{ width: `${pct}%` }}
+          aria-hidden="true"
+        />
+      </div>
+      <span className="text-xs font-medium text-ink tabular-nums w-20 text-right">{text}</span>
+    </div>
   );
 }
 
