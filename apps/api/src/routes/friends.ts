@@ -112,6 +112,97 @@ async function resolveTarget(
   return null;
 }
 
+/**
+ * Discriminated result of `createOrUpdateFriendRequest`. The route layer
+ * maps `kind` to an HTTP status; the helper never touches Hono context so
+ * it can be shared between the handle/user_id endpoint and the email
+ * endpoint without either taking on privacy concerns of the other.
+ *
+ *   • `ok`                → row created or reused (idempotent); `created`
+ *                           flags whether an INSERT ran (→ 201) versus a
+ *                           row that already existed / was updated (→ 200).
+ *   • `not_found`         → target has blocked the caller. Same shape as
+ *                           unknown-target so callers cannot probe block
+ *                           status.
+ *   • `blocked_by_caller` → caller has blocked the target; only surface
+ *                           this to the caller — they need to unblock
+ *                           first.
+ *   • `error`             → downstream Supabase error surfaced verbatim.
+ *
+ * The helper does NOT validate caller ≠ target — routes must do that
+ * themselves so the correct error text is returned per surface (handle
+ * flow says "Cannot friend yourself"; email flow uses that same guard).
+ */
+export type FriendRequestResult =
+  | { kind: 'ok'; row: Friendship; created: boolean }
+  | { kind: 'not_found' }
+  | { kind: 'blocked_by_caller' }
+  | { kind: 'error'; message: string };
+
+export async function createOrUpdateFriendRequest(
+  callerId: string,
+  targetId: string,
+): Promise<FriendRequestResult> {
+  const svc = serviceClient();
+  const existing = await findFriendship(callerId, targetId);
+
+  if (existing?.status === 'blocked' && existing.blocked_by !== callerId) {
+    return { kind: 'not_found' };
+  }
+  if (existing?.status === 'blocked' && existing.blocked_by === callerId) {
+    return { kind: 'blocked_by_caller' };
+  }
+
+  if (existing?.status === 'accepted') {
+    return { kind: 'ok', row: existing, created: false };
+  }
+
+  if (existing?.status === 'pending') {
+    // Reverse-pending → auto-accept.
+    if (existing.addressee_id === callerId) {
+      const { data: updated, error } = await svc
+        .from('friendships')
+        .update({ status: 'accepted', responded_at: new Date().toISOString() })
+        .eq('requester_id', existing.requester_id)
+        .eq('addressee_id', existing.addressee_id)
+        .select('*')
+        .single();
+      if (error || !updated) return { kind: 'error', message: error?.message ?? 'Update failed' };
+      return { kind: 'ok', row: updated as Friendship, created: false };
+    }
+    // Forward-pending already exists — idempotent return.
+    return { kind: 'ok', row: existing, created: false };
+  }
+
+  if (existing?.status === 'declined') {
+    // Allow a retry by overwriting the declined row in place.
+    const { data: updated, error } = await svc
+      .from('friendships')
+      .update({
+        status: 'pending',
+        responded_at: null,
+        created_at: new Date().toISOString(),
+      })
+      .eq('requester_id', existing.requester_id)
+      .eq('addressee_id', existing.addressee_id)
+      .select('*')
+      .single();
+    if (error || !updated) return { kind: 'error', message: error?.message ?? 'Retry failed' };
+    return { kind: 'ok', row: updated as Friendship, created: false };
+  }
+
+  // No row exists in either direction — insert a fresh pending row.
+  const { data: inserted, error: insertErr } = await svc
+    .from('friendships')
+    .insert({ requester_id: callerId, addressee_id: targetId, status: 'pending' })
+    .select('*')
+    .single();
+  if (insertErr || !inserted) {
+    return { kind: 'error', message: insertErr?.message ?? 'Insert failed' };
+  }
+  return { kind: 'ok', row: inserted as Friendship, created: true };
+}
+
 // ── Routes ──────────────────────────────────────────────────────────────────
 
 export const friends = new Hono<AppEnv>()
@@ -223,73 +314,13 @@ export const friends = new Hono<AppEnv>()
     if (!targetId) return c.json({ error: 'User not found' }, 404);
     if (targetId === callerId) return c.json({ error: 'Cannot friend yourself' }, 400);
 
-    const svc = serviceClient();
-    const existing = await findFriendship(callerId, targetId);
-
-    // Block check: if target has blocked the caller, return 404 (same as
-    // not-found) so the caller cannot probe for block status.
-    if (existing?.status === 'blocked' && existing.blocked_by !== callerId) {
-      return c.json({ error: 'User not found' }, 404);
-    }
-
-    if (existing?.status === 'blocked' && existing.blocked_by === callerId) {
-      // The caller has blocked the target; tell them to unblock first.
+    const result = await createOrUpdateFriendRequest(callerId, targetId);
+    if (result.kind === 'not_found') return c.json({ error: 'User not found' }, 404);
+    if (result.kind === 'blocked_by_caller') {
       return c.json({ error: 'You have blocked this user' }, 409);
     }
-
-    if (existing?.status === 'accepted') {
-      // Already friends. Return current state idempotently.
-      return c.json(existing satisfies Friendship, 200);
-    }
-
-    if (existing?.status === 'pending') {
-      // Reverse-pending → auto-accept.
-      if (existing.addressee_id === callerId) {
-        const { data: updated, error } = await svc
-          .from('friendships')
-          .update({ status: 'accepted', responded_at: new Date().toISOString() })
-          .eq('requester_id', existing.requester_id)
-          .eq('addressee_id', existing.addressee_id)
-          .select('*')
-          .single();
-        if (error || !updated) return c.json({ error: error?.message ?? 'Update failed' }, 400);
-        return c.json(updated satisfies Friendship, 200);
-      }
-      // Forward-pending already exists — idempotent return.
-      return c.json(existing satisfies Friendship, 200);
-    }
-
-    if (existing?.status === 'declined') {
-      // Allow a retry by overwriting the declined row in place.
-      const { data: updated, error } = await svc
-        .from('friendships')
-        .update({
-          status: 'pending',
-          responded_at: null,
-          created_at: new Date().toISOString(),
-        })
-        .eq('requester_id', existing.requester_id)
-        .eq('addressee_id', existing.addressee_id)
-        .select('*')
-        .single();
-      if (error || !updated) return c.json({ error: error?.message ?? 'Retry failed' }, 400);
-      return c.json(updated satisfies Friendship, 200);
-    }
-
-    // No row exists in either direction — insert a fresh pending row.
-    const { data: inserted, error: insertErr } = await svc
-      .from('friendships')
-      .insert({
-        requester_id: callerId,
-        addressee_id: targetId,
-        status: 'pending',
-      })
-      .select('*')
-      .single();
-    if (insertErr || !inserted) {
-      return c.json({ error: insertErr?.message ?? 'Insert failed' }, 400);
-    }
-    return c.json(inserted satisfies Friendship, 201);
+    if (result.kind === 'error') return c.json({ error: result.message }, 400);
+    return c.json(result.row satisfies Friendship, result.created ? 201 : 200);
   })
 
   // Accept an incoming pending request. Only the addressee may accept.
