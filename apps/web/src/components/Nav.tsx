@@ -67,6 +67,24 @@ export default function Nav() {
           </NavLink>
         ))}
 
+        {/* Desktop-only Coach entry. Kept outside the shared `tabs` array so
+            the mobile bottom bar stays at its current 8 tabs — Coach is also
+            reachable from anywhere via the floating "Ask Coach" pill
+            (CoachLauncher). */}
+        <NavLink
+          to="/coach"
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-3 py-2.5 rounded-card text-sm transition-colors ${
+              isActive
+                ? 'bg-accent/10 text-accent font-medium'
+                : 'text-ink hover:bg-ink/5'
+            }`
+          }
+        >
+          <Sparkles size={18} strokeWidth={1.8} />
+          Coach
+        </NavLink>
+
         {/* Link to the public marketing landing page (also the logged-out root). */}
         <NavLink
           to="/welcome"
