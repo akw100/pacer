@@ -14,6 +14,7 @@ import ResultScreen from './features/races/ResultScreen'
 import Planning from './screens/Planning'
 import Frames from './screens/Frames'
 import Profile from './screens/Profile'
+import Coach from './screens/Coach'
 import NotFound from './screens/NotFound'
 import SignInPage from './features/auth/SignInPage'
 import LandingPage from './features/landing/LandingPage'
@@ -29,6 +30,7 @@ import { OnboardingFlow } from './features/onboarding/OnboardingFlow'
 import { CoachmarkTour } from './features/onboarding/CoachmarkTour'
 import { ContextualHints } from './features/onboarding/ContextualHints'
 import { HowPacerWorksSheet } from './features/onboarding/HowPacerWorksSheet'
+import { CoachLauncher } from './features/assistant/CoachLauncher'
 import { OfflineShell } from './pwa/OfflineShell'
 import { useAuth } from './features/auth/AuthProvider'
 import { GroupProvider } from './features/groups/GroupContext'
@@ -111,6 +113,7 @@ const router = createBrowserRouter([
       { path: 'planning', element: <Planning /> },
       { path: 'flows', element: <Frames /> },
       { path: 'profile', element: <Profile /> },
+      { path: 'coach', element: <Coach /> },
       { path: '*', element: <NotFound /> },
     ],
   },
@@ -132,6 +135,7 @@ function AuthedOverlays() {
       <ContextualHints />
       <HowPacerWorksSheet />
       <PlanCelebration />
+      <CoachLauncher />
     </>
   )
 }
