@@ -176,6 +176,7 @@ export function RunForm({ units, initial, sharedGroupId, onDone }: RunFormProps)
       <Field label="Date">
         <input
           type="date"
+          max={toDateKey(new Date())}
           {...form.register('runDate')}
           className="bg-transparent text-ink text-base focus:outline-none"
         />

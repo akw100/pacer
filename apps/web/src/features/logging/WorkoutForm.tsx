@@ -218,6 +218,7 @@ export function WorkoutForm({ sharedGroupId, onDone }: WorkoutFormProps) {
         <Field label="Date">
           <input
             type="date"
+            max={toDateKey(new Date())}
             {...form.register('workoutDate')}
             className="bg-transparent text-ink text-base focus:outline-none"
           />
