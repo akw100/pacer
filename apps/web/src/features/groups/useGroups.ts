@@ -7,6 +7,7 @@ import type {
   GroupMemberWithProfile,
   JoinGroupInput,
   RenameGroupInput,
+  WorkoutKindCounts,
 } from '@pacer/shared';
 import { apiFetch } from '../../lib/api';
 import { useAuth } from '../auth/AuthProvider';
@@ -30,6 +31,14 @@ export interface LeaderboardRow {
   distance_meters: number;
   runs: number;
   workouts: number;
+  /**
+   * Optional per-kind breakdown of the group-tagged workouts that make
+   * up `workouts` for this member. Optional so old backend responses
+   * still parse; when the server rolls out `workout_kind_counts` the UI
+   * can start reading it. When absent the client falls back to the
+   * top-level `workouts` count.
+   */
+  workout_kind_counts?: WorkoutKindCounts;
 }
 export interface GroupStats {
   group_id: string;

@@ -1,5 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { scoreFor } from '@pacer/shared';
+import {
+  emptyWorkoutKindCounts,
+  scoreFor,
+  WORKOUT_KINDS,
+  type WorkoutKind,
+  type WorkoutKindCounts,
+} from '@pacer/shared';
 
 // Server-side group leaderboard + totals. Computed with the SERVICE client
 // because we need to sum across other members' rows; the route handler does
@@ -21,6 +27,13 @@ export interface LeaderboardRow {
   distance_meters: number;
   runs: number;
   workouts: number;
+  /**
+   * Weekly per-kind breakdown of the same workouts that make up `workouts`.
+   * ONLY counts workouts tagged to this group (shared_group_id = groupId) —
+   * personal untagged workouts are never counted here, same rule the top-
+   * level `workouts` field already follows.
+   */
+  workout_kind_counts?: WorkoutKindCounts;
 }
 
 export interface GroupTotals {
@@ -83,9 +96,14 @@ export async function computeGroupStats(
     .gte('run_date', weekStart)
     .lte('run_date', weekEnd);
 
+  // `kind` is projected alongside user_id so we can derive
+  // workout_kind_counts in the same aggregation pass. The
+  // shared_group_id filter is preserved unchanged — kind counts are a
+  // breakdown of the same workouts already gated by group tagging, so
+  // untagged personal workouts still cannot enter the group leaderboard.
   const { data: workouts } = await db
     .from('workouts')
-    .select('user_id, workout_date')
+    .select('user_id, workout_date, kind')
     .eq('shared_group_id', groupId)
     .gte('workout_date', weekStart)
     .lte('workout_date', weekEnd);
@@ -103,11 +121,12 @@ export async function computeGroupStats(
       distance_meters: 0,
       runs: 0,
       workouts: 0,
+      workout_kind_counts: emptyWorkoutKindCounts(),
     });
   }
 
   type RunAgg = { user_id: string; distance_meters: number | string };
-  type WorkoutAgg = { user_id: string };
+  type WorkoutAgg = { user_id: string; kind: string };
   for (const r of (runs ?? []) as RunAgg[]) {
     const row = rows.get(r.user_id);
     if (!row) continue;
@@ -121,6 +140,12 @@ export async function computeGroupStats(
     if (!row) continue;
     row.workouts += 1;
     row.score += scoreFor({ reason: 'workout' });
+    // DB CHECK guarantees kind is one of WORKOUT_KINDS; defensive guard
+    // silently drops any unexpected value (backfill / future migration)
+    // rather than misclassify it under 'other'.
+    if (row.workout_kind_counts && (WORKOUT_KINDS as readonly string[]).includes(w.kind)) {
+      row.workout_kind_counts[w.kind as WorkoutKind] += 1;
+    }
   }
 
   // 4) Sort leaderboard by score desc, then by distance desc as a tiebreaker.
