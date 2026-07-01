@@ -19,7 +19,9 @@ export function CoachLauncher() {
       className="fixed z-20"
       style={{
         top: 'calc(0.75rem + env(safe-area-inset-top, 0px))',
-        right: 'calc(0.75rem + env(safe-area-inset-right, 0px))',
+        // Sit left of the "?" How-Pacer-Works button (top-3 right-3, w-9=2.25rem):
+        // clear its width + a 0.5rem gap so the two corner controls don't overlap.
+        right: 'calc(0.75rem + 2.25rem + 0.5rem + env(safe-area-inset-right, 0px))',
       }}
     >
       <Link
