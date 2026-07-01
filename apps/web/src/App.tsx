@@ -49,6 +49,7 @@ function Shell() {
         <Outlet />
       </main>
       <VoiceAgent />
+      <CoachLauncher />
     </div>
   )
 }
@@ -135,7 +136,6 @@ function AuthedOverlays() {
       <ContextualHints />
       <HowPacerWorksSheet />
       <PlanCelebration />
-      <CoachLauncher />
     </>
   )
 }
