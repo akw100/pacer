@@ -32,6 +32,9 @@ export interface HabitCheckRow {
 const habitKeys = {
   list: ['habits', 'list'] as const,
   checksToday: (dateKey: string) => ['habits', 'checks', dateKey] as const,
+  /** Same key shape as `checksToday` — reused for arbitrary-date reads so
+   *  today and past-date invalidation share cache lanes. */
+  checksForDate: (dateKey: string) => ['habits', 'checks', dateKey] as const,
 };
 
 function useToken(): string | null {
@@ -142,6 +145,70 @@ export function useUncheckHabitToday() {
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: habitKeys.checksToday(todayKey) });
+      qc.invalidateQueries({ queryKey: ['score', 'summary'] });
+    },
+  });
+}
+
+// ── Arbitrary-date variants ────────────────────────────────────────────────
+// The backend accepts any date via ?date=YYYY-MM-DD on PUT/DELETE
+// /habits/:id/check — we just needed a client that respects the caller's
+// picked date instead of hard-coding today. Existing today-only hooks stay
+// (Home reads today's snapshot via useTodayChecks / useHomeData), so this
+// is additive.
+
+/**
+ * Read the caller's habit_checks for a specific date. Same cache key as
+ * `useTodayChecks(today)`, so invalidations line up naturally.
+ */
+export function useHabitChecksForDate(dateKey: string) {
+  const { session } = useAuth();
+  const userId = session?.user.id;
+  return useQuery<HabitCheckRow[]>({
+    queryKey: habitKeys.checksForDate(dateKey),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('habit_checks')
+        .select('id, user_id, habit_id, check_date, created_at')
+        .eq('user_id', userId!)
+        .eq('check_date', dateKey);
+      if (error) throw new Error(error.message);
+      return (data ?? []) as HabitCheckRow[];
+    },
+    enabled: !!userId && !!dateKey,
+    staleTime: 30 * 1000,
+  });
+}
+
+/**
+ * Check a habit for the given date. Server upserts on unique
+ * (habit_id, check_date) so retries are safe.
+ */
+export function useCheckHabit(dateKey: string) {
+  const token = useToken();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (habitId: string) =>
+      putBare(`/habits/${habitId}/check?date=${dateKey}`, token!),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: habitKeys.checksForDate(dateKey) });
+      qc.invalidateQueries({ queryKey: ['score', 'summary'] });
+    },
+  });
+}
+
+/** Uncheck a habit for the given date. */
+export function useUncheckHabit(dateKey: string) {
+  const token = useToken();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (habitId: string) =>
+      apiFetch<void>(`/habits/${habitId}/check?date=${dateKey}`, {
+        token: token!,
+        method: 'DELETE',
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: habitKeys.checksForDate(dateKey) });
       qc.invalidateQueries({ queryKey: ['score', 'summary'] });
     },
   });
