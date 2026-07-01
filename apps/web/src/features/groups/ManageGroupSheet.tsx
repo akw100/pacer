@@ -1,18 +1,19 @@
 import { useState } from 'react';
 import { Drawer } from '../../components/drawer';
 import { toast } from 'sonner';
-import { LogOut, Pencil, RefreshCw, X } from 'lucide-react';
+import { Archive, LogOut, Pencil, RefreshCw, X } from 'lucide-react';
 import type { Group } from '@pacer/shared';
-import { useLeaveGroup, useRenameGroup } from './useGroups';
+import { useArchiveGroup, useLeaveGroup, useRenameGroup } from './useGroups';
 
 // Manage Group sheet. Available to every member of a group:
 //   - Member: Leave group
-//   - Owner: + Rename, Regenerate invite code
+//   - Owner: + Rename, Regenerate invite code, Archive group
 //
-// Group deletion and ownership transfer are NOT implemented in the API yet
-// (see PR description "missing backend contracts"). We intentionally do NOT
-// hack a "leave as owner ⇒ delete cascade" path here — that's a separate
-// safety-sensitive change.
+// Archive is a SOFT delete backed by `archived_at` on the groups table
+// (migration 0014_groups_archive). The row + every downstream history
+// (members, feed, tagged runs/workouts, group goals) is preserved; only
+// the surface changes. Hard delete + ownership transfer are still
+// intentionally deferred as separate safety-sensitive changes.
 
 interface ManageGroupSheetProps {
   group: Group;
@@ -32,9 +33,11 @@ export function ManageGroupSheet({
 }: ManageGroupSheetProps) {
   const rename = useRenameGroup(group.id);
   const leave = useLeaveGroup();
+  const archive = useArchiveGroup();
   const [editingName, setEditingName] = useState(false);
   const [draftName, setDraftName] = useState(group.name);
   const [confirmingLeave, setConfirmingLeave] = useState(false);
+  const [confirmingArchive, setConfirmingArchive] = useState(false);
 
   async function commitRename() {
     const trimmed = draftName.trim();
@@ -70,6 +73,21 @@ export function ManageGroupSheet({
       toast.error(err instanceof Error ? err.message : 'Could not leave');
     } finally {
       setConfirmingLeave(false);
+    }
+  }
+
+  async function archiveGroup() {
+    try {
+      await archive.mutateAsync(group.id);
+      toast.success(`Archived "${group.name}"`);
+      onOpenChange(false);
+      // Same nav callback as Leave — the group is no longer in the caller's
+      // active list, so we bounce them back to the Hub.
+      onLeft?.();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not archive');
+    } finally {
+      setConfirmingArchive(false);
     }
   }
 
@@ -212,9 +230,59 @@ export function ManageGroupSheet({
               </button>
             )}
 
+            {/* Owner: archive group (soft delete) */}
+            {isOwner && (
+              confirmingArchive ? (
+                <div className="rounded-card border border-accent/40 bg-accent/5 p-4">
+                  <div className="font-display text-sm font-semibold text-ink">
+                    Archive "{group.name}"?
+                  </div>
+                  <p className="mt-1 text-xs text-ink-muted leading-relaxed">
+                    The group disappears from your active groups list and Home pulse. Members,
+                    feed, leaderboard history, and every tagged run or workout are kept safe on
+                    the server. You can restore it later — nothing is permanently deleted.
+                  </p>
+                  <div className="mt-3 flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setConfirmingArchive(false)}
+                      className="rounded-pill px-3 py-1.5 text-xs text-ink-muted hover:bg-ink/5"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={archiveGroup}
+                      disabled={archive.isPending}
+                      className="rounded-pill bg-accent text-white px-3 py-1.5 text-xs font-semibold disabled:opacity-50"
+                    >
+                      {archive.isPending ? 'Archiving…' : 'Archive'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setConfirmingArchive(true)}
+                  className="rounded-card border border-border bg-surface px-4 py-3 text-left hover:bg-accent/5 flex items-center gap-3"
+                >
+                  <span className="grid place-items-center w-9 h-9 rounded-pill bg-accent/10 text-accent shrink-0">
+                    <Archive size={14} strokeWidth={1.8} />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-display text-sm font-semibold text-ink">Archive group</div>
+                    <div className="text-xs text-ink-muted leading-snug">
+                      Hides the group from active lists. History is kept on the server.
+                    </div>
+                  </div>
+                </button>
+              )
+            )}
+
             {isOwner && (
               <p className="text-[11px] text-ink-muted leading-relaxed mt-1">
-                Delete group and transfer ownership aren't built yet. Ask the team if you need them.
+                Permanent delete and ownership transfer aren't built yet — archive is the safe
+                path for now.
               </p>
             )}
           </div>

@@ -161,6 +161,35 @@ export function useLeaveGroup() {
   });
 }
 
+// Owner-only soft archive. The API sets `archived_at = now()`; the group
+// drops out of `useMyGroups()` on the next refetch. History (feed, stats,
+// tagged runs/workouts, goals) is preserved. Restore via useRestoreGroup.
+export function useArchiveGroup() {
+  const token = useToken();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (groupId: string) =>
+      apiFetch<Group>(`/groups/${groupId}/archive`, { token: token!, method: 'PATCH' }),
+    onSuccess: (_data, groupId) => {
+      invalidateGroup(qc, groupId);
+      invalidateAllGroups(qc);
+    },
+  });
+}
+
+export function useRestoreGroup() {
+  const token = useToken();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (groupId: string) =>
+      apiFetch<Group>(`/groups/${groupId}/restore`, { token: token!, method: 'PATCH' }),
+    onSuccess: (_data, groupId) => {
+      invalidateGroup(qc, groupId);
+      invalidateAllGroups(qc);
+    },
+  });
+}
+
 export function useReact(groupId: string | null) {
   const token = useToken();
   const qc = useQueryClient();
