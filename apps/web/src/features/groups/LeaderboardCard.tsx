@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { metersToDisplayDistance, type Units } from '@pacer/shared';
 import type { GroupStats, LeaderboardRow } from './useGroups';
+import { colorFor } from './memberColors';
 
 type Metric = 'score' | 'km' | 'runs';
 
@@ -131,6 +132,11 @@ function Row({
 }) {
   const value = valueOf(row, metric);
   const pct = maxValue > 0 ? Math.min(100, (value / maxValue) * 100) : 0;
+  // v2 visual pass: bar fill is `bg-accent/15` for the viewer's row and a
+  // deterministic per-member color at low opacity for everyone else. Same
+  // color also drives a small chip next to the name so identity carries
+  // even when the bar is tiny. See features/groups/memberColors.ts.
+  const memberColor = you ? null : colorFor(row.user_id);
   return (
     <li
       className={`relative flex items-center gap-3 rounded-card border px-3 py-2 overflow-hidden ${
@@ -142,9 +148,12 @@ function Row({
       <div
         aria-hidden="true"
         className={`absolute inset-y-0 left-0 transition-[width] duration-500 ${
-          you ? 'bg-accent/15' : 'bg-ink/5'
+          you ? 'bg-accent/15' : ''
         }`}
-        style={{ width: `${pct}%` }}
+        style={{
+          width: `${pct}%`,
+          ...(memberColor ? { backgroundColor: `${memberColor}22` } : {}),
+        }}
       />
       <span
         aria-hidden="true"
@@ -158,8 +167,14 @@ function Row({
         {row.avatar_emoji ?? '🏃'}
       </span>
       <div className="relative z-10 flex-1 min-w-0">
-        <div className={`text-sm truncate ${you ? 'font-semibold text-ink' : 'text-ink'}`}>
-          {you ? 'You' : row.display_name}
+        <div className={`text-sm truncate flex items-center gap-1.5 ${you ? 'font-semibold text-ink' : 'text-ink'}`}>
+          {/* Per-member color chip — solid at 100% so it reads at any bar width. */}
+          <span
+            aria-hidden="true"
+            className="inline-block w-1.5 h-1.5 rounded-full shrink-0"
+            style={{ backgroundColor: you ? 'var(--color-accent)' : memberColor! }}
+          />
+          <span className="truncate">{you ? 'You' : row.display_name}</span>
         </div>
         <div className="text-xs text-ink-muted truncate">@{row.handle}</div>
       </div>

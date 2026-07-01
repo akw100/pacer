@@ -4,6 +4,7 @@ import type { Units } from '@pacer/shared';
 import { openLogSheet } from '../logging/LogSheet';
 import { useGroupDetail, useGroupFeed, useGroupRealtime, useGroupStats } from './useGroups';
 import { LeaderboardCard } from './LeaderboardCard';
+import { LeaderCallout } from './LeaderCallout';
 import { YouVsGroupCard } from './YouVsGroupCard';
 import { FeedCard } from './FeedCard';
 import { MembersCard } from './MembersCard';
@@ -100,6 +101,7 @@ export function GroupDetail({ groupId, youUserId, units, onBack }: GroupDetailPr
 
       <div className="grid gap-5 md:grid-cols-2 items-start">
         <div className="flex flex-col gap-5">
+          <LeaderCallout stats={stats.data} youUserId={youUserId} />
           <LeaderboardCard
             stats={stats.data}
             loading={stats.isLoading}
