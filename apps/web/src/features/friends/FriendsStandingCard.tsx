@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
-import { ChevronRight, Trophy, UserPlus } from 'lucide-react';
+import { ChevronRight, Trophy } from 'lucide-react';
 import {
   Bar,
   BarChart,
@@ -78,8 +78,11 @@ export function FriendsStandingCard() {
   // means everyone else on the board.
   const friendCount = data.leaderboard.filter((r) => r.user_id !== callerId).length;
 
+  // Zero accepted friends: render nothing. The Home dashboard hosts a
+  // separate compact <AddFriendInline /> button that surfaces the
+  // "Add friend" action without occupying a full card slot.
   if (friendCount === 0) {
-    return <EmptyState />;
+    return null;
   }
 
   // No personal activity yet this week → caller isn't ranked.
@@ -348,37 +351,3 @@ function BodyMuted({ children }: { children: React.ReactNode }) {
   return <p className="text-sm text-ink-muted leading-snug">{children}</p>;
 }
 
-// Compact no-friends state. Replaces the previous full-height card
-// (~150–180px on desktop) with a slim strip (~60–70px) that fits the
-// Home rhythm without pushing other cards down. The explanation stays
-// honest — one line, no icon well, no long paragraph — and the "Add
-// friend" action moves into the header as a small accent pill so it
-// stays discoverable at the top of the card.
-function EmptyState() {
-  return (
-    <section
-      aria-labelledby="friends-standing-heading"
-      className="rounded-card border border-border bg-surface p-4 md:p-5 shadow-sm flex flex-col gap-2"
-    >
-      <header className="flex items-center justify-between gap-3 flex-wrap">
-        <h2
-          id="friends-standing-heading"
-          className="font-display text-base md:text-lg font-semibold text-ink inline-flex items-center gap-2"
-        >
-          <Trophy size={16} strokeWidth={1.8} className="text-accent" />
-          Friends standing
-        </h2>
-        <Link
-          to="/profile"
-          className="inline-flex items-center gap-1 rounded-pill bg-accent text-white px-2.5 py-1 text-xs font-semibold shadow-sm shadow-accent/20"
-        >
-          <UserPlus size={12} strokeWidth={2.2} />
-          Add friend
-        </Link>
-      </header>
-      <p className="text-xs text-ink-muted leading-snug">
-        No accepted friends yet — send a request by @handle to start comparing weekly scores.
-      </p>
-    </section>
-  );
-}
