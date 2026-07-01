@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import {
+  FriendRequestByEmailInputSchema,
   FriendRequestInputSchema,
   HandleSchema,
   emptyWorkoutKindCounts,
@@ -9,6 +10,7 @@ import {
   type FriendLeaderboardRow,
   type FriendLookupResponse,
   type FriendProfile,
+  type FriendRequestByEmailResponse,
   type FriendsLeaderboardResponse,
   type FriendsListResponse,
   type Friendship,
@@ -110,6 +112,143 @@ async function resolveTarget(
     return (data?.id as string | undefined) ?? null;
   }
   return null;
+}
+
+/**
+ * Discriminated result of `createOrUpdateFriendRequest`. The route layer
+ * maps `kind` to an HTTP status; the helper never touches Hono context so
+ * it can be shared between the handle/user_id endpoint and the email
+ * endpoint without either taking on privacy concerns of the other.
+ *
+ *   • `ok`                → row created or reused (idempotent); `created`
+ *                           flags whether an INSERT ran (→ 201) versus a
+ *                           row that already existed / was updated (→ 200).
+ *   • `not_found`         → target has blocked the caller. Same shape as
+ *                           unknown-target so callers cannot probe block
+ *                           status.
+ *   • `blocked_by_caller` → caller has blocked the target; only surface
+ *                           this to the caller — they need to unblock
+ *                           first.
+ *   • `error`             → downstream Supabase error surfaced verbatim.
+ *
+ * The helper does NOT validate caller ≠ target — routes must do that
+ * themselves so the correct error text is returned per surface (handle
+ * flow says "Cannot friend yourself"; email flow uses that same guard).
+ */
+export type FriendRequestResult =
+  | { kind: 'ok'; row: Friendship; created: boolean }
+  | { kind: 'not_found' }
+  | { kind: 'blocked_by_caller' }
+  | { kind: 'error'; message: string };
+
+export async function createOrUpdateFriendRequest(
+  callerId: string,
+  targetId: string,
+): Promise<FriendRequestResult> {
+  const svc = serviceClient();
+  const existing = await findFriendship(callerId, targetId);
+
+  if (existing?.status === 'blocked' && existing.blocked_by !== callerId) {
+    return { kind: 'not_found' };
+  }
+  if (existing?.status === 'blocked' && existing.blocked_by === callerId) {
+    return { kind: 'blocked_by_caller' };
+  }
+
+  if (existing?.status === 'accepted') {
+    return { kind: 'ok', row: existing, created: false };
+  }
+
+  if (existing?.status === 'pending') {
+    // Reverse-pending → auto-accept.
+    if (existing.addressee_id === callerId) {
+      const { data: updated, error } = await svc
+        .from('friendships')
+        .update({ status: 'accepted', responded_at: new Date().toISOString() })
+        .eq('requester_id', existing.requester_id)
+        .eq('addressee_id', existing.addressee_id)
+        .select('*')
+        .single();
+      if (error || !updated) return { kind: 'error', message: error?.message ?? 'Update failed' };
+      return { kind: 'ok', row: updated as Friendship, created: false };
+    }
+    // Forward-pending already exists — idempotent return.
+    return { kind: 'ok', row: existing, created: false };
+  }
+
+  if (existing?.status === 'declined') {
+    // Allow a retry by overwriting the declined row in place.
+    const { data: updated, error } = await svc
+      .from('friendships')
+      .update({
+        status: 'pending',
+        responded_at: null,
+        created_at: new Date().toISOString(),
+      })
+      .eq('requester_id', existing.requester_id)
+      .eq('addressee_id', existing.addressee_id)
+      .select('*')
+      .single();
+    if (error || !updated) return { kind: 'error', message: error?.message ?? 'Retry failed' };
+    return { kind: 'ok', row: updated as Friendship, created: false };
+  }
+
+  // No row exists in either direction — insert a fresh pending row.
+  const { data: inserted, error: insertErr } = await svc
+    .from('friendships')
+    .insert({ requester_id: callerId, addressee_id: targetId, status: 'pending' })
+    .select('*')
+    .single();
+  if (insertErr || !inserted) {
+    return { kind: 'error', message: insertErr?.message ?? 'Insert failed' };
+  }
+  return { kind: 'ok', row: inserted as Friendship, created: true };
+}
+
+/**
+ * Resolve an email → auth user id → profile id, using the Supabase Auth
+ * admin API on a service-role client (same client the profile-delete
+ * route already uses). Returns null when no auth user matches, or the
+ * auth user has no profile row yet (they may have signed up but not
+ * completed the ClaimHandle onboarding step — in that case they can't
+ * receive requests until they have a profile).
+ *
+ * The Supabase admin SDK does not expose a `getUserByEmail`, so we page
+ * through `admin.listUsers` and short-circuit on the first email match.
+ * With Pacer's small-groups scale this is effectively O(1); the page cap
+ * below guards against a runaway loop if the user base grows large.
+ * When that happens the right fix is a Postgres RPC that indexes
+ * `auth.users.email` — this route is prepared for that swap without a
+ * schema change here.
+ */
+async function resolveTargetByEmail(email: string): Promise<string | null> {
+  const svc = serviceClient();
+  const perPage = 1000;
+  const maxPages = 5;
+  let match: string | null = null;
+
+  for (let page = 1; page <= maxPages; page++) {
+    const { data, error } = await svc.auth.admin.listUsers({ page, perPage });
+    if (error || !data) return null;
+    for (const u of data.users) {
+      if (u.email && u.email.toLowerCase() === email) {
+        match = u.id;
+        break;
+      }
+    }
+    if (match) break;
+    if (data.users.length < perPage) break;
+  }
+  if (!match) return null;
+
+  // Auth user exists — now check they have a profile. A user who signed
+  // up but hasn't claimed a handle yet cannot receive friend requests.
+  const { data: profile } = await svc
+    .from('profiles')
+    .select('id')
+    .eq('id', match)
+    .maybeSingle();
+  return (profile?.id as string | undefined) ?? null;
 }
 
 // ── Routes ──────────────────────────────────────────────────────────────────
@@ -223,73 +362,56 @@ export const friends = new Hono<AppEnv>()
     if (!targetId) return c.json({ error: 'User not found' }, 404);
     if (targetId === callerId) return c.json({ error: 'Cannot friend yourself' }, 400);
 
-    const svc = serviceClient();
-    const existing = await findFriendship(callerId, targetId);
-
-    // Block check: if target has blocked the caller, return 404 (same as
-    // not-found) so the caller cannot probe for block status.
-    if (existing?.status === 'blocked' && existing.blocked_by !== callerId) {
-      return c.json({ error: 'User not found' }, 404);
-    }
-
-    if (existing?.status === 'blocked' && existing.blocked_by === callerId) {
-      // The caller has blocked the target; tell them to unblock first.
+    const result = await createOrUpdateFriendRequest(callerId, targetId);
+    if (result.kind === 'not_found') return c.json({ error: 'User not found' }, 404);
+    if (result.kind === 'blocked_by_caller') {
       return c.json({ error: 'You have blocked this user' }, 409);
     }
+    if (result.kind === 'error') return c.json({ error: result.message }, 400);
+    return c.json(result.row satisfies Friendship, result.created ? 201 : 200);
+  })
 
-    if (existing?.status === 'accepted') {
-      // Already friends. Return current state idempotently.
-      return c.json(existing satisfies Friendship, 200);
+  // Send a friend request by email address. Uses the Supabase Auth admin
+  // API to resolve the email → auth user id, then the profiles table for
+  // the corresponding profile id.
+  //
+  // Privacy: unknown emails and blocked-by-target both return
+  // { status: 'queued' } with HTTP 202 so the caller cannot tell whether
+  // the email belongs to a Pacer user. Self-requests still return the
+  // clear 400 error because the caller obviously knows their own email.
+  //
+  // Success paths share the exact same idempotent branching as
+  // POST /friends/request via createOrUpdateFriendRequest — a real
+  // pending row is inserted (or an existing row reused / auto-accepted /
+  // retried) and the target sees an incoming request in their friends
+  // list on next fetch.
+  .post('/request-by-email', zValidator('json', FriendRequestByEmailInputSchema), async (c) => {
+    const callerId = c.get('userId');
+    const { email } = c.req.valid('json');
+
+    const targetId = await resolveTargetByEmail(email);
+    // Privacy-safe queued response — email doesn't match a Pacer user, or
+    // matches one who has blocked the caller. Either way the caller
+    // learns nothing about which state we're in.
+    if (!targetId) return c.json<FriendRequestByEmailResponse>({ status: 'queued' }, 202);
+    if (targetId === callerId) {
+      return c.json({ error: 'Cannot friend yourself' }, 400);
     }
 
-    if (existing?.status === 'pending') {
-      // Reverse-pending → auto-accept.
-      if (existing.addressee_id === callerId) {
-        const { data: updated, error } = await svc
-          .from('friendships')
-          .update({ status: 'accepted', responded_at: new Date().toISOString() })
-          .eq('requester_id', existing.requester_id)
-          .eq('addressee_id', existing.addressee_id)
-          .select('*')
-          .single();
-        if (error || !updated) return c.json({ error: error?.message ?? 'Update failed' }, 400);
-        return c.json(updated satisfies Friendship, 200);
-      }
-      // Forward-pending already exists — idempotent return.
-      return c.json(existing satisfies Friendship, 200);
+    const result = await createOrUpdateFriendRequest(callerId, targetId);
+    if (result.kind === 'not_found') {
+      // Target blocked the caller — collapse into the same queued shape
+      // so blocked-by-target is indistinguishable from unknown-email.
+      return c.json<FriendRequestByEmailResponse>({ status: 'queued' }, 202);
     }
-
-    if (existing?.status === 'declined') {
-      // Allow a retry by overwriting the declined row in place.
-      const { data: updated, error } = await svc
-        .from('friendships')
-        .update({
-          status: 'pending',
-          responded_at: null,
-          created_at: new Date().toISOString(),
-        })
-        .eq('requester_id', existing.requester_id)
-        .eq('addressee_id', existing.addressee_id)
-        .select('*')
-        .single();
-      if (error || !updated) return c.json({ error: error?.message ?? 'Retry failed' }, 400);
-      return c.json(updated satisfies Friendship, 200);
+    if (result.kind === 'blocked_by_caller') {
+      return c.json({ error: 'You have blocked this user' }, 409);
     }
-
-    // No row exists in either direction — insert a fresh pending row.
-    const { data: inserted, error: insertErr } = await svc
-      .from('friendships')
-      .insert({
-        requester_id: callerId,
-        addressee_id: targetId,
-        status: 'pending',
-      })
-      .select('*')
-      .single();
-    if (insertErr || !inserted) {
-      return c.json({ error: insertErr?.message ?? 'Insert failed' }, 400);
-    }
-    return c.json(inserted satisfies Friendship, 201);
+    if (result.kind === 'error') return c.json({ error: result.message }, 400);
+    return c.json<FriendRequestByEmailResponse>(
+      result.row satisfies Friendship,
+      result.created ? 201 : 200,
+    );
   })
 
   // Accept an incoming pending request. Only the addressee may accept.

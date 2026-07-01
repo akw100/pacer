@@ -79,6 +79,31 @@ export const FriendRequestInputSchema = z
   });
 export type FriendRequestInput = z.infer<typeof FriendRequestInputSchema>;
 
+// POST /friends/request-by-email — dedicated endpoint for the "add by
+// email" flow. Kept separate from FriendRequestInputSchema because the
+// email path returns a privacy-safe queued response for unknown emails
+// (so the caller cannot enumerate which addresses belong to Pacer
+// users); the handle path returns a clean 404 for genuinely-unknown
+// handles because handles are semi-public. Same target validation
+// runs server-side on the resolved user id.
+export const FriendRequestByEmailInputSchema = z.object({
+  email: z.string().trim().email().transform((s) => s.toLowerCase()),
+});
+export type FriendRequestByEmailInput = z.infer<typeof FriendRequestByEmailInputSchema>;
+
+// Discriminated response for the email flow:
+//   - { status: 'queued' } is returned when the target could not be
+//     resolved (unknown email, blocked-by-target, or any other non-
+//     visibility). Prevents email enumeration.
+//   - The full Friendship row is returned when the target was resolved
+//     and a real pending / accepted / declined-retry row was created
+//     or reused (same semantics as POST /friends/request).
+export const FriendRequestByEmailResponseSchema = z.union([
+  z.object({ status: z.literal('queued') }),
+  FriendshipSchema,
+]);
+export type FriendRequestByEmailResponse = z.infer<typeof FriendRequestByEmailResponseSchema>;
+
 // GET /friends/lookup?handle=:handle — minimal profile, or null if not found
 // OR if visibility is restricted (e.g. caller is blocked by target). The API
 // never differentiates these to avoid leaking block status.
