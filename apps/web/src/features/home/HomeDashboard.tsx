@@ -9,6 +9,8 @@ import { ThisWeekCard } from './ThisWeekCard';
 import { GroupPulseCard } from './GroupPulseCard';
 import { RecentActivityList } from './RecentActivityList';
 import { HomePlansSection } from '../planning/HomePlansSection';
+import { WeeklyActivityChart } from './WeeklyActivityChart';
+import { WorkoutKindBreakdown } from './WorkoutKindBreakdown';
 import { greetingFor, useHomeData } from './useHomeData';
 
 // Live-data Home. Renders real personal numbers (greeting from profile,
@@ -51,6 +53,12 @@ export function HomeDashboard() {
       <FriendsStandingCard />
 
       <HomePlansSection />
+
+      {/* Visual stats row — real runs (weekly) + real workouts (30d mix). */}
+      <div className="grid gap-4 md:grid-cols-2 md:gap-5 items-start">
+        <WeeklyActivityChart />
+        <WorkoutKindBreakdown />
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2 md:gap-5 items-start">
         <div className="flex flex-col gap-4 md:gap-5">
