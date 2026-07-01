@@ -8,9 +8,11 @@ import { Plus, Trash2, Repeat } from 'lucide-react';
 import {
   scoreFor,
   toDateKey,
+  type Workout,
   type WorkoutCreate,
+  type WorkoutUpdate,
 } from '@pacer/shared';
-import { useCreateWorkout, useWorkouts } from './useLogging';
+import { useCreateWorkout, useUpdateWorkout, useWorkouts } from './useLogging';
 
 type WorkoutKind = WorkoutCreate['kind'];
 const KIND_OPTIONS: WorkoutKind[] = ['strength', 'mobility', 'swim', 'bike', 'other'];
@@ -34,22 +36,39 @@ type FormValues = z.infer<typeof FormSchema>;
 interface WorkoutFormProps {
   /** Optional group to count this workout in (null = personal only). */
   sharedGroupId?: string | null;
+  /** When provided, the form runs in edit mode: PATCH /workouts/:id instead
+   *  of POST /workouts, prefills every metadata field from the existing row,
+   *  and hides the sets sub-form (WorkoutUpdateSchema intentionally omits
+   *  `sets` — editing sets in-place is a separate feature). */
+  initial?: Workout;
   onDone: () => void;
 }
 
-export function WorkoutForm({ sharedGroupId, onDone }: WorkoutFormProps) {
+export function WorkoutForm({ sharedGroupId, initial, onDone }: WorkoutFormProps) {
   const create = useCreateWorkout();
+  const update = useUpdateWorkout();
   const { data: history = [] } = useWorkouts();
   const [nameOpen, setNameOpen] = useState(false);
+  const editing = !!initial;
+
+  const initialDurationMinutes =
+    initial?.duration_seconds != null
+      ? String(Math.max(1, Math.round(initial.duration_seconds / 60)))
+      : '';
 
   const form = useForm<FormValues>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
-      name: '',
-      kind: 'strength',
-      workoutDate: toDateKey(new Date()),
-      durationMinutes: '',
-      sets: [{ exerciseName: '', sets: '', reps: '', weight: '' }],
+      name: initial?.name ?? '',
+      kind: initial?.kind ?? 'strength',
+      workoutDate: initial?.workout_date ?? toDateKey(new Date()),
+      durationMinutes: initialDurationMinutes,
+      // In edit mode the sets sub-form is hidden but the field-array still
+      // needs a valid seed row so FormSchema's .min(1) doesn't reject.
+      sets:
+        initial != null
+          ? [{ exerciseName: initial.name || 'workout', sets: '1', reps: '1', weight: '' }]
+          : [{ exerciseName: '', sets: '', reps: '', weight: '' }],
     },
   });
 
@@ -96,6 +115,25 @@ export function WorkoutForm({ sharedGroupId, onDone }: WorkoutFormProps) {
       values.durationMinutes !== '' && Number.isFinite(durationMinutes) && durationMinutes > 0
         ? Math.round(durationMinutes * 60)
         : null;
+
+    if (editing && initial) {
+      // PATCH: only metadata; sets are unchanged via WorkoutUpdateSchema.
+      const patch: WorkoutUpdate = {
+        name: values.name.trim(),
+        kind: values.kind,
+        workout_date: values.workoutDate,
+        duration_seconds: durationSeconds,
+        shared_group_id: sharedGroupId ?? null,
+      };
+      try {
+        await update.mutateAsync({ id: initial.id, patch });
+        toast.success('Workout updated');
+        onDone();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Save failed');
+      }
+      return;
+    }
 
     // Server requires `sets` and `reps` as positive ints — only include rows
     // the user actually filled out. Empty exercise names are skipped.
@@ -234,8 +272,18 @@ export function WorkoutForm({ sharedGroupId, onDone }: WorkoutFormProps) {
         </Field>
       </div>
 
-      {/* Exercise rows */}
-      <div className="flex flex-col gap-2">
+      {/* Exercise rows — hidden in edit mode. Sets aren't editable via
+          PATCH /workouts/:id (WorkoutUpdateSchema omits `sets`); to change
+          the sets a user should delete + re-log the workout. Making this
+          explicit rather than showing a form that silently drops changes. */}
+      {editing ? (
+        <p className="rounded-card border border-border bg-ink/5 p-3 text-xs text-ink-muted leading-relaxed">
+          Editing this workout updates the name, kind, date, duration, and
+          group tag. Exercise sets can't be changed after logging — delete
+          and re-log if the sets themselves are wrong.
+        </p>
+      ) : (
+        <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <span className="text-xs uppercase tracking-wide text-ink-muted">Exercises</span>
           <button
@@ -292,13 +340,20 @@ export function WorkoutForm({ sharedGroupId, onDone }: WorkoutFormProps) {
           </div>
         ))}
       </div>
+      )}
 
       <button
         type="submit"
-        disabled={create.isPending}
+        disabled={editing ? update.isPending : create.isPending}
         className="rounded-pill bg-accent text-white py-3 font-medium active:scale-[0.98] disabled:opacity-50 transition-transform"
       >
-        {create.isPending ? 'Saving…' : 'Log workout'}
+        {editing
+          ? update.isPending
+            ? 'Saving…'
+            : 'Save changes'
+          : create.isPending
+            ? 'Saving…'
+            : 'Log workout'}
       </button>
     </form>
   );

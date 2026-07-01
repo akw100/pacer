@@ -1,5 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { Run, RunCreate, RunUpdate, Workout, WorkoutCreate } from '@pacer/shared';
+import type {
+  Run,
+  RunCreate,
+  RunUpdate,
+  Workout,
+  WorkoutCreate,
+  WorkoutUpdate,
+} from '@pacer/shared';
 import { apiFetch } from '../../lib/api';
 import { useAuth } from '../auth/AuthProvider';
 import { invalidateLogging, loggingKeys } from './logging.queries';
@@ -86,6 +93,16 @@ export function useCreateWorkout() {
   return useMutation({
     mutationFn: (input: WorkoutCreate) =>
       apiFetch<Workout>('/workouts', { token: token!, method: 'POST', body: input }),
+    onSuccess: () => invalidateLogging(qc),
+  });
+}
+
+export function useUpdateWorkout() {
+  const token = useToken();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: WorkoutUpdate }) =>
+      apiFetch<Workout>(`/workouts/${id}`, { token: token!, method: 'PATCH', body: patch }),
     onSuccess: () => invalidateLogging(qc),
   });
 }

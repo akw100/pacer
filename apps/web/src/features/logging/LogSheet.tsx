@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Drawer } from '../../components/drawer';
 import { X } from 'lucide-react';
-import type { Run, Units } from '@pacer/shared';
+import type { Run, Units, Workout } from '@pacer/shared';
 import { RunForm } from './RunForm';
 import { WorkoutForm } from './WorkoutForm';
 import { GroupSelector } from './GroupSelector';
@@ -21,6 +21,7 @@ const OPEN_EVENT = 'pacer:open-log';
 interface OpenDetail {
   tab?: Tab;
   editRun?: Run;
+  editWorkout?: Workout;
   /** Pre-select a group for the "Count in group" picker. Pass null/undefined for personal default. */
   groupId?: string | null;
 }
@@ -40,6 +41,7 @@ export function LogSheetMount({ units = 'km' }: LogSheetMountProps) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>('run');
   const [editRun, setEditRun] = useState<Run | undefined>(undefined);
+  const [editWorkout, setEditWorkout] = useState<Workout | undefined>(undefined);
   const { activeGroupId, lastSharedGroupId, rememberLastShared } = useGroupContext();
   // null = "Personal only" (the safe default per the card).
   const [sharedGroupId, setSharedGroupId] = useState<string | null>(null);
@@ -49,6 +51,7 @@ export function LogSheetMount({ units = 'km' }: LogSheetMountProps) {
       const ce = e as CustomEvent<OpenDetail>;
       setTab(ce.detail?.tab ?? 'run');
       setEditRun(ce.detail?.editRun);
+      setEditWorkout(ce.detail?.editWorkout);
       // Priority of group default on open:
       //   1. explicit groupId in the open call (e.g. "Log to group" CTA)
       //   2. group the user is currently viewing
@@ -72,7 +75,10 @@ export function LogSheetMount({ units = 'km' }: LogSheetMountProps) {
   const close = () => {
     setOpen(false);
     setEditRun(undefined);
+    setEditWorkout(undefined);
   };
+
+  const editing = !!editRun || !!editWorkout;
 
   return (
     <Drawer.Root open={open} onOpenChange={(v) => (v ? setOpen(true) : close())}>
@@ -87,7 +93,7 @@ export function LogSheetMount({ units = 'km' }: LogSheetMountProps) {
           <div className="mx-auto my-2 h-1.5 w-10 rounded-pill bg-border md:hidden" />
 
           <header className="flex items-center justify-between px-5 pt-2 pb-3">
-            <Segmented tab={tab} setTab={setTab} editing={!!editRun} />
+            <Segmented tab={tab} setTab={setTab} editing={editing} editingKind={editRun ? 'run' : editWorkout ? 'workout' : null} />
             <button
               aria-label="Close"
               onClick={close}
@@ -110,7 +116,11 @@ export function LogSheetMount({ units = 'km' }: LogSheetMountProps) {
               />
             )}
             {tab === 'workout' && !editRun && (
-              <WorkoutForm sharedGroupId={sharedGroupId} onDone={close} />
+              <WorkoutForm
+                sharedGroupId={sharedGroupId}
+                initial={editWorkout}
+                onDone={close}
+              />
             )}
             {tab === 'habits' && <HabitsTabSlot />}
           </div>
@@ -133,17 +143,21 @@ function Segmented({
   tab,
   setTab,
   editing,
+  editingKind,
 }: {
   tab: Tab;
   setTab: (t: Tab) => void;
   editing: boolean;
+  editingKind: 'run' | 'workout' | null;
 }) {
   const tabs: Tab[] = ['run', 'workout', 'habits'];
   return (
     <div className="inline-flex rounded-pill border border-border bg-surface p-0.5">
       {tabs.map((t) => {
         const active = tab === t;
-        const disabled = editing && t !== 'run';
+        // While editing, keep the user on the tab that matches the edited
+        // item — switching tabs mid-edit would silently drop their changes.
+        const disabled = editing && editingKind != null && t !== editingKind;
         return (
           <button
             key={t}
