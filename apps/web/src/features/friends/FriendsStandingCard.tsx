@@ -348,29 +348,37 @@ function BodyMuted({ children }: { children: React.ReactNode }) {
   return <p className="text-sm text-ink-muted leading-snug">{children}</p>;
 }
 
+// Compact no-friends state. Replaces the previous full-height card
+// (~150–180px on desktop) with a slim strip (~60–70px) that fits the
+// Home rhythm without pushing other cards down. The explanation stays
+// honest — one line, no icon well, no long paragraph — and the "Add
+// friend" action moves into the header as a small accent pill so it
+// stays discoverable at the top of the card.
 function EmptyState() {
   return (
     <section
-      aria-labelledby="friends-empty-heading"
-      className="rounded-card border border-dashed border-border bg-surface p-5 shadow-sm flex flex-col gap-3"
+      aria-labelledby="friends-standing-heading"
+      className="rounded-card border border-border bg-surface p-4 md:p-5 shadow-sm flex flex-col gap-2"
     >
-      <span className="grid place-items-center w-10 h-10 rounded-pill bg-accent/10 text-accent">
-        <UserPlus size={18} strokeWidth={1.8} />
-      </span>
-      <h2 id="friends-empty-heading" className="font-display text-lg font-semibold text-ink">
-        Add friends to see where you stand
-      </h2>
-      <p className="text-sm text-ink-muted leading-relaxed">
-        Search someone by their @handle and send a request. Their weekly
-        activity will show here when they accept.
+      <header className="flex items-center justify-between gap-3 flex-wrap">
+        <h2
+          id="friends-standing-heading"
+          className="font-display text-base md:text-lg font-semibold text-ink inline-flex items-center gap-2"
+        >
+          <Trophy size={16} strokeWidth={1.8} className="text-accent" />
+          Friends standing
+        </h2>
+        <Link
+          to="/profile"
+          className="inline-flex items-center gap-1 rounded-pill bg-accent text-white px-2.5 py-1 text-xs font-semibold shadow-sm shadow-accent/20"
+        >
+          <UserPlus size={12} strokeWidth={2.2} />
+          Add friend
+        </Link>
+      </header>
+      <p className="text-xs text-ink-muted leading-snug">
+        No accepted friends yet — send a request by @handle to start comparing weekly scores.
       </p>
-      <Link
-        to="/profile"
-        className="self-start inline-flex items-center gap-1.5 rounded-pill bg-accent text-white px-4 py-2 text-sm font-semibold shadow-sm shadow-accent/20"
-      >
-        <UserPlus size={14} strokeWidth={2.2} />
-        Add friends
-      </Link>
     </section>
   );
 }
