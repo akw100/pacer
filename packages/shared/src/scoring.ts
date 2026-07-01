@@ -13,14 +13,20 @@ export const POINTS = {
   RACE_WIN: 15,
 } as const;
 
-export type ScoreReason =
-  | 'run'
-  | 'workout'
-  | 'habit'
-  | 'habit_day_bonus'
-  | 'plan_run'
-  | 'streak'
-  | 'race_win';
+// Single source for the reason enum: the TS union, the zod schema
+// (schemas/score-event.ts), and — kept in sync by hand — the score_events
+// reason CHECK constraint in the DB migrations. Append-only.
+export const SCORE_REASONS = [
+  'run',
+  'workout',
+  'habit',
+  'habit_day_bonus',
+  'plan_run',
+  'streak',
+  'race_win',
+] as const;
+
+export type ScoreReason = (typeof SCORE_REASONS)[number];
 
 export type ScoreInput =
   | { reason: 'run'; distanceMeters: number }

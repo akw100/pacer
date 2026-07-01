@@ -36,11 +36,12 @@ async function isParticipant(raceId: string, userId: string): Promise<boolean> {
 // status='active' so the terminal transition can only fire once — a
 // concurrent caller who already flipped it gets no rows back.
 async function maybeFinishRace(db: ReturnType<typeof serviceClient>, raceId: string): Promise<void> {
-  const { count } = await db
+  const { count, error } = await db
     .from('race_participants')
     .select('*', { count: 'exact', head: true })
     .eq('race_id', raceId)
     .eq('state', 'racing');
+  if (error) return;
   if ((count ?? 0) > 0) return;
   const { data: finishedRows } = await db
     .from('races')
@@ -216,7 +217,13 @@ export const races = new Hono<AppEnv>()
     // actually covered the target distance ⇒ DNF, never crowned
     const reachedTarget = body.manual || body.final_meters >= race.target_meters;
     if (!isPlausibleFinish(race.target_meters, elapsed) || !reachedTarget) {
-      await db.from('race_participants').update({ state: 'dnf' }).eq('race_id', id).eq('user_id', userId);
+      await db
+        .from('race_participants')
+        .update({ state: 'dnf' })
+        .eq('race_id', id)
+        .eq('user_id', userId)
+        .eq('state', 'racing');
+      await maybeFinishRace(db, id);
       return c.json({ ok: false, reason: 'implausible' }, 422);
     }
     // Claim the finish atomically (conditioned on state='racing') before doing
@@ -239,13 +246,17 @@ export const races = new Hono<AppEnv>()
     if (!claimed) return c.json({ error: 'not racing' }, 409);
     const runId = await logRaceRun(userId, race.target_meters, elapsed);
     if (!runId) {
-      // Logging the run failed — revert the claim so the caller can retry
-      // instead of leaving a "finished" participant with no run behind it.
+      // Logging the run failed. Don't revert to 'racing' — by now another
+      // finisher may have already closed the race via maybeFinishRace, and
+      // reopening this participant would leave a finished race with a racing
+      // participant. Land in the terminal 'dnf' state instead and let the
+      // caller retry the finish flow as a fresh attempt if needed.
       await db
         .from('race_participants')
-        .update({ state: 'racing', finished_at: null, elapsed_seconds: null, final_meters: null, manual_finish: false })
+        .update({ state: 'dnf' })
         .eq('race_id', id)
         .eq('user_id', userId);
+      await maybeFinishRace(db, id);
       return c.json({ error: 'could not log run' }, 500);
     }
     await db.from('race_participants').update({ run_id: runId }).eq('race_id', id).eq('user_id', userId);

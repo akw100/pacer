@@ -41,7 +41,7 @@ alter table public.race_participants enable row level security;
 -- recurses (see 0011_fix_group_members_rls_recursion.sql for the same issue on
 -- group_members). A SECURITY DEFINER helper runs the membership check without
 -- RLS applied, breaking the recursion; races_read reuses it too.
-create or replace function public.is_race_participant(rid uuid, uid uuid)
+create or replace function public.is_race_participant(rid uuid)
 returns boolean
 language sql
 security definer
@@ -49,14 +49,14 @@ set search_path = public
 as $$
   select exists (
     select 1 from public.race_participants
-    where race_id = rid and user_id = uid
+    where race_id = rid and user_id = auth.uid()
   );
 $$;
 
 create policy races_read on public.races for select to authenticated
-  using (public.is_race_participant(races.id, auth.uid()));
+  using (public.is_race_participant(races.id));
 create policy race_participants_read on public.race_participants for select to authenticated
-  using (public.is_race_participant(race_participants.race_id, auth.uid()));
+  using (public.is_race_participant(race_participants.race_id));
 
 -- ── Extend existing CHECK constraints for race-sourced rows ──────────────────
 -- A finisher's run is logged with source 'race' (see apps/api/src/lib/race-result.ts);
