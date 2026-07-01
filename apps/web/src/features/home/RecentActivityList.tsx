@@ -38,7 +38,9 @@ export function RecentActivityList({ items, groupId }: RecentActivityListProps) 
 
 function ActivityRow({ item, groupId }: { item: RecentActivityItem; groupId: string | null }) {
   const react = useReact(groupId);
-  const canReact = !!item.target && !!groupId;
+  // Disable while a toggle is in flight: mine/count come from server props (no
+  // optimistic update), so a rapid second click would resend a stale `on`.
+  const canReact = !!item.target && !!groupId && !react.isPending;
 
   function toggle(emoji: ReactionEmoji, on: boolean) {
     if (!item.target || !groupId) return;
