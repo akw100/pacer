@@ -166,6 +166,10 @@ async function execTool(
 
 const MAX_ITERATIONS = 3;
 
+// Never hand the UI an empty bubble — if the model returns nothing parseable
+// (unexpected output shape, or just no text), say so instead of rendering blank.
+const EMPTY_REPLY = "Sorry — I couldn't put together a reply just then. Mind trying again?";
+
 interface RunAssistantResult {
   message: { role: 'assistant'; content: string };
   tools_used: string[];
@@ -233,7 +237,7 @@ export async function runAssistant(
     const fnCalls = output.filter((it) => it.type === 'function_call');
     if (fnCalls.length === 0) {
       const text = extractText(output);
-      return { message: { role: 'assistant', content: text }, tools_used: toolsUsed };
+      return { message: { role: 'assistant', content: text || EMPTY_REPLY }, tools_used: toolsUsed };
     }
 
     // Execute each function call; append both the call and its output to
@@ -287,11 +291,11 @@ export async function runAssistant(
     content?: Array<{ type: string; text?: string }>;
   };
   const text = extractText((final.output ?? []) as OutputItem[]);
-  return { message: { role: 'assistant', content: text }, tools_used: toolsUsed };
+  return { message: { role: 'assistant', content: text || EMPTY_REPLY }, tools_used: toolsUsed };
 }
 
 function extractText(
-  output: Array<{ type: string; role?: string; content?: Array<{ type: string; text?: string }> }>,
+  output: Array<{ type: string; role?: string; content?: Array<{ type: string; text?: string; refusal?: string }> }>,
 ): string {
   for (const item of output) {
     if (item.type === 'message' && item.role === 'assistant' && Array.isArray(item.content)) {
@@ -299,6 +303,9 @@ function extractText(
       for (const c of item.content) {
         if ((c.type === 'output_text' || c.type === 'text') && typeof c.text === 'string') {
           parts.push(c.text);
+        } else if (c.type === 'refusal' && typeof c.refusal === 'string') {
+          // A refusal is still a message to show the user, not an empty reply.
+          parts.push(c.refusal);
         }
       }
       if (parts.length) return parts.join('').trim();

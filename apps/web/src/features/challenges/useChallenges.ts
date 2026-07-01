@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   ChallengeWithProgress,
@@ -9,7 +8,6 @@ import type {
 } from '@pacer/shared';
 import { apiFetch } from '../../lib/api';
 import { useAuth } from '../auth/AuthProvider';
-import { supabase } from '../../lib/supabase';
 import { challengeKeys, invalidateChallenges } from './challenges.queries';
 
 function useToken(): string | null {
@@ -31,7 +29,15 @@ export function useCreateChallenge() {
   return useMutation({
     mutationFn: (input: CreateChallengeInput) =>
       apiFetch<ChallengeWithProgress>('/challenges', { token: token!, method: 'POST', body: input }),
-    onSuccess: () => invalidateChallenges(qc),
+    // Drop the returned (fully enriched) challenge straight into the cached list
+    // so the creator sees it instantly — like every other mutation here patches
+    // the cache. The invalidate then reconciles with server truth.
+    onSuccess: (created) => {
+      qc.setQueryData<ChallengeWithProgress[]>(challengeKeys.list, (prev) =>
+        prev ? [created, ...prev.filter((c) => c.id !== created.id)] : [created],
+      );
+      invalidateChallenges(qc);
+    },
   });
 }
 
@@ -161,27 +167,4 @@ export function useDeleteChallenge() {
     onError: (_e, _v, ctx) => rollback(qc, ctx),
     onSettled: () => invalidateChallenges(qc),
   });
-}
-
-/**
- * Keep the challenge list live: a `challenge.updated` broadcast on the caller's
- * user channel (someone responded, joined, checked in, or the actor logged
- * activity that moves a metric) just invalidates the list — we refetch through
- * the normal API so RLS and progress derivation stay server-side.
- */
-export function useChallengesRealtime() {
-  const qc = useQueryClient();
-  const { session } = useAuth();
-  const userId = session?.user.id;
-
-  useEffect(() => {
-    if (!userId) return;
-    // Same topic the API broadcasts to (`user:<id>`); filter to challenge events.
-    const channel = supabase.channel(`user:${userId}`, { config: { broadcast: { self: true } } });
-    channel.on('broadcast', { event: 'challenge.updated' }, () => invalidateChallenges(qc));
-    channel.subscribe();
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [userId, qc]);
 }

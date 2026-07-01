@@ -11,6 +11,7 @@ import RacesPage from './features/races/RacesPage'
 import LobbyScreen from './features/races/LobbyScreen'
 import RaceScreen from './features/races/RaceScreen'
 import ResultScreen from './features/races/ResultScreen'
+import Planning from './screens/Planning'
 import Frames from './screens/Frames'
 import Profile from './screens/Profile'
 import NotFound from './screens/NotFound'
@@ -33,6 +34,7 @@ import { useAuth } from './features/auth/AuthProvider'
 import { GroupProvider } from './features/groups/GroupContext'
 import { VoiceAgent } from './features/voice/VoiceAgent'
 import { useUserRealtime } from './features/logging/useUserRealtime'
+import { PlanCelebration } from './features/planning/PlanCelebration'
 
 function Shell() {
   // Keep the logged-in UI fresh on every screen when a run/workout is saved
@@ -106,6 +108,7 @@ const router = createBrowserRouter([
       { path: 'races/:id/lobby', element: <LobbyScreen /> },
       { path: 'races/:id', element: <RaceScreen /> },
       { path: 'races/:id/result', element: <ResultScreen /> },
+      { path: 'planning', element: <Planning /> },
       { path: 'flows', element: <Frames /> },
       { path: 'profile', element: <Profile /> },
       { path: '*', element: <NotFound /> },
@@ -128,6 +131,7 @@ function AuthedOverlays() {
       <CoachmarkTour />
       <ContextualHints />
       <HowPacerWorksSheet />
+      <PlanCelebration />
     </>
   )
 }

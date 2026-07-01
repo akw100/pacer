@@ -1,9 +1,10 @@
 import { toast } from 'sonner';
 import { Drawer } from '../../components/drawer';
-import { X, Trophy, CheckCircle2, Trash2, RotateCcw, Pencil } from 'lucide-react';
+import { X, Trophy, CheckCircle2, Trash2, RotateCcw, Pencil, Copy } from 'lucide-react';
 import {
   CHALLENGE_METRICS,
   challengeWinner,
+  isChallengeComplete,
   type ChallengeWithProgress,
   type Units,
 } from '@pacer/shared';
@@ -49,6 +50,22 @@ export function ChallengeDetail({ challenge, units, youUserId, onOpenChange, onR
       toast.success('Checked in! ✅');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Could not check in');
+    }
+  }
+
+  async function doCopy() {
+    if (!challenge) return;
+    const lines = [
+      `🏁 ${meta.label} challenge · target ${formatMetricValue(challenge.target, challenge.metric, units)}`,
+      windowLabel(challenge.state, challenge.start_date, challenge.end_date, todayKey()),
+    ];
+    if (challenge.description) lines.push(challenge.description);
+    if (challenge.youtube_url) lines.push(challenge.youtube_url);
+    try {
+      await navigator.clipboard.writeText(lines.join('\n'));
+      toast.success('Copied to clipboard');
+    } catch {
+      toast.error('Could not copy');
     }
   }
 
@@ -136,8 +153,8 @@ export function ChallengeDetail({ challenge, units, youUserId, onOpenChange, onR
                   </span>
                 </div>
                 <ProgressBar
-                  fraction={progressFraction(challenge.my_progress, challenge.target, challenge.metric)}
-                  complete={challenge.my_progress >= challenge.target}
+                  fraction={progressFraction(challenge.my_progress, challenge.target)}
+                  complete={isChallengeComplete(challenge.my_progress, challenge.target)}
                 />
               </div>
             )}
@@ -211,6 +228,15 @@ export function ChallengeDetail({ challenge, units, youUserId, onOpenChange, onR
                 {checkIn.isPending ? 'Saving…' : "Check in for today"}
               </button>
             )}
+
+            <button
+              type="button"
+              onClick={doCopy}
+              className="inline-flex items-center justify-center gap-2 rounded-pill border border-border bg-surface py-2.5 text-sm font-medium text-ink hover:bg-ink/5 transition-colors"
+            >
+              <Copy size={15} strokeWidth={1.8} />
+              Copy summary
+            </button>
 
             {challenge.state === 'finished' && onRematch && (
               <button

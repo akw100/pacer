@@ -35,6 +35,9 @@ export interface ChallengePreset {
   targetCanonical?: number;
   description?: string;
   youtubeUrl?: string | null;
+  // Only honoured in edit mode — a rematch always starts a fresh today→+7 window.
+  startDate?: string;
+  endDate?: string;
 }
 
 interface CreateChallengeSheetProps {
@@ -102,8 +105,9 @@ export function CreateChallengeSheet({ open, onOpenChange, units, preset, mode =
     setTargetInput(
       preset?.targetCanonical != null ? canonicalToInput(preset.targetCanonical, preset.metric ?? 'distance', units) : '',
     );
-    setStart(todayKey());
-    setEnd(addDays(todayKey(), 7));
+    // Edit keeps the challenge's existing window; create/rematch start fresh.
+    setStart(isEdit && preset?.startDate ? preset.startDate : todayKey());
+    setEnd(isEdit && preset?.endDate ? preset.endDate : addDays(todayKey(), 7));
     setDescription(preset?.description ?? '');
     setYoutube(preset?.youtubeUrl ?? '');
   }

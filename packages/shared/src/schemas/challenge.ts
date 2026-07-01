@@ -165,6 +165,17 @@ export type ChallengeWithProgress = z.infer<typeof ChallengeWithProgressSchema>;
 
 // ── Pure helpers (shared by web + api + bot) ─────────────────────────────────
 
+/** Progress toward target as a clamped integer percent (0–100). */
+export function progressPercent(progress: number, target: number): number {
+  if (target <= 0) return 0;
+  return Math.max(0, Math.min(100, Math.round((progress / target) * 100)));
+}
+
+/** Whether a participant has reached the target. */
+export function isChallengeComplete(progress: number, target: number): boolean {
+  return target > 0 && progress >= target;
+}
+
 /** upcoming (before start) · active (within window) · finished (after end). */
 export function challengeState(
   startDate: string,
@@ -275,4 +286,12 @@ export function normalizeYouTubeUrl(input: string): string | null {
 export function youTubeEmbedUrl(input: string): string | null {
   const id = extractYouTubeId(input);
   return id ? `https://www.youtube-nocookie.com/embed/${id}` : null;
+}
+
+/** Thumbnail image URL for a stored video, or null. `hq` (default) = 480×360. */
+export function youTubeThumbnailUrl(input: string, quality: 'hq' | 'mq' = 'hq'): string | null {
+  const id = extractYouTubeId(input);
+  if (!id) return null;
+  const file = quality === 'mq' ? 'mqdefault' : 'hqdefault';
+  return `https://i.ytimg.com/vi/${id}/${file}.jpg`;
 }

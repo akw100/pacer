@@ -13,7 +13,9 @@ import type { AppEnv } from '../lib/auth';
 import { broadcast } from '../lib/realtime';
 import { serviceClient } from '../lib/supabase';
 import { zValidator } from '../lib/validate';
+import { todayKey } from '../lib/today';
 import { computeChallengeProgress, type ParticipantSeed } from '../lib/challenge-progress';
+import { canSeeChallenge } from '../lib/challenge-visibility';
 
 // Challenges slice. Reads groups + activity through the service client (a
 // challenge spans many users), so every handler enforces visibility itself —
@@ -21,14 +23,6 @@ import { computeChallengeProgress, type ParticipantSeed } from '../lib/challenge
 // create (creator), respond (own invite), join (open/group), check-in (self).
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function todayKey(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
 
 interface ChallengeRow {
   id: string;
@@ -65,21 +59,6 @@ async function loadParticipants(challengeId: string): Promise<ParticipantSeed[]>
     handle: r.profiles.handle,
     avatar_emoji: r.profiles.avatar_emoji,
   }));
-}
-
-// Whether `viewer` may see `challenge`, given its participants + the viewer's
-// group memberships. Mirrors the can_see_challenge SQL helper.
-function canSee(
-  challenge: ChallengeRow,
-  participants: ParticipantSeed[],
-  viewer: string,
-  groupIds: string[],
-): boolean {
-  if (challenge.creator_id === viewer) return true;
-  if (challenge.audience === 'everyone') return true;
-  if (participants.some((p) => p.user_id === viewer)) return true;
-  if (challenge.audience === 'group' && challenge.group_id && groupIds.includes(challenge.group_id)) return true;
-  return false;
 }
 
 async function buildView(
@@ -148,7 +127,7 @@ async function loadVisible(
   if (!challenge) return { ok: false, reason: '404' };
   const participants = await loadParticipants(challengeId);
   const groupIds = await myGroupIds(viewerId);
-  if (!canSee(challenge as ChallengeRow, participants, viewerId, groupIds)) {
+  if (!canSeeChallenge(challenge as ChallengeRow, participants.map((p) => p.user_id), viewerId, groupIds)) {
     return { ok: false, reason: '403' };
   }
   return { ok: true, challenge: challenge as ChallengeRow, participants };
@@ -176,7 +155,8 @@ export const challenges = new Hono<AppEnv>()
     const { data: myParts } = await svc
       .from('challenge_participants')
       .select('challenge_id')
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .neq('status', 'declined'); // a declined invite shouldn't linger in the hub
     const participatingIds = (myParts ?? []).map((r: { challenge_id: string }) => r.challenge_id);
 
     // Pull the candidate rows in a few targeted queries, then dedupe by id.
@@ -214,6 +194,19 @@ export const challenges = new Hono<AppEnv>()
     // Newest first; the web groups them into upcoming/active/finished sections.
     views.sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
     return c.json(views);
+  })
+
+  // A single challenge the caller can see — for deep links and the bot/assistant.
+  .get('/:id', async (c) => {
+    const userId = c.get('userId');
+    const id = c.req.param('id');
+    const visible = await loadVisible(id, userId);
+    if (!visible.ok) return c.json({ error: visible.reason === '404' ? 'Not found' : 'Forbidden' }, visible.reason === '404' ? 404 : 403);
+    const creators = await loadCreators([visible.challenge.creator_id]);
+    const fallback: ProfileBits = { display_name: '—', handle: 'unknown', avatar_emoji: null };
+    return c.json(
+      await buildView(visible.challenge, visible.participants, creators.get(visible.challenge.creator_id) ?? fallback, userId),
+    );
   })
 
   // Create a challenge. `audience` drives the initial participant set.

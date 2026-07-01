@@ -12,6 +12,7 @@ import {
 import type { AppEnv } from '../lib/auth';
 import { serviceClient } from '../lib/supabase';
 import { zValidator } from '../lib/validate';
+import { todayKey as appTodayKey } from '../lib/today';
 
 // Group goals.
 //
@@ -35,13 +36,6 @@ import { zValidator } from '../lib/validate';
 //     NEVER stored. `current_value` reflects the moment of the read.
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
-
-function toDateKey(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
 
 function diffDays(a: string, b: string): number {
   // a, b are yyyy-MM-dd in local time. Both interpreted at midnight local.
@@ -178,7 +172,7 @@ async function decorateGoal(goal: GroupGoal): Promise<GroupGoalWithProgress> {
   const currentValue = await computeCurrentValue(goal);
   const target = Number(goal.target_value);
   const progressPct = target > 0 ? Math.min(100, Math.round((currentValue / target) * 100)) : 0;
-  const todayKey = toDateKey(new Date());
+  const todayKey = appTodayKey(); // app-timezone day, matching the web's local bucketing
   const effectiveStatus = deriveEffectiveStatus(
     goal.status,
     currentValue,
