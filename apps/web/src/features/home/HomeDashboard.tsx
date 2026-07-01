@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import { AlertCircle, LogIn, Plus, Sparkles } from 'lucide-react';
 import { FriendsStandingCard } from '../friends/FriendsStandingCard';
+import { AddFriendInline } from '../friends/AddFriendInline';
 import { HomeHeader } from './HomeHeader';
 import { LogHero } from './LogHero';
 import { StandingCard } from './StandingCard';
@@ -46,6 +47,12 @@ export function HomeDashboard() {
         streakDays={snapshot.user.streakDays}
         weeklyPoints={snapshot.user.weeklyPoints}
       />
+
+      {/* Top-of-dashboard compact "Add friend" action — renders only
+          when the caller has zero accepted friends, otherwise null and
+          takes no vertical space. FriendsStandingCard now returns null
+          in that state instead of a full empty card. */}
+      <AddFriendInline />
 
       <LogHero activeGroupName={snapshot.group.groupName || null} />
 
