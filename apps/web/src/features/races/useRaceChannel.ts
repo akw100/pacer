@@ -23,8 +23,9 @@ export interface RaceChannel {
  * lobby/run. Two classes of message arrive on the same channel:
  *
  *  - App-level lifecycle broadcasts the API emits (`event: 'race.started'` /
- *    `'race.finished'`) → just invalidate the detail query so authoritative
- *    state (status, winner, participant rows) is refetched through the API.
+ *    `'race.finished'` / `'race.lobby'`) → just invalidate the detail query so
+ *    authoritative state (status, winner, participant rows) is refetched
+ *    through the API.
  *  - Browser→browser race events (`event: 'race'`) carrying a `RaceChannelEvent`
  *    payload → `position` updates the live ticker, `reaction` fires a cheer.
  *    These are never persisted; they live only on the wire.
@@ -53,6 +54,7 @@ export function useRaceChannel(raceId: string): RaceChannel {
     const invalidate = () => qc.invalidateQueries({ queryKey: raceKeys.detail(raceId) });
     channel.on('broadcast', { event: 'race.started' }, invalidate);
     channel.on('broadcast', { event: 'race.finished' }, invalidate);
+    channel.on('broadcast', { event: 'race.lobby' }, invalidate);
 
     // Browser race events (position ticks + reactions).
     channel.on('broadcast', { event: 'race' }, ({ payload }) => {

@@ -13,6 +13,7 @@ import {
   cancelRace,
   getRace,
   invite,
+  joinRace,
   raceKeys,
   setReady,
   startRace,
@@ -68,7 +69,9 @@ export default function LobbyScreen() {
   }, [race?.status, id, navigate]);
 
   const readyMut = useMutation({
-    mutationFn: () => setReady(id),
+    // An invited-but-not-yet-joined runner must join before they can be ready
+    // — /ready only transitions rows already in `joined`.
+    mutationFn: () => (me?.state === 'invited' ? joinRace(id).then(() => setReady(id)) : setReady(id)),
     onSuccess: () => qc.invalidateQueries({ queryKey: raceKeys.detail(id) }),
     onError: (e) => toast.error(e instanceof Error ? e.message : 'Could not set ready'),
   });
@@ -124,7 +127,7 @@ export default function LobbyScreen() {
         creatorId={race.creator_id}
       />
 
-      {inLobby && (
+      {inLobby && isHost && (
         <InvitePicker
           raceId={id}
           existing={participants}

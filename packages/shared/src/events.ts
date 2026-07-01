@@ -12,7 +12,8 @@ export type DomainEventName =
   | 'score.awarded'
   | 'challenge.updated'
   | 'race.started'
-  | 'race.finished';
+  | 'race.finished'
+  | 'race.lobby';
 
 export type DomainEventPayloads = {
   'run.logged': { userId: string; runId: string; runDate: string; distanceMeters: number };
@@ -27,6 +28,7 @@ export type DomainEventPayloads = {
   'challenge.updated': { challengeId: string; userId?: string };
   'race.started': { raceId: string; startAt: string };
   'race.finished': { raceId: string; winnerId: string | null };
+  'race.lobby': { raceId: string };
 };
 
 // Realtime broadcast: one channel per group + a per-user channel. Events carry

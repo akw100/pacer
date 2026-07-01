@@ -20,7 +20,7 @@ export interface GeoDistance {
   samples: GeoSample[];
   /** False when the browser has no Geolocation API at all. */
   supported: boolean;
-  /** True once the user has refused the location permission. */
+  /** True once GPS has failed — permission denied, unavailable, or timed out. */
   denied: boolean;
 }
 
@@ -57,6 +57,7 @@ export function useGeoDistance(active: boolean): GeoDistance {
     lastTs.current = null;
     setMeters(0);
     setSamples([]);
+    setDenied(false);
 
     const onPos = (pos: GeolocationPosition) => {
       if (!isUsableFix({ accuracy: pos.coords.accuracy })) return;
@@ -84,9 +85,9 @@ export function useGeoDistance(active: boolean): GeoDistance {
       });
     };
 
-    const onErr = (err: GeolocationPositionError) => {
-      if (err.code === err.PERMISSION_DENIED) setDenied(true);
-    };
+    // Any GPS failure (denied, unavailable, or timed out) is treated the same:
+    // the caller falls back to the manual-finish path.
+    const onErr = () => setDenied(true);
 
     watchId.current = navigator.geolocation.watchPosition(onPos, onErr, {
       enableHighAccuracy: true,

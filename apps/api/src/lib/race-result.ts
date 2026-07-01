@@ -49,11 +49,12 @@ export async function logRaceRun(
 export async function awardRaceWin(userId: string, raceId: string): Promise<void> {
   const points = scoreFor({ reason: 'race_win' });
   const eventDate = todayKey();
-  await serviceClient()
+  const { error } = await serviceClient()
     .from('score_events')
     .upsert(
       { user_id: userId, points, reason: 'race_win', source_type: 'race', source_id: raceId, event_date: eventDate },
       { onConflict: 'reason,source_type,source_id', ignoreDuplicates: true },
     );
+  if (error) return;
   emit('score.awarded', { userId, points, reason: 'race_win', eventDate });
 }

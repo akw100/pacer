@@ -75,9 +75,10 @@ export default function RaceScreen() {
     if (!running || finishedRef.current || noGps) return;
     if (meters >= target && target > 0) {
       finishedRef.current = true;
-      finishRace(id, meters, false).catch((e) =>
-        toast.error(e instanceof Error ? e.message : 'Could not record finish'),
-      );
+      finishRace(id, meters, false).catch((e) => {
+        finishedRef.current = false;
+        toast.error(e instanceof Error ? e.message : 'Could not record finish');
+      });
     }
   }, [running, meters, target, id, noGps]);
 

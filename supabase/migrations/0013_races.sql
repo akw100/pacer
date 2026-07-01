@@ -35,12 +35,28 @@ alter table public.race_participants enable row level security;
 
 -- A user can read a race they participate in (and its participant rows). All
 -- writes go through the API (service-role); no direct client writes.
+--
+-- race_participants_read must not subquery race_participants inline — that is
+-- the policy's own table, so Postgres reapplies RLS inside the subquery and
+-- recurses (see 0011_fix_group_members_rls_recursion.sql for the same issue on
+-- group_members). A SECURITY DEFINER helper runs the membership check without
+-- RLS applied, breaking the recursion; races_read reuses it too.
+create or replace function public.is_race_participant(rid uuid, uid uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.race_participants
+    where race_id = rid and user_id = uid
+  );
+$$;
+
 create policy races_read on public.races for select to authenticated
-  using (exists (select 1 from public.race_participants p
-                 where p.race_id = races.id and p.user_id = auth.uid()));
+  using (public.is_race_participant(races.id, auth.uid()));
 create policy race_participants_read on public.race_participants for select to authenticated
-  using (exists (select 1 from public.race_participants me
-                 where me.race_id = race_participants.race_id and me.user_id = auth.uid()));
+  using (public.is_race_participant(race_participants.race_id, auth.uid()));
 
 -- ── Extend existing CHECK constraints for race-sourced rows ──────────────────
 -- A finisher's run is logged with source 'race' (see apps/api/src/lib/race-result.ts);

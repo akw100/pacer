@@ -31,6 +31,28 @@ async function isParticipant(raceId: string, userId: string): Promise<boolean> {
   return Boolean(data);
 }
 
+// Close the race once no runner is still `racing` (called after a finish or
+// an abandon, since either can empty out the racing pool). Conditional on
+// status='active' so the terminal transition can only fire once — a
+// concurrent caller who already flipped it gets no rows back.
+async function maybeFinishRace(db: ReturnType<typeof serviceClient>, raceId: string): Promise<void> {
+  const { count } = await db
+    .from('race_participants')
+    .select('*', { count: 'exact', head: true })
+    .eq('race_id', raceId)
+    .eq('state', 'racing');
+  if ((count ?? 0) > 0) return;
+  const { data: finishedRows } = await db
+    .from('races')
+    .update({ status: 'finished', finished_at: new Date().toISOString() })
+    .eq('id', raceId)
+    .eq('status', 'active')
+    .select('id');
+  if ((finishedRows?.length ?? 0) > 0) {
+    void broadcast(`race:${raceId}`, { type: 'race.finished', ids: { raceId } });
+  }
+}
+
 export const races = new Hono<AppEnv>()
 
   // Open a new race lobby for a target distance; the creator joins as a runner.
@@ -44,9 +66,13 @@ export const races = new Hono<AppEnv>()
       .select('*')
       .single();
     if (error || !race) return c.json({ error: error?.message ?? 'create failed' }, 400);
-    await db
+    const { error: joinError } = await db
       .from('race_participants')
       .insert({ race_id: race.id, user_id: userId, role: 'runner', state: 'joined' });
+    if (joinError) {
+      await db.from('races').delete().eq('id', race.id);
+      return c.json({ error: joinError.message }, 400);
+    }
     return c.json(race, 201);
   })
 
@@ -86,6 +112,7 @@ export const races = new Hono<AppEnv>()
       .from('race_participants')
       .upsert(rows, { onConflict: 'race_id,user_id', ignoreDuplicates: true });
     if (error) return c.json({ error: error.message }, 400);
+    void broadcast(`race:${id}`, { type: 'race.lobby', ids: { raceId: id } });
     return c.json({ ok: true });
   })
 
@@ -95,15 +122,19 @@ export const races = new Hono<AppEnv>()
     const userId = c.get('userId');
     const { role } = c.req.valid('json');
     const db = serviceClient();
+    const { data: race } = await db.from('races').select('creator_id, status').eq('id', id).maybeSingle();
+    if (!race) return c.json({ error: 'not found' }, 404);
     // Must already have an invite row, or be the race creator.
-    if (!(await isParticipant(id, userId))) {
-      const { data: race } = await db.from('races').select('creator_id').eq('id', id).maybeSingle();
-      if (!race || race.creator_id !== userId) return c.json({ error: 'not invited' }, 403);
+    if (!(await isParticipant(id, userId)) && race.creator_id !== userId) {
+      return c.json({ error: 'not invited' }, 403);
     }
+    // The lobby's late-join cutoff: once a race is active, its roster is fixed.
+    if (race.status !== 'lobby') return c.json({ error: 'race already started' }, 409);
     const { error } = await db
       .from('race_participants')
       .upsert({ race_id: id, user_id: userId, role, state: 'joined' }, { onConflict: 'race_id,user_id' });
     if (error) return c.json({ error: error.message }, 400);
+    void broadcast(`race:${id}`, { type: 'race.lobby', ids: { raceId: id } });
     return c.json({ ok: true });
   })
 
@@ -118,6 +149,7 @@ export const races = new Hono<AppEnv>()
       .eq('user_id', userId)
       .eq('state', 'joined');
     if (error) return c.json({ error: error.message }, 400);
+    void broadcast(`race:${id}`, { type: 'race.lobby', ids: { raceId: id } });
     return c.json({ ok: true });
   })
 
@@ -154,6 +186,7 @@ export const races = new Hono<AppEnv>()
     if (race.creator_id !== userId) return c.json({ error: 'host only' }, 403);
     if (race.status !== 'lobby') return c.json({ error: 'only a lobby can be cancelled' }, 409);
     await db.from('races').update({ status: 'cancelled' }).eq('id', id);
+    void broadcast(`race:${id}`, { type: 'race.lobby', ids: { raceId: id } });
     return c.json({ ok: true });
   })
 
@@ -179,13 +212,17 @@ export const races = new Hono<AppEnv>()
       .maybeSingle();
     if (!me || me.state !== 'racing') return c.json({ error: 'not racing' }, 409);
     const elapsed = Math.round((Date.now() - new Date(race.start_at).getTime()) / 1000);
-    // anti-cheat: impossible average speed ⇒ DNF, never crowned
-    if (!isPlausibleFinish(race.target_meters, elapsed)) {
+    // anti-cheat: impossible average speed, or an auto-finish that never
+    // actually covered the target distance ⇒ DNF, never crowned
+    const reachedTarget = body.manual || body.final_meters >= race.target_meters;
+    if (!isPlausibleFinish(race.target_meters, elapsed) || !reachedTarget) {
       await db.from('race_participants').update({ state: 'dnf' }).eq('race_id', id).eq('user_id', userId);
       return c.json({ ok: false, reason: 'implausible' }, 422);
     }
-    const runId = await logRaceRun(userId, race.target_meters, elapsed);
-    await db
+    // Claim the finish atomically (conditioned on state='racing') before doing
+    // any side effects — this is what stops two concurrent /finish calls from
+    // both logging a run for the same finish.
+    const { data: claimed } = await db
       .from('race_participants')
       .update({
         state: 'finished',
@@ -193,11 +230,25 @@ export const races = new Hono<AppEnv>()
         elapsed_seconds: elapsed,
         final_meters: body.final_meters,
         manual_finish: body.manual,
-        run_id: runId,
       })
       .eq('race_id', id)
       .eq('user_id', userId)
-      .eq('state', 'racing');
+      .eq('state', 'racing')
+      .select('user_id')
+      .maybeSingle();
+    if (!claimed) return c.json({ error: 'not racing' }, 409);
+    const runId = await logRaceRun(userId, race.target_meters, elapsed);
+    if (!runId) {
+      // Logging the run failed — revert the claim so the caller can retry
+      // instead of leaving a "finished" participant with no run behind it.
+      await db
+        .from('race_participants')
+        .update({ state: 'racing', finished_at: null, elapsed_seconds: null, final_meters: null, manual_finish: false })
+        .eq('race_id', id)
+        .eq('user_id', userId);
+      return c.json({ error: 'could not log run' }, 500);
+    }
+    await db.from('race_participants').update({ run_id: runId }).eq('race_id', id).eq('user_id', userId);
     // first finisher wins: only set winner if still null
     const { data: updated } = await db
       .from('races')
@@ -208,25 +259,7 @@ export const races = new Hono<AppEnv>()
       .maybeSingle();
     const won = updated?.winner_id === userId;
     if (won) await awardRaceWin(userId, id);
-    // finish the race when no runner is still racing
-    const { count } = await db
-      .from('race_participants')
-      .select('*', { count: 'exact', head: true })
-      .eq('race_id', id)
-      .eq('state', 'racing');
-    if ((count ?? 0) === 0) {
-      // Conditional on status='active' so the terminal transition can only fire
-      // once; a concurrent finisher who already flipped it gets no rows back.
-      const { data: finishedRows } = await db
-        .from('races')
-        .update({ status: 'finished', finished_at: new Date().toISOString() })
-        .eq('id', id)
-        .eq('status', 'active')
-        .select('id');
-      if ((finishedRows?.length ?? 0) > 0) {
-        void broadcast(`race:${id}`, { type: 'race.finished', ids: { raceId: id } });
-      }
-    }
+    await maybeFinishRace(db, id);
     return c.json({ ok: true, won, elapsed });
   })
 
@@ -234,13 +267,15 @@ export const races = new Hono<AppEnv>()
   .post('/:id/abandon', async (c) => {
     const id = c.req.param('id');
     const userId = c.get('userId');
+    const db = serviceClient();
     if (!(await isParticipant(id, userId))) return c.json({ error: 'not racing' }, 409);
-    await serviceClient()
+    await db
       .from('race_participants')
       .update({ state: 'dnf' })
       .eq('race_id', id)
       .eq('user_id', userId)
       .eq('state', 'racing');
+    await maybeFinishRace(db, id);
     return c.json({ ok: true });
   })
 
