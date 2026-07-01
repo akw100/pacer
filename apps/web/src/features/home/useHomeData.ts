@@ -388,10 +388,12 @@ function computeRecent(
         actorName: f.display_name,
         description: describeFeed(f),
         ago: relativeFrom(f.created_at),
+        target: { type: f.kind, id: f.id },
         reactions: f.reactions.map((r) => ({
           emoji: r.emoji,
           label: emojiLabel(r.emoji),
           count: r.count,
+          mine: r.reacted_by_me,
         })),
       }));
   }

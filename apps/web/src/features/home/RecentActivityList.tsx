@@ -1,10 +1,15 @@
+import type { ReactionEmoji } from '@pacer/shared';
+import { useReact } from '../groups/useGroups';
 import type { RecentActivityItem } from './home.mock';
 
 interface RecentActivityListProps {
   items: RecentActivityItem[];
+  /** Group the feed items belong to — needed to post reactions. Null when the
+   *  list is the personal fallback (own runs/workouts), which has no reactions. */
+  groupId: string | null;
 }
 
-export function RecentActivityList({ items }: RecentActivityListProps) {
+export function RecentActivityList({ items, groupId }: RecentActivityListProps) {
   return (
     <section
       aria-labelledby="recent-activity-heading"
@@ -23,7 +28,7 @@ export function RecentActivityList({ items }: RecentActivityListProps) {
       ) : (
         <ul className="flex flex-col gap-3" role="list">
           {items.map((item) => (
-            <ActivityRow key={item.id} item={item} />
+            <ActivityRow key={item.id} item={item} groupId={groupId} />
           ))}
         </ul>
       )}
@@ -31,7 +36,20 @@ export function RecentActivityList({ items }: RecentActivityListProps) {
   );
 }
 
-function ActivityRow({ item }: { item: RecentActivityItem }) {
+function ActivityRow({ item, groupId }: { item: RecentActivityItem; groupId: string | null }) {
+  const react = useReact(groupId);
+  // Disable while a toggle is in flight: mine/count come from server props (no
+  // optimistic update), so a rapid second click would resend a stale `on`.
+  const canReact = !!item.target && !!groupId && !react.isPending;
+
+  function toggle(emoji: ReactionEmoji, on: boolean) {
+    if (!item.target || !groupId) return;
+    react.mutate({
+      input: { emoji, target_type: item.target.type, target_id: item.target.id },
+      on,
+    });
+  }
+
   return (
     <li className="flex flex-col gap-2">
       <div className="flex items-baseline gap-2">
@@ -44,11 +62,20 @@ function ActivityRow({ item }: { item: RecentActivityItem }) {
           <span className="text-ink-muted"> · {item.ago}</span>
         </p>
       </div>
-      <div className="flex flex-wrap gap-2 pl-10">
-        {item.reactions.map((r) => (
-          <ReactionButton key={r.label} emoji={r.emoji} label={r.label} count={r.count} />
-        ))}
-      </div>
+      {item.reactions.length > 0 && (
+        <div className="flex flex-wrap gap-2 pl-10">
+          {item.reactions.map((r) => (
+            <ReactionButton
+              key={r.label}
+              emoji={r.emoji as ReactionEmoji}
+              label={r.label}
+              count={r.count}
+              mine={r.mine}
+              onToggle={canReact ? (on) => toggle(r.emoji as ReactionEmoji, on) : undefined}
+            />
+          ))}
+        </div>
+      )}
     </li>
   );
 }
@@ -57,16 +84,27 @@ function ReactionButton({
   emoji,
   label,
   count,
+  mine,
+  onToggle,
 }: {
   emoji: string;
   label: string;
   count: number;
+  mine: boolean;
+  onToggle?: (next: boolean) => void;
 }) {
   return (
     <button
       type="button"
-      aria-label={`React with ${label} (${count})`}
-      className="inline-flex items-center gap-1 rounded-pill border border-border bg-surface px-2.5 py-1 text-xs font-medium text-ink hover:bg-ink/5 active:scale-95 transition-transform"
+      disabled={!onToggle}
+      aria-label={`React with ${label} (${count})${mine ? ', added by you' : ''}`}
+      aria-pressed={mine}
+      onClick={() => onToggle?.(!mine)}
+      className={`inline-flex items-center gap-1 rounded-pill border px-2.5 py-1 text-xs font-medium transition-transform active:scale-95 disabled:active:scale-100 ${
+        mine
+          ? 'border-accent/40 bg-accent/10 text-accent'
+          : 'border-border bg-surface text-ink hover:bg-ink/5'
+      }`}
     >
       <span aria-hidden="true">{emoji}</span>
       <span className="tabular-nums text-ink-muted">{count}</span>

@@ -54,7 +54,9 @@ export interface RecentActivityItem {
   actorName: string;
   description: string;
   ago: string;
-  reactions: { emoji: string; label: string; count: number }[];
+  /** Set only for group-feed items you can react to; absent for the personal fallback. */
+  target?: { type: 'run' | 'workout'; id: string };
+  reactions: { emoji: string; label: string; count: number; mine: boolean }[];
 }
 
 export interface HomeSnapshot {
