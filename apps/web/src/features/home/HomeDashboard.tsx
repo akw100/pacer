@@ -2,6 +2,9 @@ import { Link } from 'react-router';
 import { AlertCircle, LogIn, Plus, Sparkles } from 'lucide-react';
 import { FriendsStandingCard } from '../friends/FriendsStandingCard';
 import { AddFriendInline } from '../friends/AddFriendInline';
+import { ScoreExplainerCard } from '../scoring/ScoreExplainerCard';
+import { useFriendsLeaderboard } from '../friends/useFriends';
+import { useAuth } from '../auth/AuthProvider';
 import { HomeHeader } from './HomeHeader';
 import { LogHero } from './LogHero';
 import { StandingCard } from './StandingCard';
@@ -28,6 +31,12 @@ import { greetingFor, useHomeData } from './useHomeData';
 export function HomeDashboard() {
   const { snapshot, isLoadingInitial, isError, topGroup } = useHomeData();
   const greeting = greetingFor();
+  // Real friends-leaderboard payload for the score explainer's compact
+  // top-4 chart. TanStack Query dedupes on queryKey, so FriendsStandingCard
+  // and AddFriendInline reuse the same in-flight request — no extra network.
+  const friendsLb = useFriendsLeaderboard();
+  const { session } = useAuth();
+  const callerId = session?.user.id ?? null;
 
   return (
     <div className="px-4 pt-5 pb-6 mx-auto w-full max-w-5xl flex flex-col gap-5">
@@ -59,6 +68,16 @@ export function HomeDashboard() {
       <StandingCard />
 
       <FriendsStandingCard />
+
+      {/* Score explainer with a compact top-4 friends leaderboard on the
+          right. Rules read from the real POINTS constant; leaderboard
+          reads from useFriendsLeaderboard (same query as
+          FriendsStandingCard, dedupes in TanStack Query cache). */}
+      <ScoreExplainerCard
+        mode="with-leaderboard"
+        leaderboard={friendsLb.data}
+        callerId={callerId}
+      />
 
       <HomePlansSection />
 
