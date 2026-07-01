@@ -22,7 +22,7 @@ import { greetingFor, useHomeData } from './useHomeData';
 // A small banner is shown on top if a critical source errors; that's it.
 
 export function HomeDashboard() {
-  const { snapshot, isLoadingInitial, isError } = useHomeData();
+  const { snapshot, isLoadingInitial, isError, topGroup } = useHomeData();
   const greeting = greetingFor();
 
   return (
@@ -63,7 +63,7 @@ export function HomeDashboard() {
           ) : (
             <NoGroupCard />
           )}
-          <RecentActivityList items={snapshot.recent} />
+          <RecentActivityList items={snapshot.recent} groupId={topGroup?.id ?? null} />
         </div>
       </div>
 
